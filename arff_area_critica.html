@@ -1562,26 +1562,54 @@
       DANGER: { bg: 'rgba(224,49,49,.10)', border: 'rgba(224,49,49,.4)', text: '#e03131', label: 'Insuficiente · Alerta RAC 14', icon: '⚠' },
     };
 
-    function buildTable(L_av = null, Wf_av = null) {
+    /*
+     * buildTable(L_av, Wf_av, catAerodromo)
+     *
+     * CONCEPTOS SEPARADOS (corrección del bug):
+     *   catAeronave  → categoría MÍNIMA requerida por la aeronave (calculada desde L)
+     *   catAerodromo → categoría DECLARADA del aeródromo (lo que el usuario seleccionó)
+     *
+     * La alerta se activa cuando: catAerodromo < catAeronave
+     * (el aeródromo no tiene la categoría mínima que exige la aeronave)
+     */
+    function buildTable(L_av = null, Wf_av = null, catAerodromo = null) {
       const tbody = document.getElementById('ref-tbody');
       tbody.innerHTML = '';
 
-      // Determine which category the aircraft belongs to
-      const aircraftCat = (L_av != null) ? detectCat(L_av) : null;
+      // Categoría mínima requerida por la aeronave (por su longitud)
+      const catAeronave = (L_av != null) ? detectCat(L_av) : null;
+
+      // Si no se pasó catAerodromo explícitamente, leerla del select
+      if (!catAerodromo) {
+        const selEl = document.getElementById('cat');
+        catAerodromo = selEl ? selEl.value : catAeronave;
+      }
+
+      // Fila del aeródromo en REF_DATA para comparar numéricamente
+      const aerodromoRow = REF_DATA.find(r => r.cat === catAerodromo);
 
       REF_DATA.forEach(r => {
-        const isAircraftCat = aircraftCat && r.cat === aircraftCat;
+        // La fila del aeródromo declarado se resalta con naranja
+        const isAerodromoCat = catAerodromo && r.cat === catAerodromo;
+        // La fila de la categoría mínima de la aeronave se resalta con ámbar
+        const isAeronaveMinCat = catAeronave && r.cat === catAeronave;
+
         const catColor = CAT_COLORS[r.cat] || '#8a9bba';
         const LmaxStr = r.Lmax === Infinity ? '≥ 76' : `< ${r.Lmax}`;
 
         const lvl = getProtectionLevel(r, L_av, Wf_av);
         const cfg = PROTECTION_CONFIG[lvl];
 
-        // Row background only for DANGER rows (not for MATCH/SAFE — avoids visual noise)
+        // Fondo de fila: prioridad → aeródromo declarado > peligro > nominal
         let rowStyle = '';
         if (lvl === 'DANGER') rowStyle = 'background:rgba(224,49,49,.05)';
-        if (lvl === 'MATCH') rowStyle = 'background:rgba(245,159,0,.05)';
-        if (isAircraftCat) rowStyle = 'background:rgba(247,103,7,.07)';
+        if (lvl === 'MATCH')  rowStyle = 'background:rgba(245,159,0,.05)';
+        if (isAeronaveMinCat) rowStyle = 'background:rgba(245,159,0,.07)';   // cat mínima aeronave
+        if (isAerodromoCat)   rowStyle = 'background:rgba(247,103,7,.1)';    // cat declarada aeródromo
+
+        // Marcadores visuales extra en las columnas L y Wf
+        const lStyle   = isAeronaveMinCat ? 'color:var(--orange);font-weight:600' : (isAerodromoCat ? 'color:var(--amber)' : '');
+        const wfStyle  = isAeronaveMinCat ? 'color:var(--amber);font-weight:600'  : '';
 
         const statusCell = lvl === 'NEUTRAL'
           ? `<td style="text-align:center;color:var(--text-muted);font-size:11px">—</td>`
@@ -1600,16 +1628,27 @@
            </span>
          </td>`;
 
+        // Badge extra en la columna de categoría para identificar declarada vs mínima
+        let catBadgeExtra = '';
+        if (isAerodromoCat && isAeronaveMinCat) {
+          catBadgeExtra = `<span style="font-family:var(--font-mono);font-size:8px;margin-left:4px;background:rgba(247,103,7,.2);color:var(--orange);border-radius:3px;padding:1px 4px">AERÓDROMO · MÍNIMA</span>`;
+        } else if (isAerodromoCat) {
+          catBadgeExtra = `<span style="font-family:var(--font-mono);font-size:8px;margin-left:4px;background:rgba(247,103,7,.2);color:var(--orange);border-radius:3px;padding:1px 4px">AERÓDROMO</span>`;
+        } else if (isAeronaveMinCat) {
+          catBadgeExtra = `<span style="font-family:var(--font-mono);font-size:8px;margin-left:4px;background:rgba(245,159,0,.15);color:var(--amber);border-radius:3px;padding:1px 4px">MÍNIMA AERONAVE</span>`;
+        }
+
         const row = `
-      <tr style="${rowStyle}" class="${isAircraftCat ? 'active-row' : ''}">
+      <tr style="${rowStyle}" class="${isAerodromoCat ? 'active-row' : ''}">
         <td>
           <span class="cat-badge" style="background:${catColor}22;color:${catColor};border:1px solid ${catColor}44">
             ${r.cat}
           </span>
+          ${catBadgeExtra}
         </td>
         <td>${r.name}</td>
-        <td style="color:${isAircraftCat ? 'var(--orange)' : ''};">${LmaxStr}</td>
-        <td style="color:${isAircraftCat ? 'var(--amber)' : ''};">${r.Wf.toFixed(1)}</td>
+        <td style="${lStyle}">${LmaxStr}</td>
+        <td style="${wfStyle}">${r.Wf.toFixed(1)}</td>
         <td>${r.Acmin}</td>
         <td><strong>${r.Acref}</strong></td>
         <td>${r.Acmax}</td>
@@ -1620,46 +1659,107 @@
         tbody.insertAdjacentHTML('beforeend', row);
       });
 
-      // Update the protection banner
-      updateProtectionBanner(L_av, Wf_av, aircraftCat);
+      // Pasar ambas categorías al banner
+      updateProtectionBanner(L_av, Wf_av, catAeronave, catAerodromo);
     }
 
-    function updateProtectionBanner(L_av, Wf_av, aircraftCat) {
+    /*
+     * updateProtectionBanner — versión corregida
+     *
+     *   catAeronave  = categoría mínima que exige la aeronave (por longitud)
+     *   catAerodromo = categoría declarada por el aeródromo (seleccionada por el usuario)
+     *
+     * REGLA: Si catAerodromo < catAeronave → ALERTA (aeródromo insuficiente)
+     *        Si catAerodromo >= catAeronave → OPERACIÓN SEGURA
+     */
+    function updateProtectionBanner(L_av, Wf_av, catAeronave, catAerodromo) {
       const banner = document.getElementById('protection-banner');
       if (L_av == null || Wf_av == null) { banner.style.display = 'none'; return; }
 
-      // Count dangerous rows (categories that do NOT cover the aircraft)
-      const dangerCats = REF_DATA.filter(r => getProtectionLevel(r, L_av, Wf_av) === 'DANGER');
-      const safeCats = REF_DATA.filter(r => ['SAFE', 'MATCH', 'SURPLUS'].includes(getProtectionLevel(r, L_av, Wf_av)));
-      const minSafe = safeCats.length > 0 ? safeCats[0] : null;
+      // Índices numéricos para comparar categorías (1–10, H)
+      const catToIdx = c => {
+        const n = parseInt(c);
+        return isNaN(n) ? 11 : n; // H (helicóptero) = 11 para comparación
+      };
 
-      if (dangerCats.length === 0) {
-        // All categories cover the aircraft — it's very small
-        const surplus = REF_DATA.filter(r => getProtectionLevel(r, L_av, Wf_av) === 'SURPLUS');
-        banner.style.cssText = `display:block;margin-bottom:12px;padding:12px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.8;border-left:4px solid #7048e8;background:rgba(112,72,232,.07);color:#a98ef7`;
-        banner.innerHTML = `<strong style="color:#c4b0ff">⬆ SUPERÁVIT DE AGENTES EXTINTORES</strong><br>
-      La aeronave (L=${L_av} m, Wf=${Wf_av} m) está cubierta por <strong>todas las categorías ARFF</strong>.<br>
-      En categorías superiores existe un superávit significativo de agentes extintores respecto al mínimo requerido.
-      Esto <strong>no es un problema de seguridad</strong>, sino una capacidad de respuesta aumentada.<br>
-      <span style="color:#7048e8;font-size:10px">OACI Doc 9137 §2.3 — La categoría es piso mínimo, no límite máximo.</span>`;
-      } else if (aircraftCat && dangerCats.some(r => r.cat === aircraftCat)) {
-        // The airport's declared category does NOT cover the aircraft → CRITICAL ALERT
-        banner.style.cssText = `display:block;margin-bottom:12px;padding:12px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.8;border-left:4px solid #e03131;background:rgba(224,49,49,.08);color:#ff8787`;
-        banner.innerHTML = `<strong style="color:#ff6b6b">⚠ ALERTA RAC 14 — NIVEL DE PROTECCIÓN INSUFICIENTE</strong><br>
-      La aeronave (L=${L_av} m, Wf=${Wf_av} m) <strong>excede los límites</strong> de la categoría ${aircraftCat} declarada del aeródromo.<br>
-      El aeródromo <strong>no cuenta con el nivel mínimo de protección ARFF</strong> requerido para esta aeronave.<br>
-      <span style="color:#e03131;font-size:10px">RAC 14 / OACI Doc 9137 §2.3 — Se requiere actualizar la categoría o restringir la operación.</span>`;
+      const idxAeronave  = catToIdx(catAeronave);   // mínimo requerido
+      const idxAerodromo = catToIdx(catAerodromo);  // lo que tiene el aeródromo
+
+      // Categoría mínima que realmente cubre a la aeronave (primera safe en tabla)
+      const safeCats = REF_DATA.filter(r =>
+        ['SAFE', 'MATCH', 'SURPLUS'].includes(getProtectionLevel(r, L_av, Wf_av))
+      );
+      const minSafe = safeCats.length > 0 ? safeCats[0] : null;
+      const minSafeIdx = minSafe ? catToIdx(minSafe.cat) : idxAeronave;
+
+      // ¿El aeródromo declarado cubre a la aeronave?
+      const aerodromoRow = REF_DATA.find(r => r.cat === catAerodromo);
+      const aerodromoCubre = aerodromoRow
+        ? getProtectionLevel(aerodromoRow, L_av, Wf_av) !== 'DANGER'
+        : false;
+
+      const margen = idxAerodromo - minSafeIdx; // positivo = superávit
+
+      if (!aerodromoCubre) {
+        /* ── ALERTA ROJA: aeródromo declarado NO cubre la aeronave ── */
+        banner.style.cssText = `display:block;margin-bottom:12px;padding:14px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.9;border-left:4px solid #e03131;background:rgba(224,49,49,.10);color:#ff8787`;
+        banner.innerHTML = `
+          <strong style="color:#ff6b6b;font-size:13px">⚠ ALERTA RAC 14 — NIVEL DE PROTECCIÓN INSUFICIENTE</strong><br>
+          La aeronave (L=${L_av} m, Wf=${Wf_av} m) <strong>excede los límites</strong> de la <strong style="color:#ff6b6b">Categoría ${catAerodromo}</strong> declarada del aeródromo.<br>
+          Categoría mínima requerida por la aeronave: <strong style="color:#f59f00">${catAeronave}</strong> &nbsp;|&nbsp; Categoría declarada del aeródromo: <strong style="color:#ff6b6b">${catAerodromo}</strong><br>
+          El aeródromo <strong>no cuenta con el nivel mínimo de protección ARFF</strong> requerido para operar esta aeronave.<br>
+          <span style="color:#e03131;font-size:10px;margin-top:4px;display:block">
+            RAC 14 / OACI Doc 9137 §2.3 — Se requiere elevar la categoría del aeródromo a Cat. ${catAeronave} o superior, o restringir la operación de esta aeronave.
+          </span>`;
+      } else if (margen >= 2) {
+        /* ── SUPERÁVIT: aeródromo tiene 2+ categorías por encima del mínimo ── */
+        banner.style.cssText = `display:block;margin-bottom:12px;padding:14px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.9;border-left:4px solid #7048e8;background:rgba(112,72,232,.07);color:#a98ef7`;
+        banner.innerHTML = `
+          <strong style="color:#c4b0ff;font-size:13px">⬆ SUPERÁVIT DE PROTECCIÓN</strong><br>
+          La aeronave (L=${L_av} m, Wf=${Wf_av} m) está cubierta con amplio margen.<br>
+          Categoría mínima requerida: <strong style="color:#f59f00">${minSafe ? minSafe.cat : catAeronave}</strong> &nbsp;|&nbsp; Categoría declarada: <strong style="color:#c4b0ff">${catAerodromo}</strong> (margen de +${margen} categorías)<br>
+          <span style="color:#7048e8;font-size:10px;margin-top:4px;display:block">
+            OACI Doc 9137 §2.3 — La categoría es piso mínimo, no límite máximo. Superávit de agentes no representa riesgo.
+          </span>`;
+      } else if (margen === 1) {
+        /* ── OPERACIÓN SEGURA con margen de 1 categoría ── */
+        banner.style.cssText = `display:block;margin-bottom:12px;padding:14px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.9;border-left:4px solid #2f9e44;background:rgba(47,158,68,.07);color:#8ce99a`;
+        banner.innerHTML = `
+          <strong style="color:#69db7c;font-size:13px">✓ OPERACIÓN SEGURA — Nivel de protección adecuado</strong><br>
+          La aeronave (L=${L_av} m, Wf=${Wf_av} m) está <strong>cubierta por la Categoría ${catAerodromo}</strong> del aeródromo.<br>
+          Categoría mínima requerida: <strong style="color:#f59f00">${minSafe ? minSafe.cat : catAeronave}</strong> &nbsp;|&nbsp; Categoría declarada: <strong style="color:#69db7c">${catAerodromo}</strong> (margen de protección disponible)<br>
+          <span style="color:#2f9e44;font-size:10px;margin-top:4px;display:block">
+            OACI Doc 9137 §2.3 / RAC 14 — Cumplimiento normativo verificado.
+          </span>`;
       } else {
-        // Aircraft is covered by its category
-        banner.style.cssText = `display:block;margin-bottom:12px;padding:12px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.8;border-left:4px solid #2f9e44;background:rgba(47,158,68,.07);color:#8ce99a`;
-        banner.innerHTML = `<strong style="color:#69db7c">✓ OPERACIÓN SEGURA — Nivel de protección adecuado</strong><br>
-      La aeronave (L=${L_av} m, Wf=${Wf_av} m) está <strong>cubierta por la categoría ${aircraftCat}</strong> del aeródromo.<br>
-      ${minSafe ? `Categoría mínima requerida: <strong style="color:#f59f00">${minSafe.cat}</strong>. Categoría declarada: <strong style="color:#2f9e44">${aircraftCat}</strong> (margen de protección disponible).` : ''}
-      <span style="color:#2f9e44;font-size:10px">OACI Doc 9137 §2.3 / RAC 14 — Cumplimiento normativo verificado.</span>`;
+        /* ── OPERACIÓN SEGURA categoría exacta (margen = 0) ── */
+        banner.style.cssText = `display:block;margin-bottom:12px;padding:14px 18px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.9;border-left:4px solid #f59f00;background:rgba(245,159,0,.07);color:#ffd43b`;
+        banner.innerHTML = `
+          <strong style="color:#ffd43b;font-size:13px">◎ CATEGORÍA EXACTA — Operación en el límite normativo</strong><br>
+          La aeronave (L=${L_av} m, Wf=${Wf_av} m) está cubierta exactamente por la <strong style="color:#ffd43b">Categoría ${catAerodromo}</strong> declarada.<br>
+          Categoría mínima requerida: <strong style="color:#f59f00">${minSafe ? minSafe.cat : catAeronave}</strong> &nbsp;|&nbsp; Categoría declarada: <strong style="color:#ffd43b">${catAerodromo}</strong> (sin margen de excedencia)<br>
+          <span style="color:#f59f00;font-size:10px;margin-top:4px;display:block">
+            OACI Doc 9137 §2.3 / RAC 14 — Cumplimiento normativo al mínimo requerido.
+          </span>`;
       }
     }
 
     buildTable();
+
+    /* ─── LISTENER: cambio de categoría del aeródromo actualiza banner y tabla en tiempo real ─── */
+    document.addEventListener('DOMContentLoaded', function() {
+      const catSel = document.getElementById('cat');
+      if (catSel) {
+        catSel.addEventListener('change', function() {
+          const L  = parseFloat(document.getElementById('inp-L').value);
+          const Wf = parseFloat(document.getElementById('inp-Wf').value);
+          if (!isNaN(L) && !isNaN(Wf)) {
+            // Ya hay un cálculo activo — actualizar tabla y banner con la nueva categoría
+            buildTable(L, Wf, catSel.value);
+          }
+        });
+      }
+    });
 
     /* ─── FACTOR f — OACI Doc 9137 Parte 1 §2.3.2 ──── */
     function calcFactorF(Wf) {
@@ -1736,10 +1836,14 @@
       window.lastAc = AcRound;
 
       // Show result
-      document.getElementById('res-ac').innerHTML = `${AcRound.toFixed(2)}<span class="unit"> m²</span>`;
-      document.getElementById('res-L-val').textContent = `${L} m`;
-      document.getElementById('res-Wf-val').textContent = `${Wf} m`;
-      document.getElementById('res-f-val').textContent = `${f} m`;
+      const valAc = document.getElementById('val-ac');
+      if (valAc) valAc.innerHTML = `${AcRound.toFixed(2)}<span class="unit"> m²</span>`;
+      const breakL = document.getElementById('break-L');
+      if (breakL) breakL.textContent = `${L} m`;
+      const breakWf = document.getElementById('break-Wf');
+      if (breakWf) breakWf.textContent = `${Wf} m`;
+      const breakF = document.getElementById('break-f');
+      if (breakF) breakF.textContent = `${f} m`;
 
       // Normative rule display
       const fRule = Wf < 12
@@ -1766,8 +1870,8 @@
       // Diagram
       drawDiagram(L, Wf, f, AcRound);
 
-      // Build table with protection-level logic
-      buildTable(L, Wf);
+      // Build table with protection-level logic — pasar cat declarada del aeródromo
+      buildTable(L, Wf, catRef);
 
       // Add to history
       const entry = {
@@ -2044,68 +2148,12 @@
             }
 
             // Cálculo automático inmediato
-            calcularAreaCritica();
+            calcular();
             showToast(`✓ Datos de ${nave.modelo} cargados`);
           }
         });
       }
     }
-
-    // Lógica de Cálculo (ICAO Doc 9137)
-    function calcularAreaCritica() {
-      const L = parseFloat(document.getElementById('inp-L').value);
-      const Wf = parseFloat(document.getElementById('inp-Wf').value);
-
-      if (isNaN(L) || isNaN(Wf)) {
-        if (typeof event !== 'undefined' && event && event.type === 'click') {
-          showToast('⚠ Complete L y Wf');
-        }
-        return;
-      }
-
-      // REGLA f: Wf < 12 => f=12 | Wf >= 12 => f=30
-      const f = Wf < 12 ? 12 : 30;
-      const Ac = L * (Wf + f);
-      const AcRound = Math.round(Ac * 100) / 100;
-
-      mostrarResultado(AcRound, L, Wf, f);
-    }
-
-    function mostrarResultado(Ac, L, Wf, f) {
-      const resultBox = document.getElementById('result-box');
-      const valAc = document.getElementById('val-ac');
-      const breakL = document.getElementById('break-L');
-      const breakWf = document.getElementById('break-Wf');
-      const breakf = document.getElementById('break-f');
-      const catSelect = document.getElementById('cat');
-      const cat = catSelect ? catSelect.value : detectCat(L);
-
-      if (valAc) valAc.innerHTML = `${Ac.toFixed(2)}<span class="unit"> m²</span>`;
-      if (breakL) breakL.textContent = `${L} m`;
-      if (breakWf) breakWf.textContent = `${Wf} m`;
-      if (breakf) breakf.textContent = `${f} m`;
-
-      if (resultBox) resultBox.classList.add('show');
-
-      // Visualizaciones (Asegúrate que estas funciones existen arriba en el HTML)
-      if (typeof drawDiagram === 'function') drawDiagram(L, Wf, f, Ac);
-      if (typeof buildTable === 'function') buildTable(L, Wf);
-
-      // Categoría Badge
-      const badge = document.getElementById('res-cat-badge');
-      if (badge && typeof CAT_COLORS !== 'undefined') {
-        const color = CAT_COLORS[cat] || '#8a9bba';
-        badge.innerHTML = `<span class="cat-badge" style="font-size:16px;width:40px;height:40px;background:${color}22;color:${color};border:1px solid ${color}44">${cat}</span>`;
-      }
-
-      window.lastAc = Ac;
-      window.lastCat = cat;
-
-      showToast(`✓ Ac = ${Ac.toFixed(2)} m² (f=${f} m)`);
-    }
-
-    // Exportar función al botón original si es necesario
-    window.calcular = calcularAreaCritica;
 
     window.onload = async () => {
       await loadAeronaves();
@@ -2122,7 +2170,7 @@
           const selCat = document.getElementById('cat');
           if (selCat) selCat.value = urlParams.get('cat');
         }
-        setTimeout(calcularAreaCritica, 300);
+        setTimeout(calcular, 300);
       }
     };
   </script>
