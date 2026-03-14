@@ -2063,7 +2063,7 @@
       const cat  = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
       const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
       const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
-      generarReporteSEI(nombre, 'pdf-content', {
+      window.generarReporteSEI(nombre, 'pdf-content', {
         titulo:      'Área Crítica de Aeronave — OACI Doc 9137',
         subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
         estacion:    '—',
@@ -2161,4 +2161,3 @@
   </script>
 </body>
 
-</html>
