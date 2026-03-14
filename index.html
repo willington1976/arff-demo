@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#060c14">
+    <title>SEI — Sistema de Extinción de Incendios · UAEAC Colombia</title>
+    <meta name="description"
+        content="Portal de acceso al Sistema SEI — Servicios de Extinción de Incendios ARFF Colombia · UAEAC">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ══════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════ */
+        :root {
+            --bg: #060c14;
+            --surface: #0d1520;
+            --s2: #111d2e;
+            --s3: #162035;
+            --border: #1c2e47;
+            --border2: #243a58;
+
+            --teal: #0bc5a0;
+            --teal2: #087f5b;
+            --teal-glow: rgba(11, 197, 160, .18);
+
+            --amber: #f59f00;
+            --amber-glow: rgba(245, 159, 0, .18);
+
+            --red: #f03e3e;
+            --sky: #38bdf8;
+            --orange: #f76707;
+            --green: #40c057;
+
+            --text: #dde4ee;
+            --text-dim: #7a90aa;
+            --text-muted: #3a4f68;
+
+            --ff-t: 'Syne', sans-serif;
+            --ff-b: 'DM Sans', sans-serif;
+            --ff-m: 'DM Mono', monospace;
+
+            --r: 12px;
+            --rs: 7px;
+            --tr: .18s ease;
+        }
+
+        *,
+        ::before,
+        ::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* ══════════════════════════════════════════════════
+   FULL-SCREEN BODY — DARK AERONAUTICAL BG
+══════════════════════════════════════════════════ */
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--ff-b);
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Dot-grid blueprint pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: radial-gradient(circle, #1e3a5f 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: .07;
+            pointer-events: none;
+        }
+
+        /* Radial vignette glow */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 70% 60% at 50% 40%, rgba(11, 197, 160, .055) 0%, transparent 65%),
+                radial-gradient(ellipse 40% 40% at 80% 90%, rgba(56, 189, 248, .04) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Scanlines overlay */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, .045) 2px,
+                    rgba(0, 0, 0, .045) 4px);
+            opacity: .35;
+        }
+
+        /* ══════════════════════════════════════════════════
+   MAIN LAYOUT
+══════════════════════════════════════════════════ */
+        main {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 0;
+        }
+
+        /* ══════════════════════════════════════════════════
+   TOP BADGE
+══════════════════════════════════════════════════ */
+        .top-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            background: var(--s2);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: 6px 18px;
+            font-family: var(--ff-m);
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .top-badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: blink 1.6s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .25
+            }
+        }
+
+        /* ══════════════════════════════════════════════════
+   LOGO CONTAINER
+══════════════════════════════════════════════════ */
+        .logo-wrap {
+            position: relative;
+            margin-bottom: 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Glow ring behind logo */
+        .logo-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 360px;
+            height: 360px;
+            border-radius: 24px;
+            background: radial-gradient(circle, rgba(11, 197, 160, .13) 0%, transparent 70%);
+            pointer-events: none;
+            animation: glow-pulse 3.5s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                opacity: .55;
+                transform: translate(-50%, -50%) scale(1.07);
+            }
+        }
+
+        /* Outer decorative ring */
+        .logo-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 306px;
+            height: 306px;
+            border-radius: 20px;
+            border: 1px solid rgba(11, 197, 160, .2);
+            pointer-events: none;
+        }
+
+        .logo-ring-2 {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 328px;
+            height: 328px;
+            border-radius: 26px;
+            border: 1px dashed rgba(11, 197, 160, .09);
+            pointer-events: none;
+            animation: spin 50s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* The actual image — blueprint badge, square with rounded corners */
+        .logo-img {
+            position: relative;
+            width: clamp(200px, 28vw, 290px);
+            height: clamp(200px, 28vw, 290px);
+            object-fit: contain;
+            border-radius: 16px;
+            /* Teal blueprint glow matching background */
+            filter: drop-shadow(0 0 32px rgba(11, 197, 160, .4)) drop-shadow(0 0 80px rgba(11, 197, 160, .15));
+            animation: float 5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* ══════════════════════════════════════════════════
+   HEADING BLOCK
+══════════════════════════════════════════════════ */
+        .heading-block {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .heading-block .eyebrow {
+            font-family: var(--ff-m);
+            font-size: 10px;
+            color: var(--teal);
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .heading-block h1 {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: clamp(22px, 4vw, 34px);
+            letter-spacing: -.02em;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .heading-block h1 em {
+            color: var(--teal);
+            font-style: normal;
+        }
+
+        .heading-block .subtitle {
+            font-family: var(--ff-b);
+            font-size: 13px;
+            color: var(--text-dim);
+            max-width: 420px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ══════════════════════════════════════════════════
+   LOGIN CARD
+══════════════════════════════════════════════════ */
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(11, 197, 160, .06);
+        }
+
+        .card-strip {
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal2), var(--teal), #5ef0d5);
+        }
+
+        .card-body {
+            padding: 30px 28px 28px;
+        }
+
+        .card-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .card-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(11, 197, 160, .1);
+            border: 1px solid rgba(11, 197, 160, .2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-family: var(--ff-t);
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .card-subtitle {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            color: var(--text-muted);
+            letter-spacing: .06em;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ══════════════════════════════════════════════════
+   FORM FIELDS
+══════════════════════════════════════════════════ */
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .field label {
+            font-family: var(--ff-m);
+            font-size: 10.5px;
+            color: var(--text-dim);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap svg {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-muted);
+            transition: color var(--tr);
+        }
+
+        .input-wrap input {
+            width: 100%;
+            background: var(--s2);
+            border: 1px solid var(--border2);
+            border-radius: var(--rs);
+            color: var(--text);
+            font-family: var(--ff-m);
+            font-size: 13.5px;
+            padding: 11px 14px 11px 40px;
+            outline: none;
+            transition: border-color var(--tr), box-shadow var(--tr);
+            letter-spacing: .02em;
+        }
+
+        .input-wrap input::placeholder {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .input-wrap input:focus {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px var(--teal-glow);
+        }
+
+        .input-wrap input:focus+svg,
+        .input-wrap:focus-within svg {
+            color: var(--teal);
+        }
+
+        /* ══════════════════════════════════════════════════
+   ROLE SELECTOR
+══════════════════════════════════════════════════ */
+        .role-field {
+            margin-bottom: 22px;
+        }
+
+        .role-label {
+            font-family: var(--ff-m);
+            font-size: 10.5px;
+            color: var(--text-dim);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .role-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .role-opt {
+            display: none;
+        }
+
+        .role-lbl {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 8px;
+            border-radius: var(--rs);
+            border: 1px solid var(--border2);
+            background: var(--s2);
+            cursor: pointer;
+            transition: all var(--tr);
+            font-family: var(--ff-m);
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: .04em;
+            text-align: center;
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .role-lbl:hover {
+            border-color: rgba(11, 197, 160, .4);
+            color: var(--teal);
+        }
+
+        .role-opt:checked+.role-lbl,
+        .role-lbl.active {
+            border-color: var(--teal);
+            background: rgba(11, 197, 160, .07);
+            color: var(--teal);
+            box-shadow: 0 0 0 1px rgba(11, 197, 160, .15);
+        }
+
+        .role-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        /* ── Recovery link ── */
+        .recovery-link {
+            font-family: var(--ff-m);
+            font-size: 10.5px;
+            color: var(--text-muted);
+            text-decoration: none;
+            letter-spacing: .04em;
+            transition: color .15s ease;
+            border-bottom: 1px dashed rgba(58, 79, 104, .5);
+            padding-bottom: 1px;
+        }
+
+        .recovery-link:hover {
+            color: var(--teal);
+            border-bottom-color: var(--teal);
+        }
+
+        /* ══════════════════════════════════════════════════
+   SUBMIT BUTTON — AMBER OACI GLOW
+══════════════════════════════════════════════════ */
+        .btn-submit {
+            width: 100%;
+            margin-top: 4px;
+            padding: 14px;
+            background: linear-gradient(135deg, #c97b00 0%, var(--amber) 50%, #ffe066 100%);
+            border: none;
+            border-radius: var(--rs);
+            color: #1a1000;
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform var(--tr), box-shadow var(--tr), opacity var(--tr);
+            box-shadow: 0 4px 24px rgba(245, 159, 0, .25), 0 0 0 1px rgba(245, 159, 0, .15);
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .28) 50%, transparent 60%);
+            transform: translateX(-100%);
+            transition: transform .6s ease;
+        }
+
+        .btn-submit:hover::before {
+            transform: translateX(100%);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(245, 159, 0, .45), 0 0 48px rgba(245, 159, 0, .18);
+            opacity: .95;
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Loading state */
+        .btn-submit.loading {
+            opacity: .7;
+            pointer-events: none;
+        }
+
+        /* ══════════════════════════════════════════════════
+   DIVIDER + CHIPS
+══════════════════════════════════════════════════ */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0 16px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            color: var(--text-muted);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .module-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--text-muted);
+            background: var(--s2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 3px 9px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .chip .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ══════════════════════════════════════════════════
+   ERROR / SUCCESS MESSAGES
+══════════════════════════════════════════════════ */
+        .msg {
+            display: none;
+            font-family: var(--ff-m);
+            font-size: 11px;
+            padding: 10px 14px;
+            border-radius: var(--rs);
+            border-left: 3px solid;
+            margin-top: 14px;
+            letter-spacing: .03em;
+            line-height: 1.5;
+            animation: fadeUp .25s ease;
+        }
+
+        .msg.show {
+            display: block;
+        }
+
+        .msg-error {
+            color: #ff8787;
+            border-color: var(--red);
+            background: rgba(240, 62, 62, .07);
+        }
+
+        .msg-success {
+            color: #8ce99a;
+            border-color: var(--green);
+            background: rgba(64, 192, 87, .07);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ══════════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════════ */
+        footer {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 22px 20px 20px;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .footer-strip {
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal2), var(--teal), #5ef0d5);
+            border-radius: 2px;
+            margin: 0 auto 12px;
+        }
+
+        .footer-name {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 12px;
+            color: var(--text);
+            letter-spacing: .05em;
+            margin-bottom: 4px;
+        }
+
+        .footer-cred {
+            font-family: var(--ff-m);
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: .06em;
+        }
+
+        .footer-cred span {
+            color: var(--teal);
+        }
+
+        .footer-norm {
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: .04em;
+        }
+
+        /* ══════════════════════════════════════════════════
+   CORNER DECORATIONS
+══════════════════════════════════════════════════ */
+        .corner {
+            position: fixed;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .corner-tl {
+            top: 16px;
+            left: 16px;
+        }
+
+        .corner-tr {
+            top: 16px;
+            right: 16px;
+            transform: rotate(90deg);
+        }
+
+        .corner-bl {
+            bottom: 60px;
+            left: 16px;
+            transform: rotate(-90deg);
+        }
+
+        .corner-br {
+            bottom: 60px;
+            right: 16px;
+            transform: rotate(180deg);
+        }
+
+        /* ══════════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════════ */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+
+        /* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
+        @media (max-width: 480px) {
+            .login-card {
+                border-radius: var(--rs);
+            }
+
+            .card-body {
+                padding: 22px 18px 20px;
+            }
+
+            .logo-img {
+                width: 180px;
+                height: 180px;
+            }
+
+            .logo-glow {
+                width: 280px;
+                height: 280px;
+            }
+
+            .logo-ring {
+                width: 220px;
+                height: 220px;
+            }
+
+            .logo-ring-2 {
+                width: 240px;
+                height: 240px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .role-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <!-- SDK oficial Supabase v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuración Supabase — debe cargar ANTES del script de login -->
+    <script src="supabase-config.js"></script>
+<link rel="stylesheet" href="css/sei-pdf-style.css">
+</head>
+
+<body>
+
+    <!-- Scanlines -->
+    <div class="scanlines"></div>
+
+    <!-- Corner decoration SVGs -->
+    <svg class="corner corner-tl" width="32" height="32" fill="none">
+        <path d="M1 31 L1 1 L31 1" stroke="rgba(11,197,160,.3)" stroke-width="1.5" />
+    </svg>
+    <svg class="corner corner-tr" width="32" height="32" fill="none">
+        <path d="M1 31 L1 1 L31 1" stroke="rgba(11,197,160,.3)" stroke-width="1.5" />
+    </svg>
+    <svg class="corner corner-bl" width="32" height="32" fill="none">
+        <path d="M1 31 L1 1 L31 1" stroke="rgba(11,197,160,.2)" stroke-width="1.5" />
+    </svg>
+    <svg class="corner corner-br" width="32" height="32" fill="none">
+        <path d="M1 31 L1 1 L31 1" stroke="rgba(11,197,160,.2)" stroke-width="1.5" />
+    </svg>
+
+    <main>
+
+        <!-- Live status badge -->
+        <div class="top-badge">
+            <div class="dot"></div>
+            Sistema SEI · UAEAC · Panel Operativo Nacional
+        </div>
+
+        <!-- ── LOGO ─────────────────────────────────── -->
+        <div class="logo-wrap">
+            <div class="logo-glow"></div>
+            <div class="logo-ring"></div>
+            <div class="logo-ring-2"></div>
+            <img class="logo-img" src="LOGO_SEI_CLEAN.png"
+                alt="Escudo SEI Colombia — Bomberos Aeronáuticos ARFF · UAEAC"
+                onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'">
+            <!-- Fallback SVG if image not found -->
+            <div id="logo-fallback"
+                style="display:none;width:clamp(200px,28vw,290px);height:clamp(200px,28vw,290px);border-radius:16px;background:var(--s2);border:1px solid var(--border);align-items:center;justify-content:center;flex-direction:column;gap:8px">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                    <path d="M32 6L10 14V32c0 11 9.5 20.8 22 23.5C44.5 52.8 54 43 54 32V14Z" fill="none"
+                        stroke="#f03e3e" stroke-width="2" />
+                    <path
+                        d="M32 16c0 0-4 6-2 11C26 25 25 20 25 20c0 0-4 5-4 10 0 6.6 4.9 11 11 11s11-4.4 11-11c0-8-9-14-11-14z"
+                        fill="url(#lg)" />
+                    <defs>
+                        <linearGradient id="lg" x1="32" y1="16" x2="32" y2="41">
+                            <stop stop-color="#f59f00" />
+                            <stop offset=".5" stop-color="#f76707" />
+                            <stop offset="1" stop-color="#e03131" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span style="font-family:var(--ff-m);font-size:9px;color:var(--text-muted);letter-spacing:.1em">WAP-BAE
+                    SEI</span>
+            </div>
+        </div>
+
+        <!-- ── HEADING ───────────────────────────────── -->
+        <div class="heading-block">
+            <div class="eyebrow">Sistema de Extinción de Incendios · ARFF Colombia</div>
+            <h1>Bienvenido al <em>Sistema SEI</em></h1>
+            <p class="subtitle">Plataforma oficial de cálculos operativos, supervisión y gestión de Bomberos
+                Aeronáuticos — UAEAC</p>
+        </div>
+
+        <!-- ── LOGIN CARD ────────────────────────────── -->
+        <div class="login-card" role="main" aria-label="Formulario de acceso">
+
+            <div class="card-strip"></div>
+
+            <div class="card-body">
+
+                <!-- Card header -->
+                <div class="card-title-row">
+                    <div class="card-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bc5a0" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="card-title">Acceso al Sistema</div>
+                        <div class="card-subtitle">Credenciales institucionales requeridas</div>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form id="login-form" novalidate>
+
+                    <!-- Email -->
+                    <div class="field">
+                        <label for="email">Correo Institucional</label>
+                        <div class="input-wrap">
+                            <input type="email" id="email" name="email" placeholder="usuario@aerocivil.gov.co"
+                                autocomplete="email" required>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                <polyline points="22,6 12,13 2,6" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="field">
+                        <label for="password">Contraseña</label>
+                        <div class="input-wrap">
+                            <input type="password" id="password" name="password" placeholder="••••••••••••"
+                                autocomplete="current-password" required>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Role selector (OCULTO - Rol se asigna desde Base de Datos) -->
+                    <div class="role-field" style="display:none;">
+                        <span class="role-label">Perfil de acceso</span>
+                        <div class="role-grid">
+
+                            <div>
+                                <input type="radio" name="rol" id="rol-comandante" value="comandante" class="role-opt"
+                                    checked>
+                                <label for="rol-comandante" class="role-lbl">
+                                    <span class="role-icon">🚒</span>
+                                    Comandante
+                                </label>
+                            </div>
+
+                            <div>
+                                <input type="radio" name="rol" id="rol-jefe" value="jefe_nacional" class="role-opt">
+                                <label for="rol-jefe" class="role-lbl">
+                                    <span class="role-icon">🏛️</span>
+                                    Jefe Nacional
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Submit button -->
+                    <button type="submit" class="btn-submit" id="btn-ingresar">
+                        ➤ &nbsp;Ingresar al Sistema SEI
+                    </button>
+
+                    <!-- Forgot password link -->
+                    <div style="text-align:center;margin-top:12px">
+                        <a href="#" id="link-recovery" class="recovery-link" onclick="handleRecovery(event)">¿Olvidaste
+                            tu contraseña?</a>
+                    </div>
+
+                    <!-- Messages (simuladas + Supabase) -->
+                    <div id="msg-error" class="msg msg-error" role="alert"></div>
+                    <div id="msg-success" class="msg msg-success" role="status"></div>
+                    <!-- Contenedor principal de errores Supabase (id='login-error') -->
+                    <div id="login-error" class="msg msg-error" role="alert" aria-live="assertive"></div>
+
+                </form>
+
+                <!-- Divider + module chips -->
+                <div class="divider"><span>Módulos disponibles</span></div>
+                <div class="module-chips">
+                    <div class="chip">
+                        <div class="dot" style="background:var(--red)"></div>Área Crítica
+                    </div>
+                    <div class="chip">
+                        <div class="dot" style="background:var(--orange)"></div>Tasa de Descarga
+                    </div>
+                    <div class="chip">
+                        <div class="dot" style="background:var(--sky)"></div>Volumen de Espuma
+                    </div>
+                    <div class="chip">
+                        <div class="dot" style="background:var(--teal)"></div>Dashboard Nacional
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- /login-card -->
+
+    </main>
+
+    <!-- ── FOOTER ─────────────────────────────────── -->
+    <footer>
+        <div class="footer-strip"></div>
+        <div class="footer-name">Diseño: WILLINGTON PEÑA MONTENEGRO — Bombero Aeronáutico BAE 373</div>
+        <div class="footer-cred">UAEAC · Dirección SEI &nbsp;·&nbsp; <span>ARFF Colombia</span></div>
+        <div class="footer-norm">OACI Doc 9137 &nbsp;|&nbsp; RAC 14 &nbsp;|&nbsp; NFPA 403-2018 &nbsp;|&nbsp; Sistema
+            SEI v1.0</div>
+    </footer>
+
+    <script>
+
+        /* ═══════════════════════════════
+           DESTINOS POR ROL
+        ═══════════════════════════════ */
+        const DESTINOS = {
+            'admin': 'dashboard_principal.html',
+            'jefe_nacional': 'dashboard_principal.html',
+            'comandante': 'dashboard_principal.html'
+        };
+
+        /* ═══════════════════════════════
+           ROL ACTIVO — variable de estado
+        ═══════════════════════════════ */
+        let selectedRol = 'comandante'; // Estado global del rol seleccionado
+
+        // Sincroniza la variable + clase 'active' en los labels al cambiar rol
+        function syncRolState(value) {
+            selectedRol = value;
+            document.querySelectorAll('.role-lbl').forEach(lbl => lbl.classList.remove('active'));
+            const radio = document.getElementById('rol-' + (value === 'jefe_nacional' ? 'jefe' : value));
+            if (radio) radio.nextElementSibling.classList.add('active');
+        }
+
+        // Inicializar estado al cargar
+        document.querySelectorAll('input[name="rol"]').forEach(radio => {
+            radio.addEventListener('change', () => syncRolState(radio.value));
+        });
+        syncRolState('comandante'); // Estado inicial
+
+        /* ═══════════════════════════════
+           FORM LOGIC
+        ═══════════════════════════════ */
+        const form = document.getElementById('login-form');
+        const btnEl = document.getElementById('btn-ingresar');
+        const errEl = document.getElementById('msg-error');
+        const succEl = document.getElementById('msg-success');
+        const supaErr = document.getElementById('login-error'); // Para errores Supabase
+
+        // Muestra error en contenedor Supabase (#login-error)
+        function showSupabaseError(text) {
+            supaErr.textContent = text;
+            supaErr.classList.add('show');
+            errEl.classList.remove('show');
+            succEl.classList.remove('show');
+        }
+
+        function clearAllErrors() {
+            [errEl, succEl, supaErr].forEach(el => el.classList.remove('show'));
+        }
+
+        function showMsg(el, text) {
+            clearAllErrors();
+            el.textContent = text;
+            el.classList.add('show');
+        }
+
+        function getSelectedRol() {
+            return selectedRol; // Usa la variable de estado en lugar de leer el DOM
+        }
+
+        /* ═══════════════════════════════
+           RECUPERACIÓN DE CONTRASEÑA
+        ═══════════════════════════════ */
+        async function handleRecovery(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            if (!email || !email.includes('@')) {
+                showMsg(errEl, '⚠ Ingrese su correo institucional primero para recuperar la contraseña.');
+                document.getElementById('email').focus();
+                return;
+            }
+            try {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
+                if (error) throw error;
+                showMsg(succEl, '✉ Si el correo existe en el sistema, recibirá las instrucciones de recuperación.');
+            } catch (err) {
+                showSupabaseError('⚠ No se pudo enviar el correo de recuperación: ' + (err.message || err));
+            }
+        }
+
+        /* ═══════════════════════════════
+           HANDLE LOGIN — Autenticación Supabase Real
+        ═══════════════════════════════ */
+        async function handleLogin(email, password) {
+
+            // 1. Autenticar con Supabase Auth
+            const { data: authData, error: authError } =
+                await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (authError) {
+                // Traduce mensajes comunes de Supabase al español
+                const msg = authError.message.includes('Invalid login credentials')
+                    ? '✗ Correo o contraseña incorrectos. Verifique sus credenciales.'
+                    : authError.message.includes('Email not confirmed')
+                        ? '⚠ Debe confirmar su correo antes de ingresar. Revise su bandeja.'
+                        : '✗ Error de autenticación: ' + authError.message;
+                showSupabaseError(msg);
+                btnEl.classList.remove('loading');
+                btnEl.textContent = '➤\u00a0\u00a0Ingresar al Sistema SEI';
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+                return;
+            }
+
+            // 2. Consultar perfil en la tabla perfiles_usuarios
+            const userId = authData.user.id;
+            const { data: perfil, error: perfilError } = await supabaseClient
+                .from('perfiles_usuarios')
+                .select('rol')
+                .eq('user_id', userId)
+                .single();
+
+            let rolFinal = 'comandante'; // fallback seguro
+
+            if (perfilError) {
+                console.error('Error cargando perfil:', perfilError);
+                // Si la tabla bloquea lectura por RLS, avisamos al usuario
+                showSupabaseError('Error de permisos en la tabla perfiles_usuarios. Contacte al administrador.');
+                btnEl.classList.remove('loading');
+                btnEl.textContent = '➤\u00a0\u00a0Ingresar al Sistema SEI';
+                return;
+            }
+
+            if (!perfil) {
+                showSupabaseError('No tienes un rol asignado en el sistema.');
+                btnEl.classList.remove('loading');
+                btnEl.textContent = '➤\u00a0\u00a0Ingresar al Sistema SEI';
+                return;
+            }
+
+            rolFinal = perfil.rol; // 'admin', 'comandante', 'jefe_nacional'
+
+            // Guardar rol y nombre en sessionStorage para auth-guard
+            sessionStorage.setItem('sei_rol', rolFinal);
+            sessionStorage.setItem('sei_nombre', perfil.nombre_completo || authData.user.email.split('@')[0]);
+
+            // 3. Redirección según rol
+            const destino = DESTINOS[rolFinal] || DESTINOS['comandante'];
+            showMsg(succEl, '✓ Acceso concedido (’' + rolFinal + '’). Redirigiendo…');
+            setTimeout(() => { window.location.href = destino; }, 900);
+        }
+
+        /* ═══════════════════════════════
+           FORM SUBMIT — Conecta con handleLogin()
+        ═══════════════════════════════ */
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+
+            // Validaciones de campo
+            if (!email) {
+                showMsg(errEl, '⚠ Ingrese su correo institucional.');
+                document.getElementById('email').focus();
+                return;
+            }
+            if (!email.includes('@')) {
+                showMsg(errEl, '⚠ Formato de correo no válido.');
+                document.getElementById('email').focus();
+                return;
+            }
+            if (!password) {
+                showMsg(errEl, '⚠ Ingrese su contraseña.');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            // Estado de carga
+            clearAllErrors();
+            btnEl.classList.add('loading');
+            btnEl.textContent = '⧳\u00a0\u00a0Verificando credenciales…';
+
+            // Llamar a la función de autenticación Supabase
+            await handleLogin(email, password);
+        });
+
+        /* Allow pressing Enter anywhere */
+        form.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            });
+        });
+
+        /* Clear messages on input change */
+        ['email', 'password'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => clearAllErrors());
+        });
+    </script>
+
+</body>
+
+</html>

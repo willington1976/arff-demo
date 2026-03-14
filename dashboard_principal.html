@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#060c14">
+    <title>Dashboard · Sistema SEI — UAEAC Colombia</title>
+    <meta name="description" content="Centro de mando del Sistema SEI — Bomberos Aeronáuticos ARFF Colombia">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ══════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════ */
+        :root {
+            --bg: #060c14;
+            --surface: #0d1520;
+            --s2: #111d2e;
+            --s3: #162035;
+            --border: #1c2e47;
+            --border2: #243a58;
+
+            --teal: #0bc5a0;
+            --teal2: #087f5b;
+            --teal-glow: rgba(11, 197, 160, .15);
+
+            --amber: #f59f00;
+            --amber-glow: rgba(245, 159, 0, .15);
+
+            --red: #f03e3e;
+            --red-glow: rgba(240, 62, 62, .15);
+            --sky: #38bdf8;
+            --orange: #f76707;
+            --green: #40c057;
+            --purple: #7c3aed;
+
+            --text: #dde4ee;
+            --text-dim: #7a90aa;
+            --text-muted: #3a4f68;
+
+            --ff-t: 'Syne', sans-serif;
+            --ff-b: 'DM Sans', sans-serif;
+            --ff-m: 'DM Mono', monospace;
+
+            --r: 10px;
+            --rs: 6px;
+            --tr: .18s ease;
+
+            --sidebar-w: 240px;
+        }
+
+        *,
+        ::before,
+        ::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--ff-b);
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Dot grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: radial-gradient(circle, #1e3a5f 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: .06;
+            pointer-events: none;
+        }
+
+        /* Scanlines */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, .04) 2px, rgba(0, 0, 0, .04) 4px);
+            opacity: .3;
+        }
+
+        /* ══════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════ */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            transition: transform .3s ease;
+        }
+
+        /* Sidebar header */
+        .sb-header {
+            padding: 20px 18px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sb-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+        .sb-logo-img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .sb-logo-fallback {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: var(--s2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sb-brand-main {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 12px;
+            color: var(--text);
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+
+        .sb-brand-sub {
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--teal);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* Live badge */
+        .sb-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            color: var(--text-muted);
+            letter-spacing: .06em;
+        }
+
+        .sb-status .dot-live {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: blink 1.8s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .2
+            }
+        }
+
+        /* Nav sections */
+        .sb-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border2) transparent;
+        }
+
+        .sb-section-title {
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: 0 8px;
+            margin: 10px 0 6px;
+        }
+
+        .sb-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--rs);
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 13px;
+            transition: background var(--tr), color var(--tr);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .sb-link:hover {
+            background: var(--s2);
+            color: var(--text);
+        }
+
+        .sb-link.active {
+            background: rgba(11, 197, 160, .08);
+            color: var(--teal);
+            border-left: 2px solid var(--teal);
+            padding-left: 8px;
+        }
+
+        .sb-link svg {
+            flex-shrink: 0;
+            opacity: .7;
+        }
+
+        .sb-link:hover svg,
+        .sb-link.active svg {
+            opacity: 1;
+        }
+
+        .sb-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 10px 8px;
+        }
+
+        /* Sidebar footer */
+        .sb-footer {
+            padding: 14px 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sb-user-card {
+            background: var(--s2);
+            border: 1px solid var(--border);
+            border-radius: var(--rs);
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+
+        .sb-user-name {
+            font-family: var(--ff-t);
+            font-weight: 700;
+            font-size: 12.5px;
+            color: var(--text);
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sb-user-rol {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: var(--rs);
+            border: 1px solid rgba(240, 62, 62, .25);
+            background: rgba(240, 62, 62, .05);
+            color: #ff8787;
+            font-family: var(--ff-m);
+            font-size: 10.5px;
+            letter-spacing: .05em;
+            cursor: pointer;
+            transition: all var(--tr);
+            text-transform: uppercase;
+        }
+
+        .btn-logout:hover {
+            background: rgba(240, 62, 62, .12);
+            border-color: rgba(240, 62, 62, .5);
+            color: #ffa8a8;
+        }
+
+        /* ══════════════════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════════════════ */
+        .main-content {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top bar */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(6, 12, 20, .92);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 28px;
+            height: 58px;
+        }
+
+        .topbar-title {
+            font-family: var(--ff-t);
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .topbar-sep {
+            flex: 1;
+        }
+
+        .topbar-clock {
+            font-family: var(--ff-m);
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: .05em;
+        }
+
+        .topbar-clock span {
+            color: var(--teal);
+        }
+
+        .topbar-badge {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            color: var(--green);
+            border: 1px solid rgba(64, 192, 87, .3);
+            background: rgba(64, 192, 87, .06);
+            border-radius: 4px;
+            padding: 3px 10px;
+            letter-spacing: .06em;
+        }
+
+        .topbar-badge::before {
+            content: '● ';
+            margin-right: 3px;
+            animation: blink 1.6s infinite;
+        }
+
+        /* Page body */
+        .page-body {
+            padding: 32px 28px 80px;
+            flex: 1;
+        }
+
+        /* ══════════════════════════════════════════════════
+   WELCOME BANNER
+══════════════════════════════════════════════════ */
+        .welcome-banner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            overflow: hidden;
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .welcome-strip {
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal2), var(--teal), #5ef0d5);
+        }
+
+        .welcome-inner {
+            padding: 22px 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .welcome-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: rgba(11, 197, 160, .1);
+            border: 1px solid rgba(11, 197, 160, .2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .welcome-text {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .welcome-greeting {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -.01em;
+            color: var(--text);
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .welcome-greeting em {
+            color: var(--teal);
+            font-style: normal;
+        }
+
+        .welcome-meta {
+            font-family: var(--ff-m);
+            font-size: 10.5px;
+            color: var(--text-dim);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .welcome-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .welcome-meta .meta-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .rol-badge {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            align-self: flex-start;
+            margin-top: 4px;
+        }
+
+        /* ══════════════════════════════════════════════════
+   SECTION TITLE
+══════════════════════════════════════════════════ */
+        .section-title {
+            font-family: var(--ff-t);
+            font-weight: 700;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ══════════════════════════════════════════════════
+   MODULE CARDS GRID
+══════════════════════════════════════════════════ */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .mod-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            transition: transform .2s, box-shadow .2s, border-color .2s;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .mod-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+        }
+
+        .mod-card-strip {
+            height: 3px;
+        }
+
+        .mod-card-body {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .mod-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .mod-card-title {
+            font-family: var(--ff-t);
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text);
+            margin-bottom: 6px;
+            letter-spacing: -.01em;
+        }
+
+        .mod-card-desc {
+            font-size: 12.5px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .mod-card-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* Hover especial para el link de admin en estadísticas */
+        .stat-item.admin-link[style*="cursor:pointer"]:hover {
+            border-color: var(--teal);
+            box-shadow: 0 6px 24px rgba(11, 197, 160, .2);
+            transform: translateY(-3px);
+            background: linear-gradient(180deg, rgba(11, 197, 160, .05) 0%, transparent 100%);
+        }
+
+        .mod-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid;
+            text-decoration: none;
+            transition: all var(--tr);
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .mod-card-footer {
+            padding: 10px 20px;
+            background: var(--s2);
+            border-top: 1px solid var(--border);
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Glow on hover per card color */
+        .mod-card[data-color="teal"]:hover {
+            border-color: rgba(11, 197, 160, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(11, 197, 160, .1);
+        }
+
+        .mod-card[data-color="amber"]:hover {
+            border-color: rgba(245, 159, 0, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(245, 159, 0, .1);
+        }
+
+        .mod-card[data-color="red"]:hover {
+            border-color: rgba(240, 62, 62, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(240, 62, 62, .1);
+        }
+
+        .mod-card[data-color="sky"]:hover {
+            border-color: rgba(56, 189, 248, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(56, 189, 248, .1);
+        }
+
+        .mod-card[data-color="purple"]:hover {
+            border-color: rgba(124, 58, 237, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(124, 58, 237, .1);
+        }
+
+        .mod-card[data-color="orange"]:hover {
+            border-color: rgba(247, 103, 7, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(247, 103, 7, .1);
+        }
+
+        .mod-card[data-color="yellow"]:hover {
+            border-color: rgba(252, 196, 25, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(252, 196, 25, .1);
+        }
+
+        .mod-card[data-color="blue"]:hover {
+            border-color: rgba(34, 139, 230, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(34, 139, 230, .1);
+        }
+
+        .mod-card[data-color="cyan"]:hover {
+            border-color: rgba(0, 229, 255, .35);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px rgba(0, 229, 255, .1);
+        }
+
+        /* Admin-only tag */
+        .admin-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-family: var(--ff-m);
+            font-size: 8.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(124, 58, 237, .12);
+            border: 1px solid rgba(124, 58, 237, .3);
+            color: #a78bfa;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        /* ══════════════════════════════════════════════════
+   QUICK STATS BAR
+══════════════════════════════════════════════════ */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .stat-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--rs);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-val {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .stat-lbl {
+            font-family: var(--ff-m);
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        /* ══════════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════════ */
+        footer {
+            text-align: center;
+            padding: 20px 28px 18px;
+            border-top: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
+
+        .footer-strip {
+            width: 36px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--teal2), var(--teal), #5ef0d5);
+            border-radius: 2px;
+            margin: 0 auto 10px;
+        }
+
+        .footer-name {
+            font-family: var(--ff-t);
+            font-weight: 800;
+            font-size: 11px;
+            color: var(--text);
+            letter-spacing: .04em;
+            margin-bottom: 3px;
+        }
+
+        .footer-cred {
+            font-family: var(--ff-m);
+            font-size: 9.5px;
+            color: var(--text-dim);
+            letter-spacing: .05em;
+        }
+
+        .footer-cred span {
+            color: var(--teal);
+        }
+
+        /* ══════════════════════════════════════════════════
+   OVERLAY + MOBILE SIDEBAR TOGGLE
+══════════════════════════════════════════════════ */
+        .sb-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .5);
+            z-index: 45;
+            backdrop-filter: blur(2px);
+        }
+
+        .btn-menu-toggle {
+            display: none;
+            background: var(--s2);
+            border: 1px solid var(--border);
+            border-radius: var(--rs);
+            padding: 7px;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all var(--tr);
+        }
+
+        .btn-menu-toggle:hover {
+            color: var(--text);
+        }
+
+        /* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
+        @media (max-width: 860px) {
+            :root {
+                --sidebar-w: 0px;
+            }
+
+            .sidebar {
+                transform: translateX(-240px);
+                width: 240px;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sb-overlay {
+                display: block;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity .3s;
+            }
+
+            .sb-overlay.show {
+                opacity: 1;
+                pointer-events: all;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .btn-menu-toggle {
+                display: flex;
+            }
+
+            .page-body {
+                padding: 24px 18px 60px;
+            }
+
+            .topbar {
+                padding: 0 18px;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .welcome-inner {
+                gap: 14px;
+            }
+
+            .welcome-greeting {
+                font-size: 18px;
+            }
+
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+    </style>
+<link rel="stylesheet" href="css/sei-pdf-style.css">
+</head>
+
+<body>
+
+    <div class="scanlines"></div>
+    <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+    <!-- ══════════════════════════════════
+     SIDEBAR
+══════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sb-header">
+            <a class="sb-logo" href="index.html">
+                <img class="sb-logo-img" src="LOGO_SEI_CLEAN.png" alt="SEI"
+                    onerror="this.style.display='none';document.getElementById('sb-logo-fb').style.display='flex'">
+                <div class="sb-logo-fallback" id="sb-logo-fb" style="display:none">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="sb-brand-main">Sistema SEI</div>
+                    <div class="sb-brand-sub">UAEAC · ARFF Colombia</div>
+                </div>
+            </a>
+            <div class="sb-status">
+                <div class="dot-live"></div>
+                <span id="sb-ts">—</span>
+            </div>
+        </div>
+
+        <nav class="sb-nav">
+            <div class="sb-section-title">Principal</div>
+            <a class="sb-link active" href="dashboard_principal.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                Dashboard Principal
+            </a>
+
+            <div class="sb-section-title" style="margin-top:14px">Cálculos ARFF</div>
+            <a class="sb-link" href="arff_area_critica.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f03e3e" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                </svg>
+                Área Crítica
+            </a>
+            <a class="sb-link" href="arff_rata_descarga_espuma.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f76707" stroke-width="2">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                </svg>
+                Rata de Descarga
+            </a>
+            <a class="sb-link" href="arff_volumen_espuma.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+                Volumen de Espuma
+            </a>
+            <a class="sb-link" href="hidraulica_mangueras.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#228be6" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                Hidráulica Mangueras
+            </a>
+
+            <div class="sb-section-title" style="margin-top:14px">Gestión Operativa</div>
+            <a class="sb-link" href="gestion_flota_sei.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0bc5a0" stroke-width="2">
+                    <path d="M10 17h4V5H2v12h3m5 0h4m5 0h3v-4h-3m-4 4h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-4" />
+                    <circle cx="7" cy="17" r="2" />
+                    <circle cx="17" cy="17" r="2" />
+                </svg>
+                Gestión de Flota SEI
+            </a>
+            <a class="sb-link" href="arff_equipos_salvamento.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f76707" stroke-width="2">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+                Equipos de Salvamento
+            </a>
+            <a class="sb-link" href="arff_personal_estacion.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Personal por Categoría
+            </a>
+            <a class="sb-link" href="etr_ejercicios.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcc419" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Ejercicios ETR
+            </a>
+            <a class="sb-link" href="gestion_agentes.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#228be6" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                Gestión de Agentes
+            </a>
+            <a class="sb-link" href="orden_del_dia.html">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                Orden del Día
+            </a>
+
+            <div class="sb-divider"></div>
+
+            <!-- Supervisión — solo visible para admin/jefe_nacional (JS lo controla) -->
+            <div id="sb-admin-section" style="display:none">
+                <div class="sb-section-title">Supervisión</div>
+                <a class="sb-link" href="sei_dashboard_nacional.html">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
+                        <path d="M3 3h18v18H3z" />
+                        <path d="M3 9h18M9 21V9" />
+                    </svg>
+                    Dashboard Nacional
+                </a>
+            </div>
+
+        </nav>
+
+        <div class="sb-footer">
+            <div class="sb-user-card">
+                <div class="sb-user-name" id="sb-user-name">Cargando…</div>
+                <div class="sb-user-rol" id="sb-user-rol" style="color:var(--teal)">—</div>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Cerrar Sesión
+            </button>
+        </div>
+
+    </aside>
+
+    <!-- ══════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════ -->
+    <div class="main-content">
+
+        <!-- Top bar -->
+        <header class="topbar">
+            <button class="btn-menu-toggle" onclick="toggleSidebar()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
+            <div class="topbar-title">Centro de Mando · SEI</div>
+            <div class="topbar-sep"></div>
+            <div class="topbar-clock">Hora: <span id="topbar-ts">—</span></div>
+            <div class="topbar-badge">EN LÍNEA</div>
+        </header>
+
+        <!-- Page body -->
+        <div class="page-body">
+
+            <!-- Welcome banner -->
+            <div class="welcome-banner" id="welcome-banner">
+                <div class="welcome-strip"></div>
+                <div class="welcome-inner">
+                    <div class="welcome-avatar" id="welcome-avatar">👤</div>
+                    <div class="welcome-text">
+                        <div class="welcome-greeting" id="welcome-greeting">Bienvenido, <em
+                                id="user-display-name">—</em></div>
+                        <div class="welcome-meta">
+                            <div class="meta-item">
+                                <div class="meta-dot" style="background:var(--teal)"></div>
+                                Perfil: <strong id="user-rol-name" style="color:var(--text)">—</strong>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-dot" style="background:var(--green)"></div>
+                                Sesión activa
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-dot" style="background:var(--amber)"></div>
+                                UAEAC · Dirección SEI
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rol-badge" id="welcome-rol-badge">—</div>
+                </div>
+            </div>
+
+            <!-- Quick stats -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-val" style="color:var(--red)">6</div>
+                    <div class="stat-lbl">Módulos Operativos</div>
+                </div>
+                <div class="stat-item admin-link" id="stat-estaciones" style="cursor:pointer;"
+                    onclick="if(document.getElementById('section-supervision').style.display==='block') { window.location='sei_dashboard_nacional.html'; }">
+                    <div class="stat-val" style="color:var(--teal)">38</div>
+                    <div class="stat-lbl">Estaciones ARFF</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" style="color:var(--amber)">6</div>
+                    <div class="stat-lbl">Regionales Activas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" style="color:var(--green)">9</div>
+                    <div class="stat-lbl">Cat. OACI Máx.</div>
+                </div>
+            </div>
+
+            <!-- Módulos ARFF -->
+            <div class="section-title">Módulos de Cálculo ARFF</div>
+            <div class="modules-grid">
+
+                <!-- Área Crítica -->
+                <div class="mod-card" data-color="red" onclick="window.location='arff_area_critica.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#b52525,#f03e3e,#ff8787)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(240,62,62,.1);border:1px solid rgba(240,62,62,.2)">🎯</div>
+                        <div class="mod-card-title">Área Crítica de Aeronave</div>
+                        <div class="mod-card-desc">Calcula el Área Crítica (Ac) según OACI Doc 9137 Tabla 2-2, con
+                            diagrama SVG interactivo y exportación PDF.</div>
+                        <div class="mod-card-links">
+                            <a href="arff_area_critica.html" class="mod-link"
+                                style="color:#f03e3e;border-color:rgba(240,62,62,.3);background:rgba(240,62,62,.06)">Abrir
+                                módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        OACI Doc 9137 · RAC 14 · NFPA 403
+                    </div>
+                </div>
+
+                <!-- Rata de Descarga -->
+                <div class="mod-card" data-color="amber" onclick="window.location='arff_rata_descarga_espuma.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#c97b00,#f59f00,#ffe066)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(245,159,0,.1);border:1px solid rgba(245,159,0,.2)">💧</div>
+                        <div class="mod-card-title">Rata de Descarga de Espuma</div>
+                        <div class="mod-card-desc">Determina la tasa de aplicación de espuma requerida por categoría
+                            OACI, concentración y tipo de agente.</div>
+                        <div class="mod-card-links">
+                            <a href="arff_rata_descarga_espuma.html" class="mod-link"
+                                style="color:#f59f00;border-color:rgba(245,159,0,.3);background:rgba(245,159,0,.06)">Abrir
+                                módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        OACI Doc 9137 · NFPA 403-2018
+                    </div>
+                </div>
+
+                <!-- Gestión de Flota SEI -->
+                <div class="mod-card" data-color="teal" onclick="window.location='gestion_flota_sei.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#087f5b,#0bc5a0,#5ef0d5)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(11,197,160,.1);border:1px solid rgba(11,197,160,.2)">🚒</div>
+                        <div class="mod-card-title">Gestión de Flota SEI</div>
+                        <div class="mod-card-desc">Control de vehículos, capacidades de agentes extintores y estado
+                            FUSER de las máquinas operativas.</div>
+                        <div class="mod-card-links">
+                            <a href="gestion_flota_sei.html" class="mod-link"
+                                style="color:#0bc5a0;border-color:rgba(11,197,160,.3);background:rgba(11,197,160,.06)">Abrir
+                                gestión →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                        </svg>
+                        Vehículos · Novedades · RLS
+                    </div>
+                </div>
+
+                <!-- Volumen de Espuma -->
+                <div class="mod-card" data-color="sky" onclick="window.location='arff_volumen_espuma.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#0369a1,#38bdf8,#7dd3fc)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2)">🌊</div>
+                        <div class="mod-card-title">Volumen de Espuma</div>
+                        <div class="mod-card-desc">Calcula el volumen total de solución espumante y el inventario de
+                            concentrado necesario para la categoría del aeródromo.</div>
+                        <div class="mod-card-links">
+                            <a href="arff_volumen_espuma.html" class="mod-link"
+                                style="color:#38bdf8;border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.06)">Abrir
+                                módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        OACI Doc 9137 · RAC 14 Subparte C
+                    </div>
+                </div>
+                
+                <!-- Hidráulica de Mangueras -->
+                <div class="mod-card" data-color="blue" onclick="window.location='hidraulica_mangueras.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#0e7490,#0ea5e9,#7dd3fc)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2)">🌊</div>
+                        <div class="mod-card-title">Hidráulica de Mangueras</div>
+                        <div class="mod-card-desc">Cálculo hidráulico profesional de pérdida por fricción (PDP) basado en Darcy-Weisbach adaptado con modo Aeronáutico.</div>
+                        <div class="mod-card-links">
+                            <a href="hidraulica_mangueras.html" class="mod-link"
+                                style="color:#0ea5e9;border-color:rgba(14,165,233,.3);background:rgba(14,165,233,.06)">Abrir
+                                simulador →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        NFPA 1963 · Módulo 10
+                    </div>
+                </div>
+
+            </div><!-- /modules-grid -->
+
+            <!-- Módulos de Cumplimiento Normativo -->
+            <div class="section-title" style="margin-top:8px">Módulos de Cumplimiento Normativo — RAC 14</div>
+            <div class="modules-grid">
+
+                <!-- Equipos de Salvamento -->
+                <div class="mod-card" data-color="orange" onclick="window.location='arff_equipos_salvamento.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#c05600,#f76707,#ffa940)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon" style="background:rgba(247,103,7,.1);border:1px solid rgba(247,103,7,.2)">🔧</div>
+                        <div class="mod-card-title">Equipos de Salvamento</div>
+                        <div class="mod-card-desc">Verificación del inventario mínimo de equipos requeridos por el RAC 14 § 315 según la categoría del aeródromo. Evaluación de cumplimiento ítem a ítem.</div>
+                        <div class="mod-card-links">
+                            <a href="arff_equipos_salvamento.html" class="mod-link"
+                                style="color:#f76707;border-color:rgba(247,103,7,.3);background:rgba(247,103,7,.06)">Abrir módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        RAC 14 § 315 · OACI Doc 9137 § 6 · MÓDULO 04
+                    </div>
+                </div>
+
+                <!-- Personal por Categoría -->
+                <div class="mod-card" data-color="purple" onclick="window.location='arff_personal_estacion.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#5b21b6,#7c3aed,#a78bfa)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2)">👥</div>
+                        <div class="mod-card-title">Personal por Categoría SEI</div>
+                        <div class="mod-card-desc">Dotación mínima requerida por cargo y turno según la categoría OACI del aeródromo. Comandante, Subcomandante, Oficial de Servicio, Maquinista, Bomberos.</div>
+                        <div class="mod-card-links">
+                            <a href="arff_personal_estacion.html" class="mod-link"
+                                style="color:#a78bfa;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">Abrir módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        RAC 14 § 316 · OACI Doc 9137 Tabla 2-3 · MÓDULO 05
+                    </div>
+                </div>
+
+                <!-- Ejercicios ETR -->
+                <div class="mod-card" data-color="yellow" onclick="window.location='etr_ejercicios.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#e67e22,#f1c40f,#f39c12)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon" style="background:rgba(252,196,25,.1);border:1px solid rgba(252,196,25,.2)">⏱️</div>
+                        <div class="mod-card-title">Ejercicios de Tiempo de Respuesta (ETR)</div>
+                        <div class="mod-card-desc">Registro y monitoreo de ejercicios ETR según OACI. Control de tiempos de respuesta, cabeceras objetivo y máquinas participantes.</div>
+                        <div class="mod-card-links">
+                            <a href="etr_ejercicios.html" class="mod-link"
+                                style="color:#fcc419;border-color:rgba(252,196,25,.3);background:rgba(252,196,25,.07)">Abrir histórico →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        OACI Doc 9137 § 2.7 · RAC 14 § 3.10
+                    </div>
+                </div>
+
+                <!-- Gestión de Agentes -->
+                <div class="mod-card" data-color="blue" onclick="window.location='gestion_agentes.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#1c7ed6,#228be6,#a5d8ff)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon" style="background:rgba(34,139,230,.1);border:1px solid rgba(34,139,230,.2)">🧪</div>
+                        <div class="mod-card-title">Gestión de Agentes Extintores</div>
+                        <div class="mod-card-desc">Control de inventario de concentrado de espuma, agentes complementarios (PQS, CO2) y pruebas de calidad de agentes.</div>
+                        <div class="mod-card-links">
+                            <a href="gestion_agentes.html" class="mod-link"
+                                style="color:#228be6;border-color:rgba(34,139,230,.3);background:rgba(34,139,230,.07)">Abrir gestión →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        Agua · Espuma · PQS · CO2
+                    </div>
+                </div>
+
+                <!-- Orden del Día -->
+                <div class="mod-card" data-color="cyan" onclick="window.location='orden_del_dia.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#00b8d4,#00e5ff,#80f1ff)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon" style="background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2)">📋</div>
+                        <div class="mod-card-title">Orden del Día</div>
+                        <div class="mod-card-desc">Asignación de tripulaciones, oficiales de servicio, guardia y novedades del DAI. Generación de formato oficial PDF.</div>
+                        <div class="mod-card-links">
+                            <a href="orden_del_dia.html" class="mod-link"
+                                style="color:#00e5ff;border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.07)">Abrir módulo →</a>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        MSER 5.0-12-001 · Gestión Operativa
+                    </div>
+                </div>
+
+            </div><!-- /modules-grid normativo -->
+
+            <!-- Supervisión Nacional — solo visible admin/jefe -->
+            <div id="section-supervision" style="display:none">
+                <div class="section-title">Supervisión Nacional</div>
+                <div class="modules-grid">
+                    <div class="mod-card" data-color="purple" onclick="window.location='sei_dashboard_nacional.html'">
+                        <div class="mod-card-strip" style="background:linear-gradient(90deg,#5b21b6,#7c3aed,#a78bfa)">
+                        </div>
+                        <div class="admin-tag">🔒 Admin / Jefe Nacional</div>
+                        <div class="mod-card-body">
+                            <div class="mod-card-icon"
+                                style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2)">🏛️</div>
+                            <div class="mod-card-title">Dashboard Nacional ARFF</div>
+                            <div class="mod-card-desc">Panel de supervisión en tiempo real de las 38 estaciones ARFF
+                                distribuidas en 6 regionales. Semáforo de cumplimiento OACI.</div>
+                            <div class="mod-card-links">
+                                <a href="sei_dashboard_nacional.html" class="mod-link"
+                                    style="color:#a78bfa;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">Abrir
+                                    panel →</a>
+                            </div>
+                        </div>
+                        <div class="mod-card-footer">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            6 Regionales · 38 Estaciones · UAEAC
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /section-supervision -->
+
+        </div><!-- /page-body -->
+
+        <footer>
+            <div class="footer-strip"></div>
+            <div class="footer-name">Diseño: WILLINGTON PEÑA MONTENEGRO — Bombero Aeronáutico BAE 373</div>
+            <div class="footer-cred">UAEAC · Dirección SEI &nbsp;·&nbsp; <span>ARFF Colombia</span></div>
+        </footer>
+
+    </div><!-- /main-content -->
+    <!-- Supabase SDK + config compartida + guardia de autenticación -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth-guard.js"></script>
+
+    <script>
+        /* ==================================================
+           LABELS DE ROL (dashboard unificado)
+        ================================================== */
+        const ROL_LABELS_LOCAL = {
+            admin:         { label: 'JEFE NACIONAL — SEI COLOMBIA', color: '#f59f00', bg: 'linear-gradient(90deg, #b52525, #f59f00)', border: '#f59f00', emoji: '🛡️' },
+            jefe_nacional: { label: 'Jefe Nacional',                color: '#f59f00', bg: 'rgba(245,159,0,.1)',                       border: 'rgba(245,159,0,.3)', emoji: '🎖️' },
+            comandante:    { label: 'Comandante',                   color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                      border: 'rgba(11,197,160,.3)', emoji: '🚒' },
+        };
+
+        /* ==================================================
+           CALLBACK — se ejecuta cuando auth-guard confirma sesión
+        ================================================== */
+        window.onSEIReady = function (user, rol, nombre) {
+            const rolInfo    = ROL_LABELS_LOCAL[rol] || ROL_LABELS_LOCAL['comandante'];
+            const displayName = nombre || user.email.split('@')[0];
+
+            document.getElementById('user-display-name').textContent = displayName;
+            document.getElementById('user-rol-name').textContent     = rolInfo.label;
+            document.getElementById('sb-user-name').textContent      = displayName;
+            document.getElementById('sb-user-rol').textContent       = rolInfo.label;
+            document.getElementById('sb-user-rol').style.color       = rolInfo.color;
+            document.getElementById('welcome-avatar').textContent    = rolInfo.emoji;
+
+            const badge = document.getElementById('welcome-rol-badge');
+            badge.textContent       = rolInfo.label;
+            badge.style.color       = rolInfo.color;
+            badge.style.background  = rolInfo.bg;
+            badge.style.borderColor = rolInfo.border;
+
+            // Sección Supervisión: visible solo para admin y jefe_nacional
+            if (['admin', 'jefe_nacional'].includes(rol)) {
+                document.getElementById('section-supervision').style.display = 'block';
+                document.getElementById('sb-admin-section').style.display   = 'block';
+            }
+        };
+
+        /* ==================================================
+           RELOJ
+        ================================================== */
+        function updateClocks() {
+            const t = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('topbar-ts').textContent = t;
+            document.getElementById('sb-ts').textContent     = t;
+        }
+        updateClocks();
+        setInterval(updateClocks, 1000);
+
+        /* ==================================================
+           CIERRE DE SESIÓN — usa seiLogout() del auth-guard
+        ================================================== */
+        function handleLogout() {
+            if (typeof window.seiLogout === 'function') window.seiLogout();
+        }
+
+        /* ==================================================
+           SIDEBAR MOBILE
+        ================================================== */
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sb-overlay').classList.toggle('show');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sb-overlay').classList.remove('show');
+        }
+    </script>
+
+</body>
+
+</html>
