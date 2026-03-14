@@ -1927,8 +1927,14 @@
       const acH = rH + fH * 2;
 
       svg.innerHTML = `
-    <!-- Grid lines -->
+    <!-- Grid lines & Markers -->
     <defs>
+      <marker id="arrow-r" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f76707" />
+      </marker>
+      <marker id="arrow-l" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f76707" />
+      </marker>
       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
         <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2d47" stroke-width=".5"/>
       </pattern>
@@ -2077,7 +2083,7 @@
         // Consultamos solo las columnas básicas para evitar errores de esquema (400)
         const { data, error } = await supabaseClient
           .from('aeronaves')
-          .select('modelo,longitud,ancho_fuselaje')
+          .select('*')
           .order('modelo', { ascending: true });
 
         if (error) {
@@ -2111,8 +2117,8 @@
       if (searchInp) {
         searchInp.addEventListener('input', () => {
           const val = searchInp.value.trim().toUpperCase();
-          // Buscamos coincidencia exacta para disparar auto-llenado
-          const nave = aeronavesData.find(n => n.modelo.toUpperCase() === val);
+          if (!val) return;
+          const nave = aeronavesData.find(n => (n.modelo || '').toUpperCase() === val);
 
           if (nave) {
             const inpL = document.getElementById('inp-L');
@@ -2145,4 +2151,14 @@
         const inpWf = document.getElementById('inp-Wf');
         if (inpL) inpL.value = urlParams.get('l');
         if (inpWf) inpWf.value = urlParams.get('wf');
-     
+        if (urlParams.get('cat')) {
+          const selCat = document.getElementById('cat');
+          if (selCat) selCat.value = urlParams.get('cat');
+        }
+        setTimeout(calcular, 300);
+      }
+    };
+  </script>
+</body>
+
+</html>
