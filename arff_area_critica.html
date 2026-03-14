@@ -2058,19 +2058,37 @@
     }
 
     /* ─── PDF EXPORT ────────────────────────────────── */
-    function exportPDF() {
-      showToast('⏳ Generando PDF institucional...');
-      const cat  = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
-      const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
+    async function exportPDF() {
+      console.log("Iniciando exportación...");
+      showToast('⏳ Verificando motor de PDF...');
+
+      // Verificación de seguridad según instrucción del usuario
+      if (typeof window.generarReporteSEI !== 'function') {
+        console.error("❌ La función generarReporteSEI no se ha cargado correctamente.");
+        alert("Error técnico: El generador de PDF no está listo. Por favor, refresca la página (F5) o espera unos segundos.");
+        return;
+      }
+
+      const cat    = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
+      const L      = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
       const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
-      window.generarReporteSEI(nombre, 'pdf-content', {
-        titulo:      'Área Crítica de Aeronave — OACI Doc 9137',
-        subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
-        estacion:    '—',
-        norma:       'OACI Doc 9137 §2.3 · RAC 14 · NFPA 403',
-        orientacion: 'landscape',
-        formato:     'a4'
-      });
+
+      showToast('⏳ Generando PDF institucional...');
+      
+      try {
+        await window.generarReporteSEI(nombre, 'pdf-content', {
+          titulo:      'Área Crítica de Aeronave — OACI Doc 9137',
+          subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
+          estacion:    '—',
+          norma:       'OACI Doc 9137 §2.3 · RAC 14 · NFPA 403',
+          orientacion: 'landscape',
+          formato:     'a4'
+        });
+        console.log("✅ PDF generado con éxito");
+      } catch (error) {
+        console.error("❌ Error en la ejecución del reporte:", error);
+        showToast('⚠️ Error al generar el PDF');
+      }
     }
 
     // supabaseClient disponible via supabase-config.js
@@ -2161,3 +2179,4 @@
   </script>
 </body>
 
+</html>
