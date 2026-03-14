@@ -21,9 +21,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
-  <!-- SEI PDF Generator -->
+  <!-- SEI PDF Generator moved to bottom -->
   <link rel="stylesheet" href="css/sei-pdf-style.css">
-  <script src="js/sei-pdf-generator.js"></script>
 
   <style>
     /* ──────────────────────────────────────────────
@@ -1491,7 +1490,12 @@
   <!-- ════════════════════════════════════════════════
      SCRIPT
 ════════════════════════════════════════════════ -->
+  <script src="js/sei-pdf-generator.js"></script>
   <script>
+    console.log('Diagnóstico: script sei-pdf-generator.js invocado');
+    window.addEventListener('load', () => {
+      console.log('Diagnóstico: tipo de generarReporteSEI =', typeof window.generarReporteSEI);
+    });
     /* ─── DATA ─────────────────────────────────────── */
     const REF_DATA = [
       { cat: '1', name: 'Ultraligero / UAS tripulado', Lmax: 9, Wf: 1.5, Acmin: 11, Acref: 16, Acmax: 22, foam: 90, dry: 25 },
@@ -2059,6 +2063,11 @@
       const cat  = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
       const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
       const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
+      console.log('Llamando a generarReporteSEI...');
+      if (typeof generarReporteSEI !== 'function') {
+        alert('Error: La función generarReporteSEI no se ha cargado correctamente. Verifique el archivo js/sei-pdf-generator.js');
+        return;
+      }
       generarReporteSEI(nombre, 'pdf-content', {
         titulo:      'Área Crítica de Aeronave — OACI Doc 9137',
         subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
