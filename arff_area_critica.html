@@ -2051,275 +2051,230 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       PDF MOTOR v7 — html string puro pasado a html2pdf
-       Técnica: construir HTML completo como string con CSS propio,
-       sin depender del DOM de la página ni de iframes.
-       html2pdf().from(htmlString,'string') procesa el string
-       en un contenedor temporal con los estilos correctos.
-    ═══════════════════════════════════════════════════════════ */
+    /* ═══ PDF MOTOR v8 — HTML 100% inline, sin herencia de CSS ═══ */
 
-    function _svgBN(L, Wf, f, Ac) {
-      const W=500, H=330, pad=50;
-      const sc = Math.min((W-pad*2)/L, (H-pad*2)/(Wf+f*2));
-      const rW=L*sc, rH=Wf*sc, fH=f*sc;
-      const cx=W/2, cy=H/2;
-      const x0=cx-rW/2, y0=cy-rH/2;
-      const acX=x0, acY=cy-(rH/2+fH), acH=rH+fH*2;
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;background:#fff;">
-<rect width="${W}" height="${H}" fill="#fff"/>
-<defs>
-  <pattern id="pg" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0L0 0 0 20" fill="none" stroke="#eee" stroke-width=".6"/></pattern>
-  <marker id="ma" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#000"/></marker>
-  <marker id="mb" markerWidth="7" markerHeight="5" refX="0" refY="2.5" orient="auto"><polygon points="7 0,0 2.5,7 5" fill="#000"/></marker>
-</defs>
-<rect width="${W}" height="${H}" fill="url(#pg)"/>
-<rect x="${acX}" y="${acY}" width="${rW}" height="${acH}" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="8,3" rx="2"/>
-<rect x="${x0}" y="${y0}" width="${rW}" height="${rH}" fill="none" stroke="#000" stroke-width="2" rx="3"/>
-<ellipse cx="${x0}" cy="${cy}" rx="${rH*0.36}" ry="${rH/2}" fill="none" stroke="#000" stroke-width="1.4"/>
-<polygon points="${x0+rW},${cy-rH*0.28} ${x0+rW+rH*0.3},${cy} ${x0+rW},${cy+rH*0.28}" fill="none" stroke="#000" stroke-width="1.2"/>
-<line x1="${x0}" y1="${acY-14}" x2="${x0+rW}" y2="${acY-14}" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>
-<text x="${cx}" y="${acY-18}" text-anchor="middle" font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">L = ${L} m</text>
-<line x1="${acX-18}" y1="${y0}" x2="${acX-18}" y2="${y0+rH}" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>
-<text x="${acX-22}" y="${cy}" text-anchor="end" dominant-baseline="middle" font-family="Courier New,monospace" font-size="10" fill="#000">Wf=${Wf}m</text>
-<line x1="${acX+rW+12}" y1="${acY}" x2="${acX+rW+12}" y2="${y0}" stroke="#555" stroke-width=".8" stroke-dasharray="4,2"/>
-<text x="${acX+rW+16}" y="${acY+fH/2}" dominant-baseline="middle" font-family="Courier New,monospace" font-size="10" fill="#333">f=${f}m</text>
-<text x="${W-6}" y="${H-6}" text-anchor="end" font-family="Courier New,monospace" font-size="12" fill="#000" font-weight="bold">Ac = ${Ac.toFixed(2)} m\u00B2</text>
-<line x1="8" y1="13" x2="22" y2="13" stroke="#000" stroke-width="1.5" stroke-dasharray="6,2"/>
-<text x="26" y="17" font-family="Courier New,monospace" font-size="9" fill="#000">AREA CRITICA</text>
-<rect x="8" y="24" width="14" height="8" rx="1" fill="none" stroke="#000" stroke-width="1.2"/>
-<text x="26" y="31" font-family="Courier New,monospace" font-size="9" fill="#000">FUSELAJE</text>
-</svg>`;
+    function _svgBN(L,Wf,f,Ac){
+      var W=480,H=300,pad=46;
+      var sc=Math.min((W-pad*2)/L,(H-pad*2)/(Wf+f*2));
+      var rW=L*sc,rH=Wf*sc,fH=f*sc;
+      var cx=W/2,cy=H/2,x0=cx-rW/2,y0=cy-rH/2;
+      var acX=x0,acY=cy-(rH/2+fH),acH=rH+fH*2;
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;background:#fff;border:1px solid #ccc">'
+        +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
+        +'<defs>'
+          +'<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0L0 0 0 20" fill="none" stroke="#eee" stroke-width=".5"/></pattern>'
+          +'<marker id="ma" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto"><polygon points="0 0,6 2,0 4" fill="#000"/></marker>'
+          +'<marker id="mb" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto"><polygon points="6 0,0 2,6 4" fill="#000"/></marker>'
+        +'</defs>'
+        +'<rect width="'+W+'" height="'+H+'" fill="url(#g)"/>'
+        // area critica — solo contorno punteado, sin relleno
+        +'<rect x="'+acX+'" y="'+acY+'" width="'+rW+'" height="'+acH+'" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="7,3" rx="2"/>'
+        // fuselaje — solo contorno
+        +'<rect x="'+x0+'" y="'+y0+'" width="'+rW+'" height="'+rH+'" fill="none" stroke="#000" stroke-width="2" rx="3"/>'
+        // morro
+        +'<ellipse cx="'+x0+'" cy="'+cy+'" rx="'+(rH*0.36)+'" ry="'+(rH/2)+'" fill="none" stroke="#000" stroke-width="1.4"/>'
+        // cola
+        +'<polygon points="'+(x0+rW)+','+(cy-rH*0.28)+' '+(x0+rW+rH*0.3)+','+cy+' '+(x0+rW)+','+(cy+rH*0.28)+'" fill="none" stroke="#000" stroke-width="1.2"/>'
+        // cota L
+        +'<line x1="'+x0+'" y1="'+(acY-13)+'" x2="'+(x0+rW)+'" y2="'+(acY-13)+'" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+cx+'" y="'+(acY-17)+'" text-anchor="middle" font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">L = '+L+' m</text>'
+        // cota Wf
+        +'<line x1="'+(acX-16)+'" y1="'+y0+'" x2="'+(acX-16)+'" y2="'+(y0+rH)+'" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+(acX-19)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" font-family="Courier New,monospace" font-size="9.5" fill="#000">Wf='+Wf+'m</text>'
+        // cota f
+        +'<line x1="'+(acX+rW+10)+'" y1="'+acY+'" x2="'+(acX+rW+10)+'" y2="'+y0+'" stroke="#555" stroke-width=".8" stroke-dasharray="4,2"/>'
+        +'<text x="'+(acX+rW+14)+'" y="'+(acY+fH/2)+'" dominant-baseline="middle" font-family="Courier New,monospace" font-size="9.5" fill="#444">f='+f+'m</text>'
+        // label Ac
+        +'<text x="'+(W-5)+'" y="'+(H-5)+'" text-anchor="end" font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">Ac = '+Ac.toFixed(2)+' m\u00B2</text>'
+        // leyenda
+        +'<line x1="7" y1="11" x2="19" y2="11" stroke="#000" stroke-width="1.4" stroke-dasharray="5,2"/>'
+        +'<text x="23" y="14" font-family="Courier New,monospace" font-size="8.5" fill="#000">AREA CRITICA</text>'
+        +'<rect x="7" y="20" width="12" height="7" rx="1" fill="none" stroke="#000" stroke-width="1.1"/>'
+        +'<text x="23" y="27" font-family="Courier New,monospace" font-size="8.5" fill="#000">FUSELAJE</text>'
+        +'</svg>';
     }
 
-    async function exportPDF() {
-      showToast('⏳ Generando PDF…');
-      if (typeof html2pdf === 'undefined') {
-        alert('Error: html2pdf no disponible. Verifique conexión a internet.'); return;
+    async function exportPDF(){
+      showToast('\u23F3 Generando PDF...');
+      if(typeof html2pdf==='undefined'){alert('html2pdf no disponible');return;}
+
+      // ── Leer valores del formulario ──────────────────────────────
+      var catEl   = document.getElementById('cat');
+      var catTxt  = catEl ? (catEl.options[catEl.selectedIndex]?.text||catEl.value||'—') : '—';
+      var L       = document.getElementById('inp-L')?.value||'';
+      var Wf      = document.getElementById('inp-Wf')?.value||'';
+      var f       = document.getElementById('inp-f')?.value||'';
+      var nota    = document.getElementById('inp-note')?.value||'';
+      var fNorm   = document.getElementById('f-norm-text')?.textContent||'';
+      var fNormVis= document.getElementById('f-norm-note')?.style.display!=='none';
+      var bnrEl   = document.getElementById('protection-banner');
+      var bnrHTML = (bnrEl&&bnrEl.style.display!=='none') ? bnrEl.innerHTML : '';
+      var resVis  = document.getElementById('result-box')?.classList.contains('show');
+      var AcVal   = (L&&Wf&&f) ? (parseFloat(L)*(parseFloat(Wf)+parseFloat(f))).toFixed(2) : '—';
+      var catVal  = document.getElementById('cat')?.value||'—';
+      var histEl  = document.getElementById('history-list');
+      var refTbody= document.getElementById('ref-tbody');
+      var nombre  = 'ARFF-Colombia_Area-Critica_Cat'+catVal+'_L'+L+'_'+new Date().toISOString().slice(0,10);
+
+      // ── Construir filas del historial ────────────────────────────
+      var histRows='';
+      if(histEl){
+        histEl.querySelectorAll('.history-item').forEach(function(item){
+          var tags='';
+          item.querySelectorAll('.history-tag').forEach(function(t){
+            tags+='<span style="display:inline-block;border:1px solid #999;border-radius:2px;padding:1px 5px;font-size:9px;margin-right:3px;background:#f5f5f5">'+t.textContent+'</span>';
+          });
+          var ac=item.querySelector('.history-ac');
+          var num=item.querySelector('.history-num');
+          histRows+='<tr><td style="border:1px solid #ddd;padding:4px 6px;font-weight:700;width:24px">'+(num?num.textContent:'')+'</td>'
+            +'<td style="border:1px solid #ddd;padding:4px 6px">'+tags+'</td>'
+            +'<td style="border:1px solid #ddd;padding:4px 8px;font-weight:700;text-align:right;font-family:Courier New,monospace">'+(ac?ac.textContent:'')+'</td></tr>';
+        });
       }
 
-      const cat  = document.getElementById('cat')?.value   || 'XX';
-      const Lval = document.getElementById('inp-L')?.value || '0';
-      const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${Lval}_${new Date().toISOString().slice(0,10)}`;
+      // ── Construir filas de la tabla de referencia ────────────────
+      var refRows='';
+      if(refTbody){
+        refTbody.querySelectorAll('tr').forEach(function(row){
+          var cells='';
+          row.querySelectorAll('td,th').forEach(function(cell,ci){
+            var bg = ci===0?'#f0f0f0':'#fff';
+            var fw = ci===0?'bold':'normal';
+            cells+='<td style="border:1px solid #ccc;padding:3px 5px;font-size:9px;background:'+bg+';font-weight:'+fw+'">'
+              +cell.textContent.trim()+'</td>';
+          });
+          refRows+='<tr>'+cells+'</tr>';
+        });
+      }
 
-      // ─── Leer valores actuales del formulario ────────────────
-      const gv = id => document.getElementById(id)?.value || '';
-      const gi = id => document.getElementById(id)?.innerHTML || '';
-      const gT = id => document.getElementById(id)?.textContent || '';
+      // ── Diagrama B&N ─────────────────────────────────────────────
+      var svgStr = window._pdfDiag
+        ? _svgBN(window._pdfDiag.L,window._pdfDiag.Wf,window._pdfDiag.f,window._pdfDiag.Ac)
+        : '<div style="border:1px solid #ccc;padding:20px;text-align:center;color:#888;font-size:11px">Sin diagrama</div>';
 
-      // Diagrama B&N
-      const svgStr = window._pdfDiag
-        ? _svgBN(window._pdfDiag.L, window._pdfDiag.Wf, window._pdfDiag.f, window._pdfDiag.Ac)
-        : '';
+      // ── HTML de impresión — todo inline, sin variables CSS ───────
+      var H = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+        +'<style>'
+        +'@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap");'
+        +'*{box-sizing:border-box;margin:0;padding:0}'
+        +'html,body{background:#fff;color:#000;font-family:"DM Sans",Arial,sans-serif;font-size:12px;line-height:1.5;width:100%}'
+        +'</style></head><body>'
+        +'<div style="width:100%;padding:10px 12px;">'
 
-      // Banner de protección
-      const bannerEl = document.getElementById('protection-banner');
-      const bannerHTML = bannerEl ? bannerEl.innerHTML : '';
-      const bannerStyle = bannerEl ? bannerEl.style.cssText : '';
+        // ── Encabezado ──
+        +'<div style="border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:12px">'
+          +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#555;margin-bottom:3px">MODULO 01 · ICAO DOC 9137 - PART 1 · RAC 14 APTO.</div>'
+          +'<div style="font-size:20px;font-weight:900;letter-spacing:-.01em">Calculadora de Area Critica de Aeronave</div>'
+          +'<div style="font-size:10px;color:#444;margin-top:3px">Determina el area de la zona de riesgo de inflamacion de combustible derramado alrededor de una aeronave accidentada, base del dimensionamiento de agentes extintores ARFF.</div>'
+          +'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
+            +'<span style="border:1px solid #888;border-radius:3px;padding:2px 7px;font-size:9px">Formula ICAO Doc 9137 §2.3</span>'
+            +'<span style="border:1px solid #888;border-radius:3px;padding:2px 7px;font-size:9px">NFPA 403 §5.1</span>'
+            +'<span style="border:1px solid #888;border-radius:3px;padding:2px 7px;font-size:9px">Categorias ARFF 1-10 + H/UAS</span>'
+          +'</div>'
+        +'</div>'
 
-      // Historial
-      const histEl = document.getElementById('history-list');
-      const histHTML = histEl ? histEl.innerHTML : '';
+        // ── Formula ──
+        +'<div style="border:1.5px solid #000;border-radius:4px;padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:20px">'
+          +'<div style="font-family:Courier New,monospace;font-size:20px;font-weight:700;white-space:nowrap">Ac = L &times; ( Wf + f )</div>'
+          +'<div style="font-size:10px;color:#333;line-height:1.8">'
+            +'<b>Ac</b> = Area critica de aeronave (m&sup2;)<br>'
+            +'<b>L</b> = Longitud total del fuselaje (m)<br>'
+            +'<b>Wf</b> = Ancho maximo del fuselaje (m)<br>'
+            +'<b>f</b> = Factor de derrame: 12 m si Wf &lt; 12 m &middot; 30 m si Wf &ge; 12 m (OACI §2.3.2)'
+          +'</div>'
+        +'</div>'
 
-      // Tabla de referencia
-      const refTableEl = document.querySelector('.ref-table-wrap, .table-wrap, [class*="ref"]');
-      const refTableHTML = refTableEl ? refTableEl.outerHTML : '';
+        // ── Grid parametros | diagrama ──
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
 
-      // Resultado Ac
-      const acVal  = gT('val-ac') || gi('val-ac');
-      const catBadge = gi('res-cat-badge');
-      const resL   = gT('break-L');
-      const resWf  = gT('break-Wf');
-      const resF   = gT('break-f');
-      const resRule= gT('res-f-rule');
-      const resNorm= gT('res-norm-text');
-      const normDisp = document.getElementById('res-norm-note')?.style.display !== 'none';
+          // Panel izquierdo - parametros
+          +'<div style="border:1px solid #999;border-radius:4px;overflow:hidden">'
+            +'<div style="background:#f0f0f0;border-bottom:1px solid #ccc;padding:7px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">PARAMETROS DE ENTRADA</div>'
+            +'<div style="padding:10px 12px">'
+              +'<div style="margin-bottom:7px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px">Categoria ARFF del Aerodromo</div>'
+                +'<div style="border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-family:Courier New,monospace;font-size:13px;font-weight:600;background:#fafafa">'+catTxt+'</div></div>'
+              +'<div style="margin-bottom:7px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px">Longitud total (L)</div>'
+                +'<div style="border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-family:Courier New,monospace;font-size:13px;font-weight:600;background:#fafafa">'+(L||'—')+' m</div></div>'
+              +'<div style="margin-bottom:7px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px">Ancho del fuselaje (Wf)</div>'
+                +'<div style="border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-family:Courier New,monospace;font-size:13px;font-weight:600;background:#fafafa">'+(Wf||'—')+' m</div></div>'
+              +'<div style="margin-bottom:7px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px">Factor de derrame (f)</div>'
+                +'<div style="border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-family:Courier New,monospace;font-size:13px;font-weight:600;background:#fafafa">'+(f||'—')+' m</div></div>'
+              +(nota?'<div style="margin-bottom:7px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px">Nota</div>'
+                +'<div style="border:1px solid #ccc;border-radius:3px;padding:5px 8px;font-size:12px;background:#fafafa">'+nota+'</div></div>':'')
+              +(fNormVis&&fNorm?'<div style="border-left:3px solid #000;background:#f5f5f5;padding:7px 10px;font-size:9.5px;color:#333;margin-top:6px">'+fNorm+'<br><span style="color:#666">Calculo basado en OACI Doc 9137, Parte 1, Seccion 2.3.2</span></div>':'')
+            +'</div>'
+          +'</div>'
 
-      // Nota
-      const noteVal = gv('inp-note');
+          // Panel derecho - diagrama
+          +'<div style="border:1px solid #999;border-radius:4px;overflow:hidden">'
+            +'<div style="background:#f0f0f0;border-bottom:1px solid #ccc;padding:7px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">DIAGRAMA PROPORCIONAL</div>'
+            +'<div style="padding:8px;background:#fff;text-align:center">'+svgStr+'</div>'
+          +'</div>'
 
-      // ─── Construir HTML de impresión completo ────────────────
-      const htmlPrint = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{
-  background:#ffffff;color:#000000;
-  font-family:'Arial',sans-serif;font-size:12px;line-height:1.5;
-  width:100%;
-}
-.wrap{width:100%;max-width:100%;padding:8px;}
-/* ── ENCABEZADO ── */
-.hdr{border-bottom:3px solid #000;padding-bottom:8px;margin-bottom:14px;}
-.hdr h1{font-size:18px;font-weight:900;letter-spacing:-.01em;margin-bottom:3px;}
-.hdr p{font-size:10px;color:#555;}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.chip{font-size:9px;border:1px solid #888;border-radius:3px;padding:2px 7px;color:#333;}
-/* ── FÓRMULA ── */
-.formula{border:1.5px solid #000;border-radius:4px;padding:12px 16px;
-  margin-bottom:14px;display:flex;align-items:center;gap:24px;}
-.formula-eq{font-family:'Courier New',monospace;font-size:20px;font-weight:700;white-space:nowrap;}
-.formula-leg{font-size:10px;color:#333;line-height:1.7;}
-/* ── GRID DOS COLUMNAS ── */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-/* ── PANEL ── */
-.panel{border:1px solid #999;border-radius:4px;overflow:hidden;margin-bottom:10px;}
-.panel-h{border-bottom:1px solid #bbb;padding:7px 12px;
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:#f5f5f5;}
-.panel-b{padding:10px 12px;}
-/* ── CAMPOS ── */
-.field{margin-bottom:8px;}
-.field label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-bottom:2px;}
-.field .val{border:1px solid #ccc;border-radius:3px;padding:5px 8px;
-  font-family:'Courier New',monospace;font-size:13px;font-weight:600;background:#fafafa;}
-/* ── RESULTADO Ac ── */
-.result{border:2px solid #000;border-radius:6px;padding:16px;margin-bottom:12px;
-  display:flex;justify-content:space-between;align-items:flex-start;}
-.ac-num{font-size:36px;font-weight:900;line-height:1;}
-.ac-unit{font-size:14px;color:#444;}
-.ac-breakdown{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
-.bk-item{text-align:center;border:1px solid #ccc;border-radius:3px;padding:6px 12px;min-width:80px;}
-.bk-val{font-size:16px;font-weight:700;font-family:'Courier New',monospace;}
-.bk-lbl{font-size:8px;text-transform:uppercase;color:#666;letter-spacing:.05em;}
-/* ── NORMA NOTE ── */
-.norm-note{border-left:3px solid #000;background:#f5f5f5;padding:8px 12px;
-  font-size:10px;margin-bottom:10px;}
-/* ── BANNER ── */
-.banner{border-left:4px solid #000;background:#f0f0f0;padding:10px 14px;
-  font-size:10px;line-height:1.7;margin-bottom:12px;}
-/* ── DIAGRAMA ── */
-.diag-wrap{border:1px solid #999;border-radius:4px;padding:8px;
-  background:#fff;text-align:center;margin-bottom:12px;}
-.diag-title{font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:6px;margin-bottom:8px;}
-/* ── HISTORIAL ── */
-.hist-wrap{margin-bottom:12px;}
-.hist-title{font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:6px;}
-.hist-row{display:flex;align-items:center;gap:6px;padding:5px 0;
-  border-bottom:1px solid #eee;font-size:10px;}
-.hist-n{font-weight:700;min-width:20px;font-family:'Courier New',monospace;}
-.h-tag{border:1px solid #999;border-radius:2px;padding:1px 5px;font-size:9px;}
-.hist-ac{margin-left:auto;font-weight:700;font-family:'Courier New',monospace;}
-/* ── TABLA REFERENCIA ── */
-.ref-wrap{margin-bottom:12px;}
-.ref-title{font-size:10px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:6px;}
-table{width:100%;border-collapse:collapse;font-size:9px;}
-th{background:#eeeeee;border:1px solid #aaa;padding:4px 6px;font-weight:700;text-align:left;}
-td{border:1px solid #ccc;padding:3px 6px;}
-tr:nth-child(even) td{background:#f8f8f8;}
-.cat-b{display:inline-block;border:1px solid #666;border-radius:2px;
-  padding:1px 5px;font-size:9px;font-weight:700;background:#eee;}
-</style>
-</head>
-<body>
-<div class="wrap">
+        +'</div>' // fin grid
 
-  <div class="hdr">
-    <h1>Calculadora de Area Critica de Aeronave</h1>
-    <p>ICAO Doc 9137 Parte 1 §2.3 · RAC 14 · NFPA 403 §5.1</p>
-    <div class="chips">
-      <span class="chip">Formula ICAO Doc 9137 §2.3</span>
-      <span class="chip">NFPA 403 §5.1</span>
-      <span class="chip">Categorias ARFF 1-10 + H/UAS</span>
-    </div>
-  </div>
+        // ── Resultado ──
+        +(resVis?'<div style="border:2px solid #000;border-radius:5px;padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-start">'
+          +'<div>'
+            +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-bottom:4px">AREA CRITICA CALCULADA (Ac)</div>'
+            +'<div style="font-size:34px;font-weight:900;font-family:Courier New,monospace;line-height:1">'+AcVal+' <span style="font-size:16px;font-weight:400;color:#444">m&sup2;</span></div>'
+            +'<div style="display:flex;gap:10px;margin-top:10px">'
+              +'<div style="text-align:center;border:1px solid #ccc;border-radius:3px;padding:5px 12px;min-width:70px"><div style="font-size:15px;font-weight:700;font-family:Courier New,monospace">'+L+' m</div><div style="font-size:8px;text-transform:uppercase;color:#666;letter-spacing:.04em">Longitud L</div></div>'
+              +'<div style="text-align:center;border:1px solid #ccc;border-radius:3px;padding:5px 12px;min-width:70px"><div style="font-size:15px;font-weight:700;font-family:Courier New,monospace">'+Wf+' m</div><div style="font-size:8px;text-transform:uppercase;color:#666;letter-spacing:.04em">Ancho Wf</div></div>'
+              +'<div style="text-align:center;border:1px solid #ccc;border-radius:3px;padding:5px 12px;min-width:70px"><div style="font-size:15px;font-weight:700;font-family:Courier New,monospace">'+f+' m</div><div style="font-size:8px;text-transform:uppercase;color:#666;letter-spacing:.04em">Factor f</div></div>'
+            +'</div>'
+          +'</div>'
+          +'<div style="text-align:right">'
+            +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-bottom:4px">CATEGORIA ARFF</div>'
+            +'<div style="font-size:28px;font-weight:900;border:2px solid #000;border-radius:4px;width:50px;height:50px;display:flex;align-items:center;justify-content:center">'+catVal+'</div>'
+          +'</div>'
+        +'</div>':'')
 
-  <div class="formula">
-    <div class="formula-eq">Ac = L × ( Wf + f )</div>
-    <div class="formula-leg">
-      <b>Ac</b> = Area critica de aeronave — superficie de intervencion (m²)<br>
-      <b>L</b> = Longitud total del fuselaje (m), medida desde nariz hasta cola<br>
-      <b>Wf</b> = Ancho maximo del fuselaje (m)<br>
-      <b>f</b> = Factor de derrame: 12 m si Wf &lt; 12 m · 30 m si Wf ≥ 12 m (OACI Doc 9137 §2.3.2)
-    </div>
-  </div>
+        // ── Banner proteccion ──
+        +(bnrHTML?'<div style="border-left:4px solid #000;background:#f0f0f0;padding:10px 14px;font-size:10px;line-height:1.7;margin-bottom:12px;border-radius:0 4px 4px 0">'+bnrHTML+'</div>':'')
 
-  <div class="grid2">
-    <div class="panel">
-      <div class="panel-h">Parametros de Entrada</div>
-      <div class="panel-b">
-        <div class="field"><label>Categoria ARFF del Aerodromo</label>
-          <div class="val">${gv('cat') ? document.getElementById('cat').options[document.getElementById('cat').selectedIndex]?.text || gv('cat') : '—'}</div></div>
-        <div class="field"><label>Longitud total (L)</label>
-          <div class="val">${gv('inp-L')} m</div></div>
-        <div class="field"><label>Ancho del fuselaje (Wf)</label>
-          <div class="val">${gv('inp-Wf')} m</div></div>
-        <div class="field"><label>Factor de derrame (f)</label>
-          <div class="val">${gv('inp-f')} m</div></div>
-        ${noteVal ? `<div class="field"><label>Nota</label><div class="val">${noteVal}</div></div>` : ''}
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-h">Diagrama Proporcional</div>
-      <div class="panel-b diag-wrap" style="padding:6px;">
-        ${svgStr || '<p style="color:#999;font-size:11px;text-align:center;padding:20px">Sin diagrama</p>'}
-      </div>
-    </div>
-  </div>
+        // ── Historial ──
+        +(histRows?'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:6px">HISTORIAL DE CALCULOS</div>'
+          +'<table style="width:100%;border-collapse:collapse"><thead><tr>'
+          +'<th style="border:1px solid #bbb;padding:4px 6px;background:#eee;font-size:9px">#</th>'
+          +'<th style="border:1px solid #bbb;padding:4px 6px;background:#eee;font-size:9px">Parametros</th>'
+          +'<th style="border:1px solid #bbb;padding:4px 6px;background:#eee;font-size:9px;text-align:right">Ac (m²)</th>'
+          +'</tr></thead><tbody>'+histRows+'</tbody></table></div>':'')
 
-  ${document.getElementById('result-box')?.classList.contains('show') ? `
-  <div class="result">
-    <div>
-      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-bottom:4px">Area Critica Calculada (Ac)</div>
-      <div><span class="ac-num">${gv('inp-L') && gv('inp-Wf') ? (parseFloat(gv('inp-L')) * (parseFloat(gv('inp-Wf')) + parseFloat(gv('inp-f')))).toFixed(2) : '—'}</span><span class="ac-unit"> m²</span></div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-bottom:4px">Categoria ARFF</div>
-      <div style="font-size:22px;font-weight:900;">${gv('cat') || '—'}</div>
-    </div>
-  </div>
-  <div class="ac-breakdown">
-    <div class="bk-item"><div class="bk-val">${gv('inp-L')} m</div><div class="bk-lbl">Longitud (L)</div></div>
-    <div class="bk-item"><div class="bk-val">${gv('inp-Wf')} m</div><div class="bk-lbl">Ancho (Wf)</div></div>
-    <div class="bk-item"><div class="bk-val">${gv('inp-f')} m</div><div class="bk-lbl">Factor (f)</div></div>
-  </div>
-  ` : ''}
+        // ── Tabla de referencia ──
+        +(refRows?'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:6px">TABLA DE REFERENCIA ICAO - CATEGORIAS ARFF</div>'
+          +'<table style="width:100%;border-collapse:collapse"><thead><tr>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">#</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Nombre</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">L max (m)</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Wf ref (m)</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Ac min</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Ac ref</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Ac max</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Espuma (L)</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Polvo (kg)</th>'
+          +'<th style="border:1px solid #bbb;padding:3px 5px;background:#eee;font-size:8.5px">Estado</th>'
+          +'</tr></thead><tbody>'+refRows+'</tbody></table></div>':'')
 
-  ${normDisp ? `<div class="norm-note" style="margin-top:10px">${resNorm}</div>` : ''}
+        +'</div>' // fin wrap
+        +'</body></html>';
 
-  ${bannerHTML ? `<div class="banner">${bannerHTML}</div>` : ''}
-
-  ${histHTML && histHTML.trim() !== '' ? `
-  <div class="hist-wrap">
-    <div class="hist-title">Historial de Calculos</div>
-    ${histHTML}
-  </div>
-  ` : ''}
-
-</div>
-</body>
-</html>`;
-
-      const opt = {
-        margin:      [4, 4, 4, 4],
-        filename:    nombre + '.pdf',
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale:           2,
-          useCORS:         true,
-          backgroundColor: '#ffffff',
-          windowWidth:     1200,
-          logging:         false,
-        },
-        jsPDF: {
-          unit: 'mm', format: 'a4',
-          orientation: 'landscape',
-          compress: true,
-        },
-        pagebreak: { mode: 'avoid-all' },
+      var opt={
+        margin:[4,4,4,4],
+        filename:nombre+'.pdf',
+        image:{type:'jpeg',quality:0.97},
+        html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:1200,logging:false},
+        jsPDF:{unit:'mm',format:'a4',orientation:'landscape',compress:true},
+        pagebreak:{mode:'avoid-all'}
       };
 
-      try {
-        await new Promise(r => setTimeout(r, 300));
-        await html2pdf().set(opt).from(htmlPrint, 'string').save();
-        showToast('✓ PDF generado correctamente');
-      } catch(err) {
-        console.error('Error PDF:', err);
-        alert('Error al generar PDF: ' + err.message);
+      try{
+        await new Promise(function(r){setTimeout(r,300);});
+        await html2pdf().set(opt).from(H,'string').save();
+        showToast('\u2713 PDF generado correctamente');
+      }catch(err){
+        console.error('Error PDF:',err);
+        alert('Error al generar PDF: '+err.message);
       }
     }
 
