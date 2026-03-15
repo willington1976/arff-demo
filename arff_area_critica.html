@@ -21,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
+
   <style>
     /* ──────────────────────────────────────────────
      DESIGN TOKENS
@@ -1986,9 +1987,8 @@
 
       document.getElementById('diag-placeholder').style.display = 'none';
       svg.style.display = 'block';
-
-      /* Guardar datos para el motor PDF B&N */
-      window._lastDiagData = { L: L, Wf: Wf, f: f, Ac: Ac };
+      // Guardar datos para regenerar en B&N al imprimir
+      window._pdfDiag = { L: L, Wf: Wf, f: f, Ac: Ac };
     }
 
     /* ─── HISTORY ───────────────────────────────────── */
@@ -2051,161 +2051,236 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ══════════════════════════════════════════════════════
-       SEI PDF Motor v5.0 — B&N — embebido en script principal
-       (aquí para garantizar que exista cuando se llame exportPDF)
-    ══════════════════════════════════════════════════════ */
+    /* ══════════════════════════════════════════════════════════════
+       PDF MOTOR B&N — embebido directamente (sin archivos externos)
+    ════════════════════════════════════════════════════════════════ */
 
-    /* Genera SVG modo impresion blanco/negro */
-    function svgParaImpresion(L, Wf, f, Ac) {
-      var W = 520, H = 340, pad = 44;
-      var scale = Math.min((W-pad*2)/L, (H-pad*2)/(Wf+f*2));
-      var rW = L*scale, rH = Wf*scale, fH = f*scale;
-      var cx = W/2, cy = H/2;
-      var x0 = cx-rW/2, y0 = cy-rH/2;
-      var acX = cx-rW/2, acY = cy-(rH/2+fH), acW = rW, acH = rH+fH*2;
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" '+
-        'width="'+W+'" height="'+H+'" style="background:#fff;display:block;">'+
-        '<rect width="'+W+'" height="'+H+'" fill="#fff"/>'+
-        '<defs>'+
-          '<pattern id="pgrid" width="20" height="20" patternUnits="userSpaceOnUse">'+
-            '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width=".4"/>'+
-          '</pattern>'+
-          '<marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">'+
-            '<polygon points="0 0, 8 3, 0 6" fill="#000"/>'+
-          '</marker>'+
-          '<marker id="arrl" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">'+
-            '<polygon points="8 0, 0 3, 8 6" fill="#000"/>'+
-          '</marker>'+
-        '</defs>'+
-        '<rect width="'+W+'" height="'+H+'" fill="url(#pgrid)"/>'+
-        '<rect x="'+(acX+1)+'" y="'+(acY+1)+'" width="'+(acW-2)+'" height="'+(fH-2)+'" fill="#f0f0f0"/>'+
-        '<rect x="'+(acX+1)+'" y="'+(y0+rH+1)+'" width="'+(acW-2)+'" height="'+(fH-2)+'" fill="#f0f0f0"/>'+
-        '<rect x="'+acX+'" y="'+acY+'" width="'+acW+'" height="'+acH+'" '+
-          'fill="none" stroke="#000" stroke-width="1.8" stroke-dasharray="7 3" rx="2"/>'+
-        '<rect x="'+x0+'" y="'+y0+'" width="'+rW+'" height="'+rH+'" '+
-          'fill="#d0d0d0" stroke="#000" stroke-width="2.2" rx="3"/>'+
-        '<ellipse cx="'+x0+'" cy="'+cy+'" rx="'+(rH*0.38)+'" ry="'+(rH/2)+'" '+
-          'fill="#b0b0b0" stroke="#000" stroke-width="1.5"/>'+
-        '<polygon points="'+(x0+rW)+','+(cy-rH*0.3)+' '+(x0+rW+rH*0.32)+','+cy+' '+(x0+rW)+','+(cy+rH*0.3)+'" '+
-          'fill="#c0c0c0" stroke="#000" stroke-width="1.3"/>'+
-        '<line x1="'+x0+'" y1="'+(acY-16)+'" x2="'+(x0+rW)+'" y2="'+(acY-16)+'" '+
-          'stroke="#000" stroke-width="1.1" marker-start="url(#arrl)" marker-end="url(#arr)"/>'+
-        '<text x="'+cx+'" y="'+(acY-20)+'" text-anchor="middle" '+
-          'font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">L = '+L+' m</text>'+
-        '<line x1="'+(acX-18)+'" y1="'+y0+'" x2="'+(acX-18)+'" y2="'+(y0+rH)+'" '+
-          'stroke="#000" stroke-width="1.1" marker-start="url(#arrl)" marker-end="url(#arr)"/>'+
-        '<text x="'+(acX-22)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" '+
-          'font-family="Courier New,monospace" font-size="10" fill="#000">Wf='+Wf+'m</text>'+
-        '<line x1="'+(acX+acW+12)+'" y1="'+acY+'" x2="'+(acX+acW+12)+'" y2="'+y0+'" '+
-          'stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>'+
-        '<text x="'+(acX+acW+16)+'" y="'+(acY+fH/2)+'" dominant-baseline="middle" '+
-          'font-family="Courier New,monospace" font-size="10" fill="#333">f='+f+'m</text>'+
-        '<text x="'+(W-8)+'" y="'+(H-8)+'" text-anchor="end" '+
-          'font-family="Courier New,monospace" font-size="12" fill="#000" font-weight="bold">'+
-          'Ac = '+Ac.toFixed(2)+' m²</text>'+
-        '<line x1="10" y1="13" x2="22" y2="13" stroke="#000" stroke-width="1.8" stroke-dasharray="5 2"/>'+
-        '<text x="26" y="17" font-family="Courier New,monospace" font-size="9" fill="#000">AREA CRITICA</text>'+
-        '<rect x="10" y="24" width="12" height="8" rx="1" fill="#d0d0d0" stroke="#000" stroke-width="1.2"/>'+
-        '<text x="26" y="31" font-family="Courier New,monospace" font-size="9" fill="#000">FUSELAJE</text>'+
-      '</svg>';
+    /* Genera el SVG del diagrama en blanco y negro puro para impresión */
+    function _svgBN(L, Wf, f, Ac) {
+      const W = 480, H = 320, pad = 48;
+      const sc = Math.min((W-pad*2)/L, (H-pad*2)/(Wf+f*2));
+      const rW = L*sc, rH = Wf*sc, fH = f*sc;
+      const cx = W/2, cy = H/2;
+      const x0 = cx-rW/2, y0 = cy-rH/2;
+      const acX = x0, acY = cy-(rH/2+fH), acH = rH+fH*2;
+
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" ` +
+        `width="${W}" height="${H}" style="display:block;background:#fff;">` +
+
+        `<rect width="${W}" height="${H}" fill="#fff"/>` +
+
+        `<defs>` +
+          `<pattern id="pg" width="20" height="20" patternUnits="userSpaceOnUse">` +
+            `<path d="M20 0L0 0 0 20" fill="none" stroke="#e8e8e8" stroke-width=".5"/>` +
+          `</pattern>` +
+          `<marker id="ma" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">` +
+            `<polygon points="0 0,7 2.5,0 5" fill="#222"/>` +
+          `</marker>` +
+          `<marker id="mb" markerWidth="7" markerHeight="5" refX="0" refY="2.5" orient="auto">` +
+            `<polygon points="7 0,0 2.5,7 5" fill="#222"/>` +
+          `</marker>` +
+        `</defs>` +
+
+        // Grid claro
+        `<rect width="${W}" height="${H}" fill="url(#pg)"/>` +
+
+        // Zona f superior e inferior — gris muy claro
+        `<rect x="${acX+1}" y="${acY+1}" width="${rW-2}" height="${fH-2}" fill="#f2f2f2" stroke="none"/>` +
+        `<rect x="${acX+1}" y="${y0+rH+1}" width="${rW-2}" height="${fH-2}" fill="#f2f2f2" stroke="none"/>` +
+
+        // Área crítica — borde negro punteado, sin relleno de color
+        `<rect x="${acX}" y="${acY}" width="${rW}" height="${acH}" ` +
+          `fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="8,3" rx="2"/>` +
+
+        // Fuselaje — gris con borde negro sólido
+        `<rect x="${x0}" y="${y0}" width="${rW}" height="${rH}" ` +
+          `fill="#d8d8d8" stroke="#000" stroke-width="2" rx="3"/>` +
+
+        // Morro
+        `<ellipse cx="${x0}" cy="${cy}" rx="${rH*0.36}" ry="${rH/2}" ` +
+          `fill="#b8b8b8" stroke="#000" stroke-width="1.4"/>` +
+
+        // Cola
+        `<polygon points="${x0+rW},${cy-rH*0.28} ${x0+rW+rH*0.3},${cy} ${x0+rW},${cy+rH*0.28}" ` +
+          `fill="#c8c8c8" stroke="#000" stroke-width="1.2"/>` +
+
+        // Línea de cota L (con flechas)
+        `<line x1="${x0}" y1="${acY-15}" x2="${x0+rW}" y2="${acY-15}" ` +
+          `stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>` +
+        `<text x="${cx}" y="${acY-19}" text-anchor="middle" ` +
+          `font-family="'Courier New',Courier,monospace" font-size="11" fill="#000" font-weight="bold">` +
+          `L = ${L} m</text>` +
+
+        // Línea de cota Wf
+        `<line x1="${acX-18}" y1="${y0}" x2="${acX-18}" y2="${y0+rH}" ` +
+          `stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>` +
+        `<text x="${acX-22}" y="${cy}" text-anchor="end" dominant-baseline="middle" ` +
+          `font-family="'Courier New',Courier,monospace" font-size="10" fill="#000">Wf=${Wf}m</text>` +
+
+        // Línea de cota f (derecha)
+        `<line x1="${acX+rW+10}" y1="${acY}" x2="${acX+rW+10}" y2="${y0}" ` +
+          `stroke="#555" stroke-width=".8" stroke-dasharray="4,2"/>` +
+        `<text x="${acX+rW+14}" y="${acY+fH/2}" dominant-baseline="middle" ` +
+          `font-family="'Courier New',Courier,monospace" font-size="10" fill="#333">f=${f}m</text>` +
+
+        // Etiqueta Ac
+        `<text x="${W-6}" y="${H-6}" text-anchor="end" ` +
+          `font-family="'Courier New',Courier,monospace" font-size="12" fill="#000" font-weight="bold">` +
+          `Ac = ${Ac.toFixed(2)} m\u00B2</text>` +
+
+        // Leyenda
+        `<line x1="8" y1="12" x2="20" y2="12" stroke="#000" stroke-width="1.6" stroke-dasharray="6,2"/>` +
+        `<text x="24" y="16" font-family="'Courier New',Courier,monospace" font-size="9" fill="#000">ÁREA CRÍTICA</text>` +
+        `<rect x="8" y="23" width="12" height="7" rx="1" fill="#d8d8d8" stroke="#000" stroke-width="1.1"/>` +
+        `<text x="24" y="30" font-family="'Courier New',Courier,monospace" font-size="9" fill="#000">FUSELAJE</text>` +
+
+      `</svg>`;
     }
 
-    async function generarReporteSEI(nombreArchivo, idContenedor, opciones) {
-      opciones = opciones || {};
-      var elemento = document.getElementById(idContenedor) || document.getElementById('pdf-content');
-      if (!elemento) { alert("Error: No se encontró el contenedor PDF"); return; }
+    /* Motor PDF principal — fondo blanco total, diagrama B&N */
+    async function exportPDF() {
+      showToast('⏳ Generando PDF…');
 
-      /* Backup del SVG de pantalla */
-      var svgEl     = document.getElementById('diag-svg');
-      var svgBackup = svgEl ? svgEl.outerHTML : null;
+      const cat    = document.getElementById('cat')?.value   || 'XX';
+      const Lval   = document.getElementById('inp-L')?.value || '0';
+      const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${Lval}_${new Date().toISOString().slice(0,10)}`;
 
-      /* Sustituir SVG por versión B&N si hay datos */
-      if (svgEl && window._lastDiagData) {
-        var d = window._lastDiagData;
-        var tmp = document.createElement('div');
-        tmp.innerHTML = svgParaImpresion(d.L, d.Wf, d.f, d.Ac);
-        var newSvg = tmp.firstChild;
+      const elem = document.getElementById('pdf-content');
+      if (!elem) { alert('No se encontró el contenedor PDF'); return; }
+
+      /* 1 — Sustituir SVG de pantalla por versión B&N */
+      const svgEl = document.getElementById('diag-svg');
+      let svgOuter = null;
+      if (svgEl && window._pdfDiag) {
+        svgOuter = svgEl.outerHTML;                       // backup
+        const tmp = document.createElement('div');
+        tmp.innerHTML = _svgBN(
+          window._pdfDiag.L, window._pdfDiag.Wf,
+          window._pdfDiag.f, window._pdfDiag.Ac
+        );
+        const newSvg = tmp.firstChild;
         newSvg.id = 'diag-svg';
         svgEl.parentNode.replaceChild(newSvg, svgEl);
       }
 
-      /* Estilos de impresion B&N */
-      var oldSt = document.getElementById('sei-print-styles');
-      if (oldSt) oldSt.remove();
-      var st = document.createElement('style');
-      st.id = 'sei-print-styles';
-      st.textContent =
-        'body,#pdf-content,.panel,.panel-head,.panel-body,' +
-        '.result-box,.result-header,.result-breakdown,.breakdown-item,' +
-        '.formula-box,.meta-chips,.history-section,.history-item,' +
-        '.ref-section,table,thead,tbody,th,td,tr,' +
-        '.protection-banner,#protection-banner,' +
-        '.norm-note,.f-rule-badge,.nav-bar,.page-header{' +
-          'background:#fff!important;background-color:#fff!important;' +
-          'color:#000!important;border-color:#bbb!important}' +
-        '*,*::before,*::after{color:#000!important;fill:#000!important;' +
-          'text-shadow:none!important;box-shadow:none!important}' +
-        '.fab,.fab-btn,.fab-tooltip,.btn-calc,.nav-bar,' +
-        '#diag-placeholder,.diagram-placeholder{display:none!important}' +
-        '.panel{border:1px solid #999!important;border-radius:4px!important}' +
-        'th{background:#f0f0f0!important;font-weight:bold!important}' +
-        'tr:nth-child(even) td{background:#f8f8f8!important}' +
-        '.cat-badge{border:1px solid #666!important;background:#eee!important}' +
-        '.formula-box{border:2px solid #000!important;padding:12px!important}' +
-        '#diag-svg{background:#fff!important}';
+      /* 2 — Inyectar estilos B&N completos */
+      const SID = 'sei-pdf-print';
+      document.getElementById(SID)?.remove();
+      const st = document.createElement('style');
+      st.id = SID;
+      st.textContent = `
+        /* ── TODO fondo blanco ── */
+        html, body, #pdf-content,
+        .page, .panel, .panel-head, .panel-body,
+        .two-col, .result-box, .result-header, .result-breakdown,
+        .breakdown-item, .formula-box, .meta-chips,
+        .history-section, .history-item, .history-header,
+        .ref-section, .ref-table, table, thead, tbody, tfoot,
+        th, td, tr, .norm-section, .norm-card,
+        .protection-banner, #protection-banner,
+        .norm-note, .f-rule-badge, select, input,
+        .nav-bar, .nav-logo, .nav-links, .page-header,
+        .diagram-container, #diagram-container,
+        .panel-body > * {
+          background: #fff !important;
+          background-color: #fff !important;
+          background-image: none !important;
+          color: #000 !important;
+          border-color: #bbb !important;
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+        /* ── SVG fondo blanco ── */
+        #diag-svg, #diag-svg *, svg { background: #fff !important; }
+
+        /* ── Tipografía negra en todo ── */
+        *, *::before, *::after {
+          color: #000 !important;
+          border-color: #bbb !important;
+          text-shadow: none !important;
+          box-shadow: none !important;
+        }
+        /* Excepciones: SVG interior B&N ya tiene sus propios colores */
+        #diag-svg text  { fill: #000 !important; }
+        #diag-svg rect  { fill: inherit; }
+        #diag-svg line, #diag-svg polygon, #diag-svg ellipse {
+          stroke: inherit !important; fill: inherit !important;
+        }
+
+        /* ── Ocultar UI que no va en el documento ── */
+        .fab, .fab-btn, .fab-tooltip, .fab-main,
+        .btn-calc, .nav-bar, .nav-links,
+        #diag-placeholder, .diagram-placeholder,
+        button.btn-calc { display: none !important; }
+
+        /* ── Tabla legible ── */
+        th { background: #f0f0f0 !important; font-weight: 700 !important; }
+        tr:nth-child(even) td { background: #f7f7f7 !important; }
+        .cat-badge {
+          border: 1px solid #666 !important;
+          background: #eee !important;
+          color: #000 !important;
+        }
+
+        /* ── Fórmula destacada ── */
+        .formula-box { border: 2px solid #000 !important; }
+
+        /* ── Banner de protección legible ── */
+        #protection-banner { border-left: 4px solid #000 !important; }
+
+        /* ── Inputs visibles ── */
+        input, select {
+          border: 1px solid #999 !important;
+          background: #fff !important;
+          color: #000 !important;
+        }
+      `;
       document.head.appendChild(st);
 
-      var opt = {
+      /* 3 — Configuración html2pdf — márgenes 2mm, A4 apaisado */
+      if (typeof html2pdf === 'undefined') {
+        alert('Error: html2pdf no disponible. Verifique la conexión a internet.');
+        st.remove();
+        return;
+      }
+
+      const opt = {
         margin:      [2, 2, 2, 2],
-        filename:    (nombreArchivo || 'reporte_sei') + '.pdf',
+        filename:    nombre + '.pdf',
         image:       { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2.2, useCORS: true, backgroundColor: '#ffffff',
-          windowWidth: 1200, letterRendering: true, logging: false
+          scale:           2.5,
+          useCORS:         true,
+          backgroundColor: '#ffffff',
+          windowWidth:     1200,
+          logging:         false,
         },
         jsPDF: {
-          unit: 'mm', format: opciones.formato || 'a4',
-          orientation: opciones.orientacion === 'landscape' ? 'landscape' : 'portrait',
-          compress: true
+          unit:        'mm',
+          format:      'a4',
+          orientation: 'landscape',
+          compress:    true,
         },
-        pagebreak: { mode: ['avoid-all','css','legacy'] }
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
 
       try {
-        await new Promise(function(r){ setTimeout(r, 800); });
-        if (typeof html2pdf === 'undefined')
-          throw new Error('html2pdf no disponible. Verifique la conexion a internet.');
-        await html2pdf().set(opt).from(elemento).save();
-        console.log('PDF B&N generado.');
+        await new Promise(r => setTimeout(r, 700));
+        await html2pdf().set(opt).from(elem).save();
+        showToast('✓ PDF generado correctamente');
       } catch(err) {
         console.error('Error PDF:', err);
         alert('Error al generar PDF: ' + err.message);
       } finally {
-        /* Restaurar SVG de pantalla */
-        var svgNow = document.getElementById('diag-svg');
-        if (svgNow && svgBackup) {
-          var tmp2 = document.createElement('div');
-          tmp2.innerHTML = svgBackup;
-          var restored = tmp2.firstChild;
-          svgNow.parentNode.replaceChild(restored, svgNow);
+        /* 4 — Restaurar SVG de pantalla y quitar estilos B&N */
+        const svgNow = document.getElementById('diag-svg');
+        if (svgNow && svgOuter) {
+          const tmp2 = document.createElement('div');
+          tmp2.innerHTML = svgOuter;
+          svgNow.parentNode.replaceChild(tmp2.firstChild, svgNow);
         }
-        /* Quitar estilos de impresion */
-        var stEl = document.getElementById('sei-print-styles');
-        if (stEl) stEl.remove();
+        document.getElementById(SID)?.remove();
       }
-    }
-
-    /* ─── PDF EXPORT ────────────────────────────────── */
-    function exportPDF() {
-      showToast('⏳ Generando PDF institucional...');
-      const cat  = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
-      const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
-      const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
-      generarReporteSEI(nombre, 'pdf-content', {
-        orientacion: 'landscape',
-        formato:     'a4'
-      });
     }
 
     // supabaseClient disponible via supabase-config.js
