@@ -21,9 +21,51 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
-  <!-- SEI PDF Generator -->
-  <link rel="stylesheet" href="css/sei-pdf-style.css">
-  <script src="js/sei-pdf-generator.js"></script>
+  <!-- SEI PDF Motor v4.6 — embebido, sin dependencias externas -->
+  <script>
+  (function() {
+    window.generarReporteSEI = async function(nombreArchivo, idContenedor, opciones) {
+      opciones = opciones || {};
+      var elemento = document.getElementById(idContenedor) || document.getElementById('pdf-content');
+      if (!elemento) { alert("Error: No se encontró el contenedor PDF"); return; }
+
+      /* Estilos internos para forzar fondo blanco en impresión */
+      var sid = 'sei-internal-pdf-styles';
+      if (!document.getElementById(sid)) {
+        var st = document.createElement('style');
+        st.id = sid;
+        st.textContent =
+          '#pdf-content { background:#fff !important; color:#000 !important; }' +
+          '.fab,.fab-btn,.fab-tooltip,.btn-calc { display:none !important; }' +
+          '#diag-svg rect[fill="url(#grid)"] { display:none !important; }';
+        document.head.appendChild(st);
+      }
+
+      var esPaisaje = opciones.orientacion === 'landscape';
+      var opt = {
+        margin:      [8, 5, 8, 5],
+        filename:    (nombreArchivo || 'reporte_sei') + '.pdf',
+        image:       { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 1200 },
+        jsPDF:       { unit: 'mm', format: opciones.formato || 'a4',
+                       orientation: esPaisaje ? 'landscape' : 'portrait' }
+      };
+
+      try {
+        await new Promise(function(r) { setTimeout(r, 600); });
+        if (typeof html2pdf === 'undefined') {
+          throw new Error('La librería html2pdf no está cargada. Verifique la conexión.');
+        }
+        await html2pdf().set(opt).from(elemento).save();
+        console.log('PDF generado correctamente.');
+      } catch(err) {
+        console.error('Error PDF:', err);
+        alert('Error al generar PDF: ' + err.message);
+      }
+    };
+    console.log('generarReporteSEI v4.6 listo.');
+  })();
+  </script>
 
   <style>
     /* ──────────────────────────────────────────────
@@ -1018,7 +1060,6 @@
       border-radius: 3px;
     }
   </style>
-<link rel="stylesheet" href="css/sei-pdf-style.css">
 </head>
 
 <body>
