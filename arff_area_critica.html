@@ -1351,6 +1351,102 @@
       .sei-footer-norm { font-size: 6.5pt !important; color: #666 !important; }
       .sei-footer-norm span { color: #000 !important; }
     }
+
+    /* ── Autocomplete personalizado ── */
+    .ac-wrap { position: relative; }
+
+    .ac-input-row {
+      display: flex; align-items: center;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .ac-input-row:focus-within {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(247,103,7,.12);
+    }
+    .ac-input-row input {
+      flex: 1; background: transparent; border: none;
+      color: var(--text); font-family: var(--font-body);
+      font-size: 13px; padding: 10px 10px 10px 14px;
+      outline: none; min-width: 0;
+    }
+    .ac-input-row input::placeholder { color: var(--text-muted); }
+
+    /* Icono lupa a la izquierda + flecha a la derecha */
+    .ac-icon-search {
+      padding-left: 12px; color: var(--orange); opacity: .7;
+      display: flex; align-items: center; flex-shrink: 0;
+    }
+    .ac-icon-clear {
+      padding: 0 10px; color: var(--text-muted); cursor: pointer;
+      font-size: 14px; line-height: 1; display: none;
+      flex-shrink: 0; transition: color var(--transition);
+    }
+    .ac-icon-clear:hover { color: var(--red); }
+    .ac-icon-clear.visible { display: flex; align-items: center; }
+
+    /* Dropdown */
+    .ac-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 32px rgba(0,0,0,.45);
+      z-index: 200;
+      max-height: 260px; overflow-y: auto;
+      display: none;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
+    .ac-dropdown.open { display: block; }
+
+    /* Contador de resultados */
+    .ac-counter {
+      padding: 6px 12px 4px;
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--text-muted); letter-spacing: .06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Ítem del dropdown */
+    .ac-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; cursor: pointer;
+      transition: background var(--transition);
+      border-bottom: 1px solid rgba(36,48,71,.5);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active {
+      background: rgba(247,103,7,.07);
+    }
+    .ac-item-name {
+      font-family: var(--font-body); font-size: 13px;
+      color: var(--text); font-weight: 500;
+    }
+    /* Resaltar el texto que coincide */
+    .ac-item-name mark {
+      background: rgba(247,103,7,.25);
+      color: var(--orange); border-radius: 2px;
+      font-weight: 700; padding: 0 1px;
+    }
+    .ac-item-meta {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-muted); white-space: nowrap; margin-left: 8px;
+    }
+
+    /* Sin resultados */
+    .ac-empty {
+      padding: 18px 14px; text-align: center;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-muted); letter-spacing: .05em;
+    }
+
+    /* @media print: ocultar dropdown */
+    @media print { .ac-dropdown { display: none !important; } }
+
   </style>
 </head>
 
@@ -1483,14 +1579,22 @@
                 </svg>
                 Búsqueda Semántica de Aeronave
               </label>
-              <div class="input-wrap">
-                <input type="text" id="search-ac" list="naves-list" placeholder="Escribe modelo (ej: ANTONOV-32)..."
-                  autocomplete="off" style="font-family:var(--font-body); font-size:13px; padding-right:14px">
-                <datalist id="naves-list"></datalist>
+              <div class="ac-wrap" id="ac-wrap">
+                <div class="ac-input-row">
+                  <span class="ac-icon-search">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                  </span>
+                  <input type="text" id="search-ac" autocomplete="off"
+                    placeholder="Escribe para buscar aeronave..."
+                    oninput="acOnInput()" onfocus="acOnFocus()" onkeydown="acOnKey(event)">
+                  <span class="ac-icon-clear" id="ac-clear" onclick="acClear()" title="Limpiar">&#x2715;</span>
+                </div>
+                <div class="ac-dropdown" id="ac-dropdown"></div>
               </div>
-              <div
-                style="font-size: 9px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); letter-spacing: 0.05em;">
-                Filtra dinámicamente entre 97 modelos de la base de datos de Supabase.
+              <div style="font-size:9px;color:var(--text-muted);margin-top:4px;font-family:var(--font-mono);letter-spacing:.05em">
+                97 aeronaves — filtra por nombre mientras escribes
               </div>
             </div>
 
@@ -2497,68 +2601,143 @@
 
     // Variables globales para aeronaves
     let aeronavesData = [];
+    let acActiveIdx = -1;
 
     async function loadAeronaves() {
       try {
-        // Consultamos solo las columnas básicas para evitar errores de esquema (400)
         const { data, error } = await supabaseClient
           .from('aeronaves')
           .select('modelo,longitud,ancho_fuselaje')
           .order('modelo', { ascending: true });
-
-        if (error) {
-          console.error("Error Supabase:", error.message);
-          showToast('⚠ Error al conectar con Supabase');
-          return;
-        }
-
-        if (data) {
-          aeronavesData = data;
-          const datalist = document.getElementById('naves-list');
-          if (datalist) {
-            datalist.innerHTML = data.map(n => `<option value="${n.modelo}"></option>`).join('');
-          }
-        }
-      } catch (err) {
-        console.error("Error de red/servidor:", err);
-      }
+        if (error) { console.error("Error Supabase:", error.message); showToast('⚠ Error al conectar con Supabase'); return; }
+        if (data) { aeronavesData = data; }
+      } catch (err) { console.error("Error de red/servidor:", err); }
     }
 
     function applyFlash(el) {
       if (!el) return;
       el.classList.remove('flash-fill');
-      void el.offsetWidth; // Force reflow
+      void el.offsetWidth;
       el.classList.add('flash-fill');
     }
 
-    // Evento de búsqueda y auto-llenado
-    function initSearch() {
+    /* Cargar la aeronave seleccionada — misma lógica exacta que antes */
+    function acSelectNave(nave) {
       const searchInp = document.getElementById('search-ac');
-      if (searchInp) {
-        searchInp.addEventListener('input', () => {
-          const val = searchInp.value.trim().toUpperCase();
-          // Buscamos coincidencia exacta para disparar auto-llenado
-          const nave = aeronavesData.find(n => n.modelo.toUpperCase() === val);
-
-          if (nave) {
-            const inpL = document.getElementById('inp-L');
-            const inpWf = document.getElementById('inp-Wf');
-            const selCat = document.getElementById('cat');
-
-            if (inpL) { inpL.value = nave.longitud; applyFlash(inpL); }
-            if (inpWf) { inpWf.value = nave.ancho_fuselaje; applyFlash(inpWf); }
-            if (selCat) {
-              selCat.value = nave.categoria_oaci || detectCat(nave.longitud);
-              applyFlash(selCat);
-            }
-
-            // Cálculo automático inmediato
-            calcular();
-            showToast(`✓ Datos de ${nave.modelo} cargados`);
-          }
-        });
+      const inpL   = document.getElementById('inp-L');
+      const inpWf  = document.getElementById('inp-Wf');
+      const selCat = document.getElementById('cat');
+      if (searchInp) { searchInp.value = nave.modelo; }
+      if (inpL)  { inpL.value  = nave.longitud;       applyFlash(inpL); }
+      if (inpWf) { inpWf.value = nave.ancho_fuselaje; applyFlash(inpWf); }
+      if (selCat) {
+        selCat.value = nave.categoria_oaci || detectCat(nave.longitud);
+        applyFlash(selCat);
       }
+      acClose();
+      document.getElementById('ac-clear').classList.add('visible');
+      calcular();
+      showToast(`✓ Datos de ${nave.modelo} cargados`);
     }
+
+    /* Resaltar el fragmento que coincide con el query */
+    function acHighlight(text, query) {
+      if (!query) return text;
+      const idx = text.toUpperCase().indexOf(query.toUpperCase());
+      if (idx === -1) return text;
+      return text.slice(0, idx)
+        + '<mark>' + text.slice(idx, idx + query.length) + '</mark>'
+        + text.slice(idx + query.length);
+    }
+
+    function acRender(query) {
+      const dd = document.getElementById('ac-dropdown');
+      const q  = query.trim();
+      const filtered = q.length === 0
+        ? []
+        : aeronavesData.filter(n => n.modelo.toUpperCase().includes(q.toUpperCase()));
+
+      if (q.length === 0) { acClose(); return; }
+      if (filtered.length === 0) {
+        dd.innerHTML = '<div class="ac-empty">Sin resultados para "' + q + '"</div>';
+      } else {
+        const MAX = 12;
+        const shown = filtered.slice(0, MAX);
+        let html = '<div class="ac-counter">'
+          + shown.length + (filtered.length > MAX ? '+' : '') + ' de ' + aeronavesData.length
+          + ' aeronaves</div>';
+        shown.forEach(function(n, i) {
+          const cat = n.categoria_oaci || detectCat(n.longitud);
+          html += '<div class="ac-item" data-idx="' + i + '" onmousedown="event.preventDefault()" onclick="acSelectNave(acFilteredRef[' + i + '])">'
+            + '<span class="ac-item-name">' + acHighlight(n.modelo, q) + '</span>'
+            + '<span class="ac-item-meta">Cat ' + cat + ' &middot; ' + parseFloat(n.longitud).toFixed(1) + ' m</span>'
+            + '</div>';
+        });
+        window.acFilteredRef = shown;
+        dd.innerHTML = html;
+      }
+
+      acActiveIdx = -1;
+      dd.classList.add('open');
+    }
+
+    function acClose() {
+      const dd = document.getElementById('ac-dropdown');
+      if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+      acActiveIdx = -1;
+    }
+
+    function acOnInput() {
+      const inp = document.getElementById('search-ac');
+      const clr = document.getElementById('ac-clear');
+      if (clr) clr.classList.toggle('visible', inp.value.length > 0);
+      acRender(inp.value);
+    }
+
+    function acOnFocus() {
+      const inp = document.getElementById('search-ac');
+      if (inp && inp.value.trim().length > 0) acRender(inp.value);
+    }
+
+    function acClear() {
+      const inp = document.getElementById('search-ac');
+      if (inp) inp.value = '';
+      const clr = document.getElementById('ac-clear');
+      if (clr) clr.classList.remove('visible');
+      acClose();
+      inp && inp.focus();
+    }
+
+    function acOnKey(e) {
+      const dd = document.getElementById('ac-dropdown');
+      if (!dd || !dd.classList.contains('open')) return;
+      const items = dd.querySelectorAll('.ac-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        acActiveIdx = Math.min(acActiveIdx + 1, items.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        acActiveIdx = Math.max(acActiveIdx - 1, 0);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (acActiveIdx >= 0 && window.acFilteredRef && window.acFilteredRef[acActiveIdx]) {
+          acSelectNave(window.acFilteredRef[acActiveIdx]);
+        }
+        return;
+      } else if (e.key === 'Escape') {
+        acClose(); return;
+      }
+      items.forEach(function(el, i) { el.classList.toggle('active', i === acActiveIdx); });
+      if (items[acActiveIdx]) items[acActiveIdx].scrollIntoView({ block: 'nearest' });
+    }
+
+    /* Cerrar al hacer clic fuera */
+    document.addEventListener('click', function(e) {
+      const wrap = document.getElementById('ac-wrap');
+      if (wrap && !wrap.contains(e.target)) acClose();
+    });
+
+    function initSearch() { /* no-op: manejado por acOnInput/acOnFocus */ }
 
     window.onload = async () => {
       await loadAeronaves();
