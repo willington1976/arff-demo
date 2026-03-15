@@ -55,6 +55,8 @@
       --radius: 10px;
       --radius-sm: 6px;
       --transition: .18s ease;
+      --accent-a: var(--orange);
+      --accent-b: var(--red);
     }
 
     /* Flash de auto-llenado */
@@ -1291,6 +1293,64 @@
     .panel-body code { background: #eee !important; color: #333 !important; padding: 0 2pt !important; }
     .panel-body em { color: #333 !important; }
   }
+
+    /* ── FOOTER ── */
+    .sei-footer {
+      text-align: center;
+      padding: 22px 24px 18px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .sei-footer-strip {
+      width: 40px; height: 3px;
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+    .sei-footer-name {
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .sei-footer-cargo {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent-a);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .sei-footer-norm {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: .06em;
+    }
+    .sei-footer-norm span { color: var(--accent-b); }
+
+    /* Footer en @media print */
+    @media print {
+      .sei-footer {
+        border-top: 1pt solid #ccc !important;
+        padding: 6pt 8pt !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        margin-top: 6pt !important;
+      }
+      .sei-footer-strip {
+        background: #000 !important;
+        width: 24px !important; height: 2px !important;
+        margin-bottom: 5pt !important;
+      }
+      .sei-footer-name { font-size: 8pt !important; color: #000 !important; }
+      .sei-footer-cargo { font-size: 7pt !important; color: #555 !important; }
+      .sei-footer-norm { font-size: 6.5pt !important; color: #666 !important; }
+      .sei-footer-norm span { color: #000 !important; }
+    }
   </style>
 </head>
 
@@ -1741,6 +1801,19 @@
     </div>
 
   </main><!-- end #pdf-content -->
+
+  <!-- FOOTER -->
+  <footer class="sei-footer">
+    <div class="sei-footer-strip"></div>
+    <div class="sei-footer-name">Diseño: Willington Peña Montenegro</div>
+    <div class="sei-footer-cargo">Bombero Aeronáutico &middot; BAE 373</div>
+    <div class="sei-footer-norm">
+      ARFF Colombia &nbsp;&middot;&nbsp;
+      <span>OACI Doc 9137</span> &nbsp;&middot;&nbsp;
+      RAC 14 &nbsp;&middot;&nbsp;
+      <span>NFPA 403</span>
+    </div>
+  </footer>
 
   <!-- ════════════════════════════════════════════════
      FAB (Export PDF)
