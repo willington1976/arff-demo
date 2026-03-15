@@ -21,9 +21,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
-  <!-- SEI PDF Generator -->
-  <link rel="stylesheet" href="css/sei-pdf-style.css">
-  <script src="js/sei-pdf-generator.js"></script>
 
   <style>
     /* ──────────────────────────────────────────────
@@ -1017,8 +1014,284 @@
       background: var(--border2);
       border-radius: 3px;
     }
+
+  /* ════════════════════ @media print ════════════════════
+     Página 1: encabezado + fórmula + [parámetros | diagrama] + resultado
+     Página 2: historial + tabla ICAO + normativa
+  ════════════════════════════════════════════════════ */
+  @media print {
+
+    @page { size: A4 landscape; margin: 7mm 8mm; }
+
+    /* Variables tema claro */
+    :root {
+      --bg:#fff; --panel:#fff; --panel2:#f6f6f6; --panel3:#f0f0f0;
+      --border:#ccc; --border2:#bbb;
+      --red:#c00; --red-dim:#900; --red-glow:transparent;
+      --orange:#b84d00; --orange-dim:#883500; --orange-glow:transparent;
+      --amber:#8a5200; --green:#175c28; --blue:#0b3e80; --blue-bright:#0b3e80;
+      --text:#000; --text-dim:#222; --text-muted:#555;
+      --radius:3px; --radius-sm:2px;
+    }
+
+    /* Reset */
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      animation: none !important;
+      transition: none !important;
+    }
+
+    html, body {
+      background: #fff !important;
+      background-image: none !important;
+      color: #000 !important;
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
+      margin: 0 !important; padding: 0 !important;
+      width: 100% !important;
+    }
+
+    /* Ocultar elementos de UI */
+    nav, .fab, .fab-btn, .fab-tooltip, .fab-main,
+    .btn-calc, .btn-return, .history-actions, .btn-sm,
+    #diag-placeholder, .diagram-placeholder,
+    .toast, #res-norm-note + button,
+    .result-box button { display: none !important; }
+
+    /* ── Contenedor principal ── */
+    .page {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* ── Encabezado: compacto en una línea ── */
+    .module-header {
+      background: #fff !important;
+      border: 1px solid #999 !important;
+      border-radius: 3px !important;
+      margin-bottom: 5pt !important;
+      page-break-inside: avoid !important;
+    }
+    .module-strip {
+      height: 3px !important;
+      background: #000 !important;
+    }
+    .module-head-inner { padding: 4pt 7pt 3pt !important; }
+    .module-eyebrow {
+      font-size: 6.5pt !important; color: #555 !important;
+      margin-bottom: 1pt !important; letter-spacing: .08em !important;
+    }
+    .module-title {
+      font-size: 13pt !important; color: #000 !important;
+      margin-bottom: 1pt !important; letter-spacing: 0 !important;
+    }
+    .module-subtitle { font-size: 7pt !important; color: #444 !important; }
+    .module-meta { gap: 3pt !important; margin-top: 3pt !important; }
+    .meta-chip {
+      background: #f0f0f0 !important; border: 1px solid #aaa !important;
+      color: #333 !important; font-size: 6.5pt !important;
+      padding: 1pt 4pt !important; border-radius: 2px !important;
+    }
+    .meta-chip .dot { width: 5px !important; height: 5px !important; }
+
+    /* ── Fórmula ── */
+    .formula-card {
+      background: #fff !important;
+      border: 1pt solid #000 !important; border-left: 3pt solid #000 !important;
+      border-radius: 2px !important;
+      padding: 4pt 8pt !important; margin-bottom: 5pt !important;
+      gap: 10pt !important; flex-wrap: nowrap !important;
+      page-break-inside: avoid !important;
+    }
+    .formula-main {
+      font-size: 13pt !important; color: #000 !important;
+      white-space: nowrap !important;
+    }
+    .formula-main .var-ac, .formula-main .var-l,
+    .formula-main .var-wf, .formula-main .var-f { color: #000 !important; }
+    .formula-main .op { color: #555 !important; }
+    .formula-legend { gap: 3pt !important; min-width: 0 !important; }
+    .legend-item { min-width: 80pt !important; gap: 3pt !important; }
+    .legend-var {
+      font-size: 7pt !important; background: #eee !important;
+      color: #000 !important; border-color: #999 !important; padding: 0 3pt !important;
+    }
+    .legend-desc { font-size: 7pt !important; color: #333 !important; }
+
+    /* ── Grid 2 columnas: parámetros | diagrama ── */
+    .calc-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 5pt !important; margin-bottom: 5pt !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* ── Paneles ── */
+    .panel {
+      background: #fff !important; border: 1pt solid #999 !important;
+      border-radius: 2px !important; overflow: hidden !important;
+      page-break-inside: avoid !important;
+    }
+    .panel-head {
+      background: #efefef !important; border-bottom: 1pt solid #ccc !important;
+      padding: 2.5pt 6pt !important;
+    }
+    .panel-title { font-size: 7pt !important; color: #000 !important; font-weight: 700 !important; letter-spacing: .05em !important; }
+    .panel-icon { display: none !important; }
+    .panel-body { background: #fff !important; padding: 5pt 7pt !important; color: #000 !important; }
+
+    /* ── Campos formulario ── */
+    .field { margin-bottom: 4pt !important; }
+    .field > label {
+      display: block !important; font-size: 6.5pt !important;
+      color: #555 !important; margin-bottom: 1pt !important;
+      text-transform: uppercase !important; letter-spacing: .04em !important;
+    }
+    .var-badge {
+      font-size: 6.5pt !important; background: #eee !important;
+      color: #000 !important; border-color: #999 !important;
+      padding: 0 2pt !important; border-radius: 2px !important;
+    }
+    .input-wrap {
+      display: flex !important; background: #fafafa !important;
+      border: 1pt solid #ccc !important; border-radius: 2px !important; overflow: hidden !important;
+    }
+    input, select {
+      background: #fafafa !important; border: none !important;
+      color: #000 !important; font-size: 10pt !important; font-weight: 700 !important;
+      font-family: 'DM Mono',monospace !important;
+      padding: 2pt 5pt !important; flex: 1 !important;
+    }
+    select { width: 100% !important; border: 1pt solid #ccc !important; padding: 2.5pt 5pt !important; }
+    .input-unit {
+      background: #ebebeb !important; color: #444 !important;
+      border-left: 1pt solid #ccc !important; padding: 2pt 4pt !important;
+      font-size: 7pt !important;
+    }
+    #f-norm-note {
+      display: block !important; background: #f5f5f5 !important;
+      border-color: #ccc !important; border-left-color: #555 !important;
+      color: #333 !important; font-size: 7pt !important;
+      padding: 2pt 5pt !important; margin-top: 2pt !important;
+    }
+    .f-rule-badge {
+      background: #eee !important; border-color: #999 !important;
+      color: #333 !important; font-size: 6.5pt !important; padding: 0 3pt !important;
+    }
+    /* Ocultar pista de Supabase */
+    .search-field > div:last-child { display: none !important; }
+
+    /* ── Diagrama ── */
+    #diagram-container {
+      background: #fff !important;
+      aspect-ratio: unset !important;
+      height: auto !important; width: 100% !important;
+      display: block !important;
+      border-radius: 2px !important;
+      overflow: visible !important;
+    }
+    #diag-svg {
+      display: block !important; background: #fff !important;
+      width: 100% !important; height: auto !important;
+      max-height: 200pt !important;
+    }
+
+    /* ── Resultado Ac ── */
+    .result-box {
+      background: #fff !important; border: 1.5pt solid #000 !important;
+      border-radius: 3px !important; margin-bottom: 5pt !important;
+      page-break-inside: avoid !important;
+    }
+    .result-header { background: #fff !important; padding: 6pt 10pt !important; }
+    .result-label { font-size: 7pt !important; color: #666 !important; }
+    .result-value { font-size: 22pt !important; color: #000 !important; line-height: 1 !important; }
+    .result-value .unit { font-size: 11pt !important; color: #444 !important; }
+    #res-cat-badge span { font-size: 22pt !important; color: #000 !important; background: #eee !important; border-color: #666 !important; }
+    .result-breakdown {
+      background: #f6f6f6 !important; border-top: 1pt solid #ccc !important;
+      padding: 4pt 10pt !important; gap: 6pt !important; margin-top: 0 !important; padding-top: 5pt !important;
+    }
+    .breakdown-item {
+      background: #f6f6f6 !important; border: 1pt solid #ddd !important;
+      border-radius: 2px !important; padding: 3pt 6pt !important;
+    }
+    .breakdown-val { font-size: 11pt !important; color: #000 !important; font-weight: 700 !important; margin-bottom: 1pt !important; }
+    .breakdown-lbl { font-size: 6.5pt !important; color: #666 !important; }
+    #res-norm-note {
+      background: #f5f5f5 !important; border-color: #ccc !important;
+      border-left-color: #555 !important; color: #333 !important;
+      font-size: 7pt !important; padding: 3pt 8pt !important;
+      margin: 3pt 10pt !important;
+    }
+
+    /* ── Historial ── */
+    .section { margin-bottom: 5pt !important; }
+    .section-title {
+      font-size: 7.5pt !important; color: #000 !important;
+      font-weight: 700 !important; margin-bottom: 3pt !important;
+      letter-spacing: .05em !important;
+    }
+    .section-title::after { background: #ccc !important; }
+    /* ¡Clave! Sin max-height ni overflow que corte el historial */
+    .history-list {
+      max-height: none !important; overflow: visible !important;
+      gap: 3pt !important;
+    }
+    .history-item {
+      background: #fafafa !important; border: 1pt solid #ddd !important;
+      padding: 3pt 7pt !important; border-radius: 2px !important;
+      page-break-inside: avoid !important;
+    }
+    .history-num { font-size: 7.5pt !important; color: #000 !important; }
+    .history-tag {
+      background: #efefef !important; border-color: #aaa !important;
+      color: #333 !important; font-size: 7pt !important; padding: 0 3pt !important;
+    }
+    .history-ac { font-size: 8.5pt !important; color: #000 !important; font-weight: 700 !important; }
+
+    /* ── Banner protección ── */
+    #protection-banner {
+      background: #f0f0f0 !important; color: #000 !important;
+      border-left-color: #000 !important; font-size: 7.5pt !important;
+      padding: 4pt 8pt !important; margin-bottom: 4pt !important;
+    }
+
+    /* ── Tabla ICAO ── */
+    .table-wrap { overflow: visible !important; }
+    table { font-size: 7pt !important; border-collapse: collapse !important; width: 100% !important; }
+    th {
+      background: #e8e8e8 !important; color: #000 !important;
+      border: 1pt solid #aaa !important; padding: 2pt 3pt !important;
+      font-size: 6.5pt !important; font-weight: 700 !important; text-align: left !important;
+    }
+    td {
+      background: #fff !important; color: #000 !important;
+      border: 1pt solid #ccc !important; padding: 2pt 3pt !important;
+    }
+    tr:nth-child(even) td { background: #f5f5f5 !important; }
+    .cat-badge {
+      background: #e8e8e8 !important; color: #000 !important;
+      border: 1pt solid #666 !important; font-size: 6.5pt !important;
+      padding: 0 3pt !important; border-radius: 2px !important;
+      display: inline-block !important;
+    }
+    /* Columna estado: texto corto */
+    td:last-child, th:last-child { font-size: 6.5pt !important; }
+
+    /* ── Toast: ocultar ── */
+    .toast { display: none !important; }
+
+    /* ── Normativa ── */
+    .panel-body { font-size: 7.5pt !important; line-height: 1.4 !important; color: #222 !important; }
+    .panel-body strong { color: #000 !important; }
+    .panel-body code { background: #eee !important; color: #333 !important; padding: 0 2pt !important; }
+    .panel-body em { color: #333 !important; }
+  }
   </style>
-<link rel="stylesheet" href="css/sei-pdf-style.css">
 </head>
 
 <body>
@@ -1991,6 +2264,8 @@
 
       document.getElementById('diag-placeholder').style.display = 'none';
       svg.style.display = 'block';
+      // Guardar datos para regenerar en B&N al imprimir
+      window._pdfDiag = { L: L, Wf: Wf, f: f, Ac: Ac };
     }
 
     /* ─── HISTORY ───────────────────────────────────── */
@@ -2053,20 +2328,96 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ─── PDF EXPORT ────────────────────────────────── */
+    /* SVG B&N para impresión */
+    function _svgBN(L,Wf,f,Ac){
+      var W=460,H=290,pad=46;
+      var sc=Math.min((W-pad*2)/L,(H-pad*2)/(Wf+f*2));
+      var rW=L*sc,rH=Wf*sc,fH=f*sc;
+      var cx=W/2,cy=H/2,x0=cx-rW/2,y0=cy-rH/2;
+      var acX=x0,acY=cy-(rH/2+fH),acH=rH+fH*2;
+      // viewBox fijo, sin width/height — el CSS controla el tamaño
+      return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'
+        +' viewBox="0 0 '+W+' '+H+'"'
+        +' style="display:block;background:#fff;width:100%;height:auto;max-height:260px">'
+        +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
+        +'<defs>'
+          +'<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">'
+            +'<path d="M20 0L0 0 0 20" fill="none" stroke="#eee" stroke-width=".5"/>'
+          +'</pattern>'
+          +'<marker id="ma" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">'
+            +'<polygon points="0 0,6 2,0 4" fill="#000"/>'
+          +'</marker>'
+          +'<marker id="mb" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">'
+            +'<polygon points="6 0,0 2,6 4" fill="#000"/>'
+          +'</marker>'
+        +'</defs>'
+        +'<rect width="'+W+'" height="'+H+'" fill="url(#g)"/>'
+        // Area critica — solo contorno punteado negro, sin relleno
+        +'<rect x="'+acX+'" y="'+acY+'" width="'+rW+'" height="'+acH
+          +'" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="7,3" rx="2"/>'
+        // Fuselaje — solo contorno negro
+        +'<rect x="'+x0+'" y="'+y0+'" width="'+rW+'" height="'+rH
+          +'" fill="none" stroke="#000" stroke-width="2" rx="3"/>'
+        // Morro
+        +'<ellipse cx="'+x0+'" cy="'+cy+'" rx="'+(rH*0.36)+'" ry="'+(rH/2)
+          +'" fill="none" stroke="#000" stroke-width="1.4"/>'
+        // Cola
+        +'<polygon points="'+(x0+rW)+','+(cy-rH*0.28)+' '
+          +(x0+rW+rH*0.3)+','+cy+' '
+          +(x0+rW)+','+(cy+rH*0.28)
+          +'" fill="none" stroke="#000" stroke-width="1.2"/>'
+        // Cota L
+        +'<line x1="'+x0+'" y1="'+(acY-13)+'" x2="'+(x0+rW)+'" y2="'+(acY-13)
+          +'" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+cx+'" y="'+(acY-17)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">'
+          +'L = '+L+' m</text>'
+        // Cota Wf
+        +'<line x1="'+(acX-16)+'" y1="'+y0+'" x2="'+(acX-16)+'" y2="'+(y0+rH)
+          +'" stroke="#000" stroke-width="1" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+(acX-19)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#000">Wf='+Wf+'m</text>'
+        // Cota f
+        +'<line x1="'+(acX+rW+10)+'" y1="'+acY+'" x2="'+(acX+rW+10)+'" y2="'+y0
+          +'" stroke="#555" stroke-width=".8" stroke-dasharray="4,2"/>'
+        +'<text x="'+(acX+rW+14)+'" y="'+(acY+fH/2)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#444">f='+f+'m</text>'
+        // Etiqueta Ac
+        +'<text x="'+(W-5)+'" y="'+(H-5)+'" text-anchor="end"'
+          +' font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">'
+          +'Ac='+Ac.toFixed(2)+' m²</text>'
+        // Leyenda
+        +'<line x1="7" y1="11" x2="19" y2="11" stroke="#000" stroke-width="1.4" stroke-dasharray="5,2"/>'
+        +'<text x="23" y="14" font-family="Courier New,monospace" font-size="8.5" fill="#000">AREA CRITICA</text>'
+        +'<rect x="7" y="20" width="12" height="7" rx="1" fill="none" stroke="#000" stroke-width="1.1"/>'
+        +'<text x="23" y="27" font-family="Courier New,monospace" font-size="8.5" fill="#000">FUSELAJE</text>'
+        +'</svg>';
+    }
+
     function exportPDF() {
-      showToast('⏳ Generando PDF institucional...');
-      const cat  = (document.getElementById('cat')  ? document.getElementById('cat').value  : '') || 'XX';
-      const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
-      const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
-      generarReporteSEI(nombre, 'pdf-content', {
-        titulo:      'Área Crítica de Aeronave — ICAO Doc 9137',
-        subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
-        estacion:    '—',
-        norma:       'ICAO Doc 9137 §2.3 · RAC 14 · NFPA 403',
-        orientacion: 'landscape',
-        formato:     'a4'
-      });
+      // 1. Sustituir SVG de pantalla por versión B&N
+      var svgEl  = document.getElementById('diag-svg');
+      var svgBak = svgEl ? svgEl.outerHTML : null;
+      if (svgEl && window._pdfDiag) {
+        var d = window._pdfDiag;
+        var tmp = document.createElement('div');
+        tmp.innerHTML = _svgBN(d.L, d.Wf, d.f, d.Ac);
+        var ns = tmp.firstChild; ns.id = 'diag-svg';
+        svgEl.parentNode.replaceChild(ns, svgEl);
+      }
+
+      // 2. Imprimir — el @media print convierte todo a blanco/negro
+      window.print();
+
+      // 3. Restaurar SVG de pantalla
+      setTimeout(function() {
+        var svgNow = document.getElementById('diag-svg');
+        if (svgNow && svgBak) {
+          var tmp2 = document.createElement('div');
+          tmp2.innerHTML = svgBak;
+          svgNow.parentNode.replaceChild(tmp2.firstChild, svgNow);
+        }
+      }, 1000);
     }
 
     // supabaseClient disponible via supabase-config.js
