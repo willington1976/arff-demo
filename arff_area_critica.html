@@ -21,223 +21,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
-  <!-- SEI PDF Motor v5.0 — fondo blanco, diagrama B&N, sin dependencias externas -->
-  <script>
-  (function() {
-
-    /* ── Regenerar SVG en modo impresion B&N ─────────────────── */
-    function svgParaImpresion(L, Wf, f, Ac) {
-      var W = 520, H = 340, pad = 44;
-      var scale = Math.min((W - pad*2) / L, (H - pad*2) / (Wf + f*2));
-      var rW = L * scale, rH = Wf * scale, fH = f * scale;
-      var cx = W/2, cy = H/2;
-      var x0 = cx - rW/2, y0 = cy - rH/2;
-      var acX = cx - rW/2, acY = cy - (rH/2 + fH);
-      var acW = rW, acH = rH + fH*2;
-
-      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" ' +
-        'width="' + W + '" height="' + H + '" ' +
-        'style="background:#fff;display:block;">' +
-
-        /* Fondo blanco */
-        '<rect width="' + W + '" height="' + H + '" fill="#fff"/>' +
-
-        /* Grid suave gris claro */
-        '<defs>' +
-          '<pattern id="pgrid" width="20" height="20" patternUnits="userSpaceOnUse">' +
-            '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width=".4"/>' +
-          '</pattern>' +
-        '</defs>' +
-        '<rect width="' + W + '" height="' + H + '" fill="url(#pgrid)"/>' +
-
-        /* Zona f superior — gris muy claro */
-        '<rect x="' + (acX+1) + '" y="' + (acY+1) + '" ' +
-          'width="' + (acW-2) + '" height="' + (fH-2) + '" ' +
-          'fill="#f0f0f0" stroke="none"/>' +
-
-        /* Zona f inferior */
-        '<rect x="' + (acX+1) + '" y="' + (y0+rH+1) + '" ' +
-          'width="' + (acW-2) + '" height="' + (fH-2) + '" ' +
-          'fill="#f0f0f0" stroke="none"/>' +
-
-        /* Área crítica — contorno negro punteado */
-        '<rect x="' + acX + '" y="' + acY + '" width="' + acW + '" height="' + acH + '" ' +
-          'fill="none" stroke="#000" stroke-width="1.8" stroke-dasharray="7 3" rx="2"/>' +
-
-        /* Fuselaje — relleno gris medio, borde negro sólido */
-        '<rect x="' + x0 + '" y="' + y0 + '" width="' + rW + '" height="' + rH + '" ' +
-          'fill="#d0d0d0" stroke="#000" stroke-width="2.2" rx="3"/>' +
-
-        /* Morro — elipse gris oscuro */
-        '<ellipse cx="' + x0 + '" cy="' + cy + '" ' +
-          'rx="' + (rH*0.38) + '" ry="' + (rH/2) + '" ' +
-          'fill="#b0b0b0" stroke="#000" stroke-width="1.5"/>' +
-
-        /* Cola */
-        '<polygon points="' + (x0+rW) + ',' + (cy-rH*0.3) + ' ' +
-          (x0+rW+rH*0.32) + ',' + cy + ' ' +
-          (x0+rW) + ',' + (cy+rH*0.3) + '" ' +
-          'fill="#c0c0c0" stroke="#000" stroke-width="1.3"/>' +
-
-        /* ── COTAS ── */
-        /* Cota L */
-        '<defs>' +
-          '<marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">' +
-            '<polygon points="0 0, 8 3, 0 6" fill="#000"/>' +
-          '</marker>' +
-          '<marker id="arr-l" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">' +
-            '<polygon points="8 0, 0 3, 8 6" fill="#000"/>' +
-          '</marker>' +
-        '</defs>' +
-        '<line x1="' + x0 + '" y1="' + (acY-16) + '" x2="' + (x0+rW) + '" y2="' + (acY-16) + '" ' +
-          'stroke="#000" stroke-width="1.1" marker-start="url(#arr-l)" marker-end="url(#arr)"/>' +
-        '<text x="' + cx + '" y="' + (acY-20) + '" text-anchor="middle" ' +
-          'font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">' +
-          'L = ' + L + ' m</text>' +
-
-        /* Cota Wf */
-        '<line x1="' + (acX-18) + '" y1="' + y0 + '" x2="' + (acX-18) + '" y2="' + (y0+rH) + '" ' +
-          'stroke="#000" stroke-width="1.1" marker-start="url(#arr-l)" marker-end="url(#arr)"/>' +
-        '<text x="' + (acX-22) + '" y="' + cy + '" text-anchor="end" dominant-baseline="middle" ' +
-          'font-family="Courier New,monospace" font-size="10" fill="#000">Wf=' + Wf + 'm</text>' +
-
-        /* Cota f superior */
-        '<line x1="' + (acX+acW+12) + '" y1="' + acY + '" x2="' + (acX+acW+12) + '" y2="' + y0 + '" ' +
-          'stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>' +
-        '<text x="' + (acX+acW+16) + '" y="' + (acY+fH/2) + '" dominant-baseline="middle" ' +
-          'font-family="Courier New,monospace" font-size="10" fill="#333">f=' + f + 'm</text>' +
-
-        /* Ac label */
-        '<text x="' + (W-8) + '" y="' + (H-8) + '" text-anchor="end" ' +
-          'font-family="Courier New,monospace" font-size="12" fill="#000" font-weight="bold">' +
-          'Ac = ' + Ac.toFixed(2) + ' m²</text>' +
-
-        /* Leyenda */
-        '<line x1="10" y1="13" x2="22" y2="13" stroke="#000" stroke-width="1.8" stroke-dasharray="5 2"/>' +
-        '<text x="26" y="17" font-family="Courier New,monospace" font-size="9" fill="#000">AREA CRITICA</text>' +
-        '<rect x="10" y="24" width="12" height="8" rx="1" fill="#d0d0d0" stroke="#000" stroke-width="1.2"/>' +
-        '<text x="26" y="31" font-family="Courier New,monospace" font-size="9" fill="#000">FUSELAJE</text>' +
-
-      '</svg>';
-    }
-
-    /* ── Motor PDF principal ──────────────────────────────────── */
-    window.generarReporteSEI = async function(nombreArchivo, idContenedor, opciones) {
-      opciones = opciones || {};
-
-      var elemento = document.getElementById(idContenedor) || document.getElementById('pdf-content');
-      if (!elemento) { alert("Error: No se encontró el contenedor PDF"); return; }
-
-      /* Guardar SVG original para restaurar despues */
-      var svgEl     = document.getElementById('diag-svg');
-      var svgBackup = svgEl ? svgEl.innerHTML : null;
-      var svgStyle  = svgEl ? svgEl.getAttribute('style') : null;
-
-      /* Inyectar SVG B&N si hay datos de diagrama */
-      if (svgEl && window._lastDiagData) {
-        var d = window._lastDiagData;
-        svgEl.innerHTML = '';
-        svgEl.setAttribute('style', 'display:block');
-        /* Sustituir el SVG por el de impresion usando outerHTML trick */
-        var tmpDiv = document.createElement('div');
-        tmpDiv.innerHTML = svgParaImpresion(d.L, d.Wf, d.f, d.Ac);
-        var newSvg = tmpDiv.firstChild;
-        svgEl.parentNode.replaceChild(newSvg, svgEl);
-        newSvg.id = 'diag-svg';
-      }
-
-      /* Clase de impresion sobre el contenedor raiz */
-      var styleId = 'sei-print-styles';
-      var existingSt = document.getElementById(styleId);
-      if (existingSt) existingSt.remove();
-      var st = document.createElement('style');
-      st.id = styleId;
-      st.textContent = [
-        /* Fondo blanco en todo */
-        'body, #pdf-content, .panel, .panel-head, .panel-body,',
-        '.result-box, .result-header, .result-breakdown, .breakdown-item,',
-        '.formula-box, .meta-chips, .history-section, .history-item,',
-        '.ref-section, table, thead, tbody, th, td, tr,',
-        '.protection-banner, #protection-banner,',
-        '.norm-note, .f-rule-badge, .nav-bar, .page-header { ',
-        '  background: #fff !important; background-color: #fff !important; ',
-        '  color: #000 !important; border-color: #ccc !important; }',
-
-        /* Textos negros */
-        '*, *::before, *::after { color: #000 !important; fill: #000 !important; ',
-        '  text-shadow: none !important; box-shadow: none !important; }',
-
-        /* Ocultar elementos de UI que no van en el PDF */
-        '.fab, .fab-btn, .fab-tooltip, .btn-calc, .nav-bar,',
-        '#diag-placeholder, .diagram-placeholder { display: none !important; }',
-
-        /* Bordes legibles */
-        '.panel { border: 1px solid #999 !important; border-radius: 4px !important; }',
-        'th { background: #f0f0f0 !important; font-weight: bold !important; }',
-        'tr:nth-child(even) td { background: #f8f8f8 !important; }',
-        '.cat-badge { border: 1px solid #666 !important; background: #eee !important; }',
-
-        /* Fórmula visible */
-        '.formula-box { border: 2px solid #000 !important; padding: 12px !important; }',
-
-        /* SVG B&N ya generado arriba — no aplicar filtros extra */
-        '#diag-svg { background: #fff !important; }',
-      ].join('
-');
-      document.head.appendChild(st);
-
-      /* Configuracion html2pdf */
-      var opt = {
-        margin:      [2, 2, 2, 2],
-        filename:    (nombreArchivo || 'reporte_sei') + '.pdf',
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale:           2.2,
-          useCORS:         true,
-          backgroundColor: '#ffffff',
-          windowWidth:     1200,
-          letterRendering: true,
-          logging:         false,
-        },
-        jsPDF: {
-          unit:        'mm',
-          format:      opciones.formato || 'a4',
-          orientation: opciones.orientacion === 'landscape' ? 'landscape' : 'portrait',
-          compress:    true,
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      };
-
-      try {
-        await new Promise(function(r) { setTimeout(r, 800); });
-
-        if (typeof html2pdf === 'undefined') {
-          throw new Error('html2pdf no disponible. Verifique la conexion a internet.');
-        }
-
-        await html2pdf().set(opt).from(elemento).save();
-        console.log('PDF B&N generado correctamente.');
-
-      } catch(err) {
-        console.error('Error PDF:', err);
-        alert('Error al generar PDF: ' + err.message);
-      } finally {
-        /* Restaurar SVG original de pantalla */
-        var svgNow = document.getElementById('diag-svg');
-        if (svgNow && svgBackup !== null) {
-          svgNow.innerHTML = svgBackup;
-          if (svgStyle) svgNow.setAttribute('style', svgStyle);
-        }
-        /* Eliminar estilos de impresion */
-        var stEl = document.getElementById(styleId);
-        if (stEl) stEl.remove();
-      }
-    };
-
-    console.log('SEI PDF Motor v5.0 B&N listo.');
-  })();
-  </script>
-
   <style>
     /* ──────────────────────────────────────────────
      DESIGN TOKENS
@@ -2268,6 +2051,151 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
+    /* ══════════════════════════════════════════════════════
+       SEI PDF Motor v5.0 — B&N — embebido en script principal
+       (aquí para garantizar que exista cuando se llame exportPDF)
+    ══════════════════════════════════════════════════════ */
+
+    /* Genera SVG modo impresion blanco/negro */
+    function svgParaImpresion(L, Wf, f, Ac) {
+      var W = 520, H = 340, pad = 44;
+      var scale = Math.min((W-pad*2)/L, (H-pad*2)/(Wf+f*2));
+      var rW = L*scale, rH = Wf*scale, fH = f*scale;
+      var cx = W/2, cy = H/2;
+      var x0 = cx-rW/2, y0 = cy-rH/2;
+      var acX = cx-rW/2, acY = cy-(rH/2+fH), acW = rW, acH = rH+fH*2;
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" '+
+        'width="'+W+'" height="'+H+'" style="background:#fff;display:block;">'+
+        '<rect width="'+W+'" height="'+H+'" fill="#fff"/>'+
+        '<defs>'+
+          '<pattern id="pgrid" width="20" height="20" patternUnits="userSpaceOnUse">'+
+            '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width=".4"/>'+
+          '</pattern>'+
+          '<marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">'+
+            '<polygon points="0 0, 8 3, 0 6" fill="#000"/>'+
+          '</marker>'+
+          '<marker id="arrl" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">'+
+            '<polygon points="8 0, 0 3, 8 6" fill="#000"/>'+
+          '</marker>'+
+        '</defs>'+
+        '<rect width="'+W+'" height="'+H+'" fill="url(#pgrid)"/>'+
+        '<rect x="'+(acX+1)+'" y="'+(acY+1)+'" width="'+(acW-2)+'" height="'+(fH-2)+'" fill="#f0f0f0"/>'+
+        '<rect x="'+(acX+1)+'" y="'+(y0+rH+1)+'" width="'+(acW-2)+'" height="'+(fH-2)+'" fill="#f0f0f0"/>'+
+        '<rect x="'+acX+'" y="'+acY+'" width="'+acW+'" height="'+acH+'" '+
+          'fill="none" stroke="#000" stroke-width="1.8" stroke-dasharray="7 3" rx="2"/>'+
+        '<rect x="'+x0+'" y="'+y0+'" width="'+rW+'" height="'+rH+'" '+
+          'fill="#d0d0d0" stroke="#000" stroke-width="2.2" rx="3"/>'+
+        '<ellipse cx="'+x0+'" cy="'+cy+'" rx="'+(rH*0.38)+'" ry="'+(rH/2)+'" '+
+          'fill="#b0b0b0" stroke="#000" stroke-width="1.5"/>'+
+        '<polygon points="'+(x0+rW)+','+(cy-rH*0.3)+' '+(x0+rW+rH*0.32)+','+cy+' '+(x0+rW)+','+(cy+rH*0.3)+'" '+
+          'fill="#c0c0c0" stroke="#000" stroke-width="1.3"/>'+
+        '<line x1="'+x0+'" y1="'+(acY-16)+'" x2="'+(x0+rW)+'" y2="'+(acY-16)+'" '+
+          'stroke="#000" stroke-width="1.1" marker-start="url(#arrl)" marker-end="url(#arr)"/>'+
+        '<text x="'+cx+'" y="'+(acY-20)+'" text-anchor="middle" '+
+          'font-family="Courier New,monospace" font-size="11" fill="#000" font-weight="bold">L = '+L+' m</text>'+
+        '<line x1="'+(acX-18)+'" y1="'+y0+'" x2="'+(acX-18)+'" y2="'+(y0+rH)+'" '+
+          'stroke="#000" stroke-width="1.1" marker-start="url(#arrl)" marker-end="url(#arr)"/>'+
+        '<text x="'+(acX-22)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" '+
+          'font-family="Courier New,monospace" font-size="10" fill="#000">Wf='+Wf+'m</text>'+
+        '<line x1="'+(acX+acW+12)+'" y1="'+acY+'" x2="'+(acX+acW+12)+'" y2="'+y0+'" '+
+          'stroke="#555" stroke-width="1" stroke-dasharray="3 2"/>'+
+        '<text x="'+(acX+acW+16)+'" y="'+(acY+fH/2)+'" dominant-baseline="middle" '+
+          'font-family="Courier New,monospace" font-size="10" fill="#333">f='+f+'m</text>'+
+        '<text x="'+(W-8)+'" y="'+(H-8)+'" text-anchor="end" '+
+          'font-family="Courier New,monospace" font-size="12" fill="#000" font-weight="bold">'+
+          'Ac = '+Ac.toFixed(2)+' m²</text>'+
+        '<line x1="10" y1="13" x2="22" y2="13" stroke="#000" stroke-width="1.8" stroke-dasharray="5 2"/>'+
+        '<text x="26" y="17" font-family="Courier New,monospace" font-size="9" fill="#000">AREA CRITICA</text>'+
+        '<rect x="10" y="24" width="12" height="8" rx="1" fill="#d0d0d0" stroke="#000" stroke-width="1.2"/>'+
+        '<text x="26" y="31" font-family="Courier New,monospace" font-size="9" fill="#000">FUSELAJE</text>'+
+      '</svg>';
+    }
+
+    async function generarReporteSEI(nombreArchivo, idContenedor, opciones) {
+      opciones = opciones || {};
+      var elemento = document.getElementById(idContenedor) || document.getElementById('pdf-content');
+      if (!elemento) { alert("Error: No se encontró el contenedor PDF"); return; }
+
+      /* Backup del SVG de pantalla */
+      var svgEl     = document.getElementById('diag-svg');
+      var svgBackup = svgEl ? svgEl.outerHTML : null;
+
+      /* Sustituir SVG por versión B&N si hay datos */
+      if (svgEl && window._lastDiagData) {
+        var d = window._lastDiagData;
+        var tmp = document.createElement('div');
+        tmp.innerHTML = svgParaImpresion(d.L, d.Wf, d.f, d.Ac);
+        var newSvg = tmp.firstChild;
+        newSvg.id = 'diag-svg';
+        svgEl.parentNode.replaceChild(newSvg, svgEl);
+      }
+
+      /* Estilos de impresion B&N */
+      var oldSt = document.getElementById('sei-print-styles');
+      if (oldSt) oldSt.remove();
+      var st = document.createElement('style');
+      st.id = 'sei-print-styles';
+      st.textContent =
+        'body,#pdf-content,.panel,.panel-head,.panel-body,' +
+        '.result-box,.result-header,.result-breakdown,.breakdown-item,' +
+        '.formula-box,.meta-chips,.history-section,.history-item,' +
+        '.ref-section,table,thead,tbody,th,td,tr,' +
+        '.protection-banner,#protection-banner,' +
+        '.norm-note,.f-rule-badge,.nav-bar,.page-header{' +
+          'background:#fff!important;background-color:#fff!important;' +
+          'color:#000!important;border-color:#bbb!important}' +
+        '*,*::before,*::after{color:#000!important;fill:#000!important;' +
+          'text-shadow:none!important;box-shadow:none!important}' +
+        '.fab,.fab-btn,.fab-tooltip,.btn-calc,.nav-bar,' +
+        '#diag-placeholder,.diagram-placeholder{display:none!important}' +
+        '.panel{border:1px solid #999!important;border-radius:4px!important}' +
+        'th{background:#f0f0f0!important;font-weight:bold!important}' +
+        'tr:nth-child(even) td{background:#f8f8f8!important}' +
+        '.cat-badge{border:1px solid #666!important;background:#eee!important}' +
+        '.formula-box{border:2px solid #000!important;padding:12px!important}' +
+        '#diag-svg{background:#fff!important}';
+      document.head.appendChild(st);
+
+      var opt = {
+        margin:      [2, 2, 2, 2],
+        filename:    (nombreArchivo || 'reporte_sei') + '.pdf',
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2.2, useCORS: true, backgroundColor: '#ffffff',
+          windowWidth: 1200, letterRendering: true, logging: false
+        },
+        jsPDF: {
+          unit: 'mm', format: opciones.formato || 'a4',
+          orientation: opciones.orientacion === 'landscape' ? 'landscape' : 'portrait',
+          compress: true
+        },
+        pagebreak: { mode: ['avoid-all','css','legacy'] }
+      };
+
+      try {
+        await new Promise(function(r){ setTimeout(r, 800); });
+        if (typeof html2pdf === 'undefined')
+          throw new Error('html2pdf no disponible. Verifique la conexion a internet.');
+        await html2pdf().set(opt).from(elemento).save();
+        console.log('PDF B&N generado.');
+      } catch(err) {
+        console.error('Error PDF:', err);
+        alert('Error al generar PDF: ' + err.message);
+      } finally {
+        /* Restaurar SVG de pantalla */
+        var svgNow = document.getElementById('diag-svg');
+        if (svgNow && svgBackup) {
+          var tmp2 = document.createElement('div');
+          tmp2.innerHTML = svgBackup;
+          var restored = tmp2.firstChild;
+          svgNow.parentNode.replaceChild(restored, svgNow);
+        }
+        /* Quitar estilos de impresion */
+        var stEl = document.getElementById('sei-print-styles');
+        if (stEl) stEl.remove();
+      }
+    }
+
     /* ─── PDF EXPORT ────────────────────────────────── */
     function exportPDF() {
       showToast('⏳ Generando PDF institucional...');
@@ -2275,10 +2203,6 @@
       const L    = (document.getElementById('inp-L') ? document.getElementById('inp-L').value : '') || '0';
       const nombre = `ARFF-Colombia_Area-Critica_Cat${cat}_L${L}_${new Date().toISOString().slice(0,10)}`;
       generarReporteSEI(nombre, 'pdf-content', {
-        titulo:      'Área Crítica de Aeronave — ICAO Doc 9137',
-        subtitulo:   `Cálculo Ac = L × (Wf + f) · Categoría ARFF: ${cat} · L = ${L} m`,
-        estacion:    '—',
-        norma:       'ICAO Doc 9137 §2.3 · RAC 14 · NFPA 403',
         orientacion: 'landscape',
         formato:     'a4'
       });
