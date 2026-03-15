@@ -1015,259 +1015,281 @@
       border-radius: 3px;
     }
 
-  /* ═══════════════════════ @media print ═══════════════════════
-     Todo compacto: Pág 1 = encabezado+fórmula+parámetros+diagrama+resultado
-     Pág 2 = tabla de referencia completa
-  ═══════════════════════════════════════════════════════════ */
+  /* ════════════════════ @media print ════════════════════
+     Página 1: encabezado + fórmula + [parámetros | diagrama] + resultado
+     Página 2: historial + tabla ICAO + normativa
+  ════════════════════════════════════════════════════ */
   @media print {
 
-    /* ── Página A4 landscape, 6mm de margen ── */
-    @page { size: A4 landscape; margin: 6mm; }
+    @page { size: A4 landscape; margin: 7mm 8mm; }
 
-    /* ── Variables: tema claro ── */
+    /* Variables tema claro */
     :root {
-      --bg:#fff; --panel:#fff; --panel2:#f8f8f8; --panel3:#f4f4f4;
+      --bg:#fff; --panel:#fff; --panel2:#f6f6f6; --panel3:#f0f0f0;
       --border:#ccc; --border2:#bbb;
       --red:#c00; --red-dim:#900; --red-glow:transparent;
-      --orange:#c85800; --orange-dim:#994000; --orange-glow:transparent;
-      --amber:#a06000; --green:#1a7a32; --blue:#0d4e9c; --blue-bright:#0d4e9c;
-      --text:#000; --text-dim:#333; --text-muted:#666;
-      --font-title:'Syne',sans-serif; --font-body:'DM Sans',sans-serif;
-      --font-mono:'DM Mono',monospace;
+      --orange:#b84d00; --orange-dim:#883500; --orange-glow:transparent;
+      --amber:#8a5200; --green:#175c28; --blue:#0b3e80; --blue-bright:#0b3e80;
+      --text:#000; --text-dim:#222; --text-muted:#555;
+      --radius:3px; --radius-sm:2px;
     }
 
-    /* ── Reset global ── */
+    /* Reset */
     *, *::before, *::after {
-      background-color: transparent !important;
-      background-image: none !important;
-      box-shadow: none !important;
-      text-shadow: none !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      animation: none !important;
+      transition: none !important;
     }
 
     html, body {
       background: #fff !important;
+      background-image: none !important;
       color: #000 !important;
-      font-size: 9px !important;
-      line-height: 1.3 !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      font-size: 8.5pt !important;
+      line-height: 1.35 !important;
+      margin: 0 !important; padding: 0 !important;
       width: 100% !important;
     }
 
-    /* ── Ocultar UI innecesaria ── */
-    nav, .fab, .fab-btn, .fab-tooltip,
-    .btn-calc, .history-actions,
+    /* Ocultar elementos de UI */
+    nav, .fab, .fab-btn, .fab-tooltip, .fab-main,
+    .btn-calc, .btn-return, .history-actions, .btn-sm,
     #diag-placeholder, .diagram-placeholder,
-    button:not(.btn-calc) { display: none !important; }
+    .toast, #res-norm-note + button,
+    .result-box button { display: none !important; }
 
-    /* ── Layout principal: todo en flujo compacto ── */
-    .page { padding: 0 !important; margin: 0 !important; }
-
-    /* ── Encabezado compacto ── */
-    .module-header { margin-bottom: 4px !important; }
-    .module-strip { height: 2px !important; background: #000 !important; }
-    .module-head-inner { padding: 4px 6px 3px !important; }
-    .module-eyebrow { font-size: 7px !important; margin-bottom: 1px !important; color: #555 !important; }
-    .module-title { font-size: 13px !important; margin-bottom: 1px !important; color: #000 !important; }
-    .module-subtitle { font-size: 8px !important; color: #444 !important; max-width: 100% !important; }
-    .module-meta { gap: 4px !important; margin-top: 3px !important; }
-    .meta-chip {
-      background: #f5f5f5 !important; border: 1px solid #999 !important;
-      color: #333 !important; font-size: 7px !important; padding: 1px 5px !important;
+    /* ── Contenedor principal ── */
+    .page {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
+
+    /* ── Encabezado: compacto en una línea ── */
+    .module-header {
+      background: #fff !important;
+      border: 1px solid #999 !important;
+      border-radius: 3px !important;
+      margin-bottom: 5pt !important;
+      page-break-inside: avoid !important;
+    }
+    .module-strip {
+      height: 3px !important;
+      background: #000 !important;
+    }
+    .module-head-inner { padding: 4pt 7pt 3pt !important; }
+    .module-eyebrow {
+      font-size: 6.5pt !important; color: #555 !important;
+      margin-bottom: 1pt !important; letter-spacing: .08em !important;
+    }
+    .module-title {
+      font-size: 13pt !important; color: #000 !important;
+      margin-bottom: 1pt !important; letter-spacing: 0 !important;
+    }
+    .module-subtitle { font-size: 7pt !important; color: #444 !important; }
+    .module-meta { gap: 3pt !important; margin-top: 3pt !important; }
+    .meta-chip {
+      background: #f0f0f0 !important; border: 1px solid #aaa !important;
+      color: #333 !important; font-size: 6.5pt !important;
+      padding: 1pt 4pt !important; border-radius: 2px !important;
+    }
+    .meta-chip .dot { width: 5px !important; height: 5px !important; }
 
     /* ── Fórmula ── */
     .formula-card {
       background: #fff !important;
-      border: 1px solid #000 !important;
-      border-left: 3px solid #000 !important;
-      padding: 5px 8px !important;
-      margin-bottom: 5px !important;
-      flex-wrap: nowrap !important;
-      gap: 12px !important;
+      border: 1pt solid #000 !important; border-left: 3pt solid #000 !important;
+      border-radius: 2px !important;
+      padding: 4pt 8pt !important; margin-bottom: 5pt !important;
+      gap: 10pt !important; flex-wrap: nowrap !important;
+      page-break-inside: avoid !important;
     }
-    .formula-main { font-size: 14px !important; color: #000 !important; }
+    .formula-main {
+      font-size: 13pt !important; color: #000 !important;
+      white-space: nowrap !important;
+    }
     .formula-main .var-ac, .formula-main .var-l,
-    .formula-main .var-wf, .formula-main .var-f,
-    .formula-main .op { color: #000 !important; }
-    .formula-legend { gap: 4px !important; }
-    .legend-item { min-width: 100px !important; gap: 4px !important; }
+    .formula-main .var-wf, .formula-main .var-f { color: #000 !important; }
+    .formula-main .op { color: #555 !important; }
+    .formula-legend { gap: 3pt !important; min-width: 0 !important; }
+    .legend-item { min-width: 80pt !important; gap: 3pt !important; }
     .legend-var {
-      background: #eee !important; border-color: #999 !important;
-      color: #000 !important; font-size: 9px !important; padding: 0 4px !important;
+      font-size: 7pt !important; background: #eee !important;
+      color: #000 !important; border-color: #999 !important; padding: 0 3pt !important;
     }
-    .legend-desc { font-size: 8px !important; color: #333 !important; }
+    .legend-desc { font-size: 7pt !important; color: #333 !important; }
 
-    /* ── Grid principal: 2 columnas ── */
+    /* ── Grid 2 columnas: parámetros | diagrama ── */
     .calc-grid {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
-      gap: 6px !important;
-      margin-bottom: 5px !important;
+      gap: 5pt !important; margin-bottom: 5pt !important;
+      page-break-inside: avoid !important;
     }
 
     /* ── Paneles ── */
     .panel {
-      background: #fff !important;
-      border: 1px solid #999 !important;
-      border-radius: 3px !important;
-      overflow: hidden !important;
+      background: #fff !important; border: 1pt solid #999 !important;
+      border-radius: 2px !important; overflow: hidden !important;
+      page-break-inside: avoid !important;
     }
     .panel-head {
-      background: #efefef !important;
-      border-bottom: 1px solid #ccc !important;
-      padding: 3px 7px !important;
+      background: #efefef !important; border-bottom: 1pt solid #ccc !important;
+      padding: 2.5pt 6pt !important;
     }
-    .panel-title { font-size: 8px !important; color: #000 !important; font-weight: 700 !important; }
+    .panel-title { font-size: 7pt !important; color: #000 !important; font-weight: 700 !important; letter-spacing: .05em !important; }
     .panel-icon { display: none !important; }
-    .panel-body { background: #fff !important; padding: 6px 8px !important; color: #000 !important; }
+    .panel-body { background: #fff !important; padding: 5pt 7pt !important; color: #000 !important; }
 
-    /* ── Campos del formulario ── */
-    .field { margin-bottom: 5px !important; }
-    .field label { font-size: 7.5px !important; color: #555 !important; margin-bottom: 1px !important; }
+    /* ── Campos formulario ── */
+    .field { margin-bottom: 4pt !important; }
+    .field > label {
+      display: block !important; font-size: 6.5pt !important;
+      color: #555 !important; margin-bottom: 1pt !important;
+      text-transform: uppercase !important; letter-spacing: .04em !important;
+    }
     .var-badge {
-      background: #eee !important; color: #000 !important;
-      border-color: #999 !important; font-size: 7px !important; padding: 0 3px !important;
+      font-size: 6.5pt !important; background: #eee !important;
+      color: #000 !important; border-color: #999 !important;
+      padding: 0 2pt !important; border-radius: 2px !important;
     }
     .input-wrap {
-      display: flex !important;
-      background: #fafafa !important;
-      border: 1px solid #ccc !important;
-      border-radius: 3px !important;
-      overflow: hidden !important;
+      display: flex !important; background: #fafafa !important;
+      border: 1pt solid #ccc !important; border-radius: 2px !important; overflow: hidden !important;
     }
     input, select {
       background: #fafafa !important; border: none !important;
-      color: #000 !important; font-size: 11px !important;
-      font-weight: 600 !important; padding: 3px 6px !important;
+      color: #000 !important; font-size: 10pt !important; font-weight: 700 !important;
       font-family: 'DM Mono',monospace !important;
-      flex: 1 !important; width: auto !important;
+      padding: 2pt 5pt !important; flex: 1 !important;
     }
+    select { width: 100% !important; border: 1pt solid #ccc !important; padding: 2.5pt 5pt !important; }
     .input-unit {
-      background: #efefef !important; color: #444 !important;
-      border-left: 1px solid #ccc !important;
-      padding: 3px 5px !important; font-size: 8px !important;
+      background: #ebebeb !important; color: #444 !important;
+      border-left: 1pt solid #ccc !important; padding: 2pt 4pt !important;
+      font-size: 7pt !important;
     }
-    select {
-      width: 100% !important; padding: 4px 6px !important;
-      border: 1px solid #ccc !important; border-radius: 3px !important;
-    }
-    /* Nota normativa del factor f */
     #f-norm-note {
-      background: #f5f5f5 !important; border-color: #ccc !important;
-      border-left-color: #555 !important; color: #333 !important;
-      font-size: 7.5px !important; padding: 3px 6px !important;
-      margin-top: 3px !important;
+      display: block !important; background: #f5f5f5 !important;
+      border-color: #ccc !important; border-left-color: #555 !important;
+      color: #333 !important; font-size: 7pt !important;
+      padding: 2pt 5pt !important; margin-top: 2pt !important;
     }
     .f-rule-badge {
       background: #eee !important; border-color: #999 !important;
-      color: #333 !important; font-size: 7px !important; padding: 0 4px !important;
+      color: #333 !important; font-size: 6.5pt !important; padding: 0 3pt !important;
     }
-    /* Campo de búsqueda */
-    .search-field > div:last-child { display: none !important; } /* ocultar hint Supabase */
+    /* Ocultar pista de Supabase */
+    .search-field > div:last-child { display: none !important; }
 
-    /* ── Diagrama SVG: visible y centrado ── */
-    #diagram-container { text-align: center !important; }
-    #diag-svg {
-      display: block !important;
+    /* ── Diagrama ── */
+    #diagram-container {
       background: #fff !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
+      aspect-ratio: unset !important;
+      height: auto !important; width: 100% !important;
+      display: block !important;
+      border-radius: 2px !important;
+      overflow: visible !important;
+    }
+    #diag-svg {
+      display: block !important; background: #fff !important;
+      width: 100% !important; height: auto !important;
+      max-height: 200pt !important;
     }
 
     /* ── Resultado Ac ── */
     .result-box {
-      background: #fff !important;
-      border: 1.5px solid #000 !important;
-      border-radius: 3px !important;
-      margin-bottom: 5px !important;
+      background: #fff !important; border: 1.5pt solid #000 !important;
+      border-radius: 3px !important; margin-bottom: 5pt !important;
       page-break-inside: avoid !important;
     }
-    .result-header {
-      background: #fff !important;
-      padding: 6px 10px !important;
-    }
-    .result-label { font-size: 7.5px !important; color: #666 !important; }
-    .result-value { font-size: 24px !important; color: #000 !important; line-height: 1 !important; }
-    .result-value .unit { font-size: 12px !important; color: #444 !important; }
+    .result-header { background: #fff !important; padding: 6pt 10pt !important; }
+    .result-label { font-size: 7pt !important; color: #666 !important; }
+    .result-value { font-size: 22pt !important; color: #000 !important; line-height: 1 !important; }
+    .result-value .unit { font-size: 11pt !important; color: #444 !important; }
+    #res-cat-badge span { font-size: 22pt !important; color: #000 !important; background: #eee !important; border-color: #666 !important; }
     .result-breakdown {
-      background: #f8f8f8 !important;
-      border-top: 1px solid #ccc !important;
-      padding: 5px 10px !important;
-      gap: 8px !important;
+      background: #f6f6f6 !important; border-top: 1pt solid #ccc !important;
+      padding: 4pt 10pt !important; gap: 6pt !important; margin-top: 0 !important; padding-top: 5pt !important;
     }
-    .breakdown-item { background: #f8f8f8 !important; padding: 4px 8px !important; }
-    .breakdown-val { font-size: 13px !important; color: #000 !important; font-weight: 700 !important; }
-    .breakdown-lbl { font-size: 7.5px !important; color: #666 !important; }
+    .breakdown-item {
+      background: #f6f6f6 !important; border: 1pt solid #ddd !important;
+      border-radius: 2px !important; padding: 3pt 6pt !important;
+    }
+    .breakdown-val { font-size: 11pt !important; color: #000 !important; font-weight: 700 !important; margin-bottom: 1pt !important; }
+    .breakdown-lbl { font-size: 6.5pt !important; color: #666 !important; }
     #res-norm-note {
       background: #f5f5f5 !important; border-color: #ccc !important;
       border-left-color: #555 !important; color: #333 !important;
-      font-size: 7.5px !important; padding: 4px 8px !important; margin: 4px 10px !important;
+      font-size: 7pt !important; padding: 3pt 8pt !important;
+      margin: 3pt 10pt !important;
     }
-    /* Ocultar botón "Continuar" */
-    .result-box button { display: none !important; }
 
-    /* ── Historial compacto ── */
-    .section { margin-bottom: 5px !important; }
+    /* ── Historial ── */
+    .section { margin-bottom: 5pt !important; }
     .section-title {
-      font-size: 8px !important; color: #000 !important;
-      margin-bottom: 4px !important;
+      font-size: 7.5pt !important; color: #000 !important;
+      font-weight: 700 !important; margin-bottom: 3pt !important;
+      letter-spacing: .05em !important;
     }
     .section-title::after { background: #ccc !important; }
+    /* ¡Clave! Sin max-height ni overflow que corte el historial */
+    .history-list {
+      max-height: none !important; overflow: visible !important;
+      gap: 3pt !important;
+    }
     .history-item {
-      background: #fafafa !important; border: 1px solid #ddd !important;
-      padding: 3px 8px !important; font-size: 8px !important;
+      background: #fafafa !important; border: 1pt solid #ddd !important;
+      padding: 3pt 7pt !important; border-radius: 2px !important;
+      page-break-inside: avoid !important;
     }
-    .history-num { font-size: 9px !important; color: #000 !important; }
+    .history-num { font-size: 7.5pt !important; color: #000 !important; }
     .history-tag {
-      background: #f0f0f0 !important; border-color: #999 !important;
-      color: #333 !important; font-size: 7.5px !important; padding: 0 4px !important;
+      background: #efefef !important; border-color: #aaa !important;
+      color: #333 !important; font-size: 7pt !important; padding: 0 3pt !important;
     }
-    .history-ac { font-size: 9px !important; color: #000 !important; font-weight: 700 !important; }
+    .history-ac { font-size: 8.5pt !important; color: #000 !important; font-weight: 700 !important; }
 
-    /* ── Tabla: compacta, segunda página ── */
+    /* ── Banner protección ── */
+    #protection-banner {
+      background: #f0f0f0 !important; color: #000 !important;
+      border-left-color: #000 !important; font-size: 7.5pt !important;
+      padding: 4pt 8pt !important; margin-bottom: 4pt !important;
+    }
+
+    /* ── Tabla ICAO ── */
     .table-wrap { overflow: visible !important; }
-    table { font-size: 7.5px !important; border-collapse: collapse !important; width: 100% !important; }
+    table { font-size: 7pt !important; border-collapse: collapse !important; width: 100% !important; }
     th {
-      background: #eeeeee !important; color: #000 !important;
-      border: 1px solid #aaa !important; padding: 2px 4px !important;
-      font-size: 7px !important; font-weight: 700 !important;
+      background: #e8e8e8 !important; color: #000 !important;
+      border: 1pt solid #aaa !important; padding: 2pt 3pt !important;
+      font-size: 6.5pt !important; font-weight: 700 !important; text-align: left !important;
     }
     td {
       background: #fff !important; color: #000 !important;
-      border: 1px solid #ccc !important; padding: 2px 4px !important;
+      border: 1pt solid #ccc !important; padding: 2pt 3pt !important;
     }
-    tr:nth-child(even) td { background: #f7f7f7 !important; }
+    tr:nth-child(even) td { background: #f5f5f5 !important; }
     .cat-badge {
-      background: #eeeeee !important; color: #000 !important;
-      border-color: #666 !important; font-size: 7px !important;
-      padding: 0 3px !important;
+      background: #e8e8e8 !important; color: #000 !important;
+      border: 1pt solid #666 !important; font-size: 6.5pt !important;
+      padding: 0 3pt !important; border-radius: 2px !important;
+      display: inline-block !important;
     }
-    /* Banner de protección */
-    #protection-banner {
-      background: #f0f0f0 !important; color: #000 !important;
-      border-left-color: #000 !important;
-      font-size: 8px !important; padding: 5px 8px !important;
-      margin-bottom: 4px !important;
-    }
+    /* Columna estado: texto corto */
+    td:last-child, th:last-child { font-size: 6.5pt !important; }
 
-    /* ── Normativa: 3 columnas compactas ── */
-    .panel-body { font-size: 8px !important; line-height: 1.4 !important; }
+    /* ── Toast: ocultar ── */
+    .toast { display: none !important; }
+
+    /* ── Normativa ── */
+    .panel-body { font-size: 7.5pt !important; line-height: 1.4 !important; color: #222 !important; }
     .panel-body strong { color: #000 !important; }
-    .panel-body code { color: #333 !important; background: #eee !important; }
-
-    /* ── Saltos de página controlados ── */
-    .module-header, .formula-card, .calc-grid,
-    .result-box { page-break-inside: avoid !important; }
-
-    /* Todo lo del calc-grid en página 1 */
-    .calc-grid { page-break-after: avoid !important; }
-
-    /* Tabla en su propia página si es necesario */
-    .section:last-of-type { page-break-before: auto !important; }
+    .panel-body code { background: #eee !important; color: #333 !important; padding: 0 2pt !important; }
+    .panel-body em { color: #333 !important; }
   }
   </style>
 </head>
