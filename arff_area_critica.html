@@ -639,7 +639,7 @@
   ────────────────────────────────────────────── */
     #diagram-container {
       width: 100%;
-      aspect-ratio: 380/440;
+      aspect-ratio: 360/430;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1714,7 +1714,7 @@
               </svg>
               Ingrese parámetros y calcule
             </div>
-            <svg id="diag-svg" style="display:none" viewBox="0 0 380 440" xmlns="http://www.w3.org/2000/svg"></svg>
+            <svg id="diag-svg" style="display:none" viewBox="0 0 360 430" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
       </div>
@@ -1724,7 +1724,7 @@
     <div class="result-box" id="result-box">
       <div class="result-header">
         <div>
-          <div class="result-label">Área Crítica Práctica (A<sub style="font-size:0.75em">p</sub>)</div>
+          <div class="result-label">Área Crítica Práctica (A<sub style="font-size:.75em">p</sub>)</div>
           <div class="result-value" id="val-ac">—<span class="unit">m²</span></div>
         </div>
         <div style="text-align:right">
@@ -1764,12 +1764,12 @@
 
       <!-- CONTINUAR A RATA DE DESCARGA -->
       <div style="margin-top:20px;padding:14px 16px;
-                  background:linear-gradient(135deg,rgba(11,197,160,.10) 0%,rgba(11,197,160,.06) 100%);
+                  background:linear-gradient(135deg,rgba(11,197,160,.10) 0%,rgba(11,197,160,.05) 100%);
                   border:1px solid rgba(11,197,160,.35);border-radius:8px;">
-        <div style="font-family:var(--font-mono);font-size:9.5px;color:rgba(11,197,160,.8);
-                    letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;
-                    display:flex;align-items:center;gap:6px;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        <div style="font-family:var(--font-mono);font-size:9.5px;color:rgba(11,197,160,.75);
+                    letter-spacing:.10em;text-transform:uppercase;margin-bottom:8px;
+                    display:flex;align-items:center;gap:5px;">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           Siguiente módulo
         </div>
         <button onclick="continuarRataDescarga()" id="btn-continuar"
@@ -1779,29 +1779,24 @@
                  font-family:var(--font-title);font-weight:800;font-size:14px;
                  text-transform:uppercase;letter-spacing:.07em;cursor:pointer;
                  display:flex;align-items:center;justify-content:center;gap:10px;
-                 box-shadow:0 4px 20px rgba(11,197,160,.35);
-                 transition:all .2s ease;position:relative;overflow:hidden">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.77 10.5a2 2 0 011.96-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.91 15a16 16 0 006.29 6.29l1.06-1.06a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 22.61"/>
+                 box-shadow:0 4px 20px rgba(11,197,160,.30);
+                 transition:all .2s ease;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
-          Módulo 02 — Calcular Rata de Descarga
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round">
+          Módulo 02 — Rata de Descarga
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
         </button>
         <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
                     margin-top:7px;text-align:center;letter-spacing:.04em;">
-          Transfiere Ap = <span id="btn-ap-preview" style="color:rgba(11,197,160,.8)">—</span> m² al calculador de caudal Q₁ · Q₂ · Qt
+          Transfiere Ap = <span id="btn-ap-preview" style="color:rgba(11,197,160,.85)">calcule primero</span> m² al Módulo 02
         </div>
       </div>
       <style>
-        #btn-continuar:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 28px rgba(11,197,160,.5);
-        }
-        #btn-continuar:active { transform: translateY(0); }
+        #btn-continuar:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(11,197,160,.45); }
+        #btn-continuar:active { transform:translateY(0); }
       </style>
     </div>
 
@@ -2332,8 +2327,8 @@
       document.getElementById('result-box').classList.add('show');
 
       // Update continue button preview
-      const btnPreview = document.getElementById('btn-ap-preview');
-      if (btnPreview) btnPreview.textContent = AcRound.toFixed(2);
+      const _prev = document.getElementById('btn-ap-preview');
+      if (_prev) _prev.textContent = AcRound.toFixed(2);
 
       // Diagram
       drawDiagram(L, Wf, f, AcRound);
@@ -2391,71 +2386,56 @@
     /* ─── SVG DIAGRAM — Vista superior OACI (nariz arriba, cola abajo) ── */
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
-      const W = 380, H = 440;
+      const W = 360, H = 430;
 
-      // VERTICAL orientation: nose top, tail bottom
-      // L = aircraft length (maps to height), Wf = fuselage width (maps to width)
-      // TCA = L tall × (Wf + 2f) wide
-      const padT=42, padB=36, padL=62, padR=62;
-      const availH = H - padT - padB;
-      const availW = W - padL - padR;
+      // Orientación VERTICAL: nariz arriba, cola abajo
+      // TCA: L de alto × (Wf + 2f) de ancho
+      const padT=40, padB=38, padL=60, padR=70;
+      const availH = H - padT - padB, availW = W - padL - padR;
       const sc = Math.min(availH / L, availW / (Wf + 2*f));
 
-      const tcaH = L * sc;
-      const tcaW = (Wf + 2*f) * sc;
-      const fuseH = L * sc;
-      const fuseW = Wf * sc;
-      const fW = f * sc;
-
+      const tcaH = L * sc, tcaW = (Wf + 2*f) * sc;
+      const fuseW = Wf * sc, fW = f * sc;
       const cx = W/2, cy = H/2;
       const tcaX = cx - tcaW/2, tcaY = cy - tcaH/2;
-      const fuseX = cx - fuseW/2, fuseY = tcaY;
 
-      // Nose geometry (top = nose tip)
-      const noseR = fuseW * 0.52;
-      const noseTip = fuseY;
-      const bodyTop = noseTip + noseR * 1.6;
-      const bodyBot = fuseY + fuseH - fuseW * 0.22;
+      // --- Geometría aeronave ---
+      const noseR   = fuseW * 0.50;
+      const bodyTop = tcaY + noseR * 1.55;
+      const bodyBot = tcaY + tcaH - fuseW * 0.20;
       const bodyLen = bodyBot - bodyTop;
 
-      // Main wings (~30% down from nose)
-      const wingY     = bodyTop + bodyLen * 0.28;
-      const wingSpan  = tcaW * 0.88;
-      const wingChord = bodyLen * 0.20;
-      const wingSweep = wingChord * 0.60;
-      const wingTip   = wingChord * 0.35;
+      // Alas principales (~30% desde nariz)
+      const wingY    = bodyTop + bodyLen * 0.28;
+      const wingSpan = tcaW * 0.90;
+      const wingCh   = bodyLen * 0.20;
+      const wingSw   = wingCh * 0.62;
+      const wingTip  = wingCh * 0.33;
 
-      // Engine nacelles
-      const engDist = (wingSpan/2) * 0.52;
-      const engCY   = wingY + wingSweep * 0.55;
-      const engH    = wingChord * 0.52;
-      const engW    = fuseW * 0.19;
+      // Motores (nacelas bajo alas)
+      const engDist = (wingSpan/2) * 0.50;
+      const engCY   = wingY + wingSw * 0.52;
+      const engH    = wingCh * 0.50;
+      const engW    = fuseW * 0.18;
 
-      // Horizontal stabilizers (~85% down body)
-      const stabY    = bodyTop + bodyLen * 0.83;
-      const stabSpan = tcaW * 0.40;
-      const stabCh   = bodyLen * 0.092;
-      const stabSw   = stabCh * 0.48;
-      const stabTip  = stabCh * 0.42;
+      // Estabilizadores horizontales (~84% hacia abajo)
+      const stabY   = bodyTop + bodyLen * 0.84;
+      const stabSp  = tcaW * 0.38;
+      const stabCh  = bodyLen * 0.090;
+      const stabSw  = stabCh * 0.46;
+      const stabTip = stabCh * 0.40;
 
       // Cockpit
-      const cockY = noseTip + noseR * 0.9;
-      const cockH = fuseW * 0.30;
-      const cockW = fuseW * 0.38;
+      const cockY = tcaY + noseR * 0.85;
+      const cockH = fuseW * 0.28, cockW = fuseW * 0.36;
 
-      // Landing gear door
-      const lgY = bodyTop + bodyLen * 0.50;
-      const lgW = fuseW * 0.22, lgH = fuseW * 0.42;
+      // Cola
+      const tailY = tcaY + tcaH;
+      const windY = tailY + 22;
 
-      // Tail cone
-      const tailY = fuseY + fuseH;
-
-      // Wind arrow (below TCA)
-      const windY = tcaY + tcaH + 22;
-
-      svg.innerHTML = \`
+      svg.innerHTML = `
     <defs>
-      <pattern id="gp" width="18" height="18" patternUnits="userSpaceOnUse">
+      <pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse">
         <path d="M18 0L0 0 0 18" fill="none" stroke="#182338" stroke-width=".4"/>
       </pattern>
       <marker id="aO" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
@@ -2466,171 +2446,187 @@
         <polygon points="0 0,6 2,0 4" fill="#339af0"/></marker>
       <marker id="aBb" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
         <polygon points="6 0,0 2,6 4" fill="#339af0"/></marker>
-      <marker id="wA" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+      <marker id="wArr" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
         <polygon points="8 0,0 3,8 6" fill="#5a6e94"/></marker>
     </defs>
 
-    <rect width="\${W}" height="\${H}" fill="#080c12"/>
-    <rect width="\${W}" height="\${H}" fill="url(#gp)"/>
+    <!-- Fondo -->
+    <rect width="${W}" height="${H}" fill="#080c12"/>
+    <rect width="${W}" height="${H}" fill="url(#grid)"/>
 
-    <!-- TCA outer dashed rect -->
-    <rect x="\${tcaX}" y="\${tcaY}" width="\${tcaW}" height="\${tcaH}"
-          fill="rgba(192,57,43,.06)" stroke="#c0392b" stroke-width="1.5"
+    <!-- TCA: rectángulo exterior punteado -->
+    <rect x="${tcaX}" y="${tcaY}" width="${tcaW}" height="${tcaH}"
+          fill="rgba(192,57,43,.06)" stroke="#c0392b" stroke-width="1.6"
           stroke-dasharray="10 5" rx="3"/>
 
-    <!-- Área Crítica Práctica (fuselage column) -->
-    <rect x="\${cx - fuseW/2}" y="\${tcaY}" width="\${fuseW}" height="\${tcaH}"
+    <!-- Área Crítica Práctica: columna del fuselaje -->
+    <rect x="${cx - fuseW/2}" y="${tcaY}" width="${fuseW}" height="${tcaH}"
           fill="rgba(41,128,185,.07)" stroke="#2980b9" stroke-width="1.1"
           stroke-dasharray="5 3"/>
 
-    <!-- Spill zones (f width each side) -->
-    <rect x="\${tcaX}" y="\${tcaY}" width="\${fW}" height="\${tcaH}"
+    <!-- Zonas f (spill) izquierda y derecha -->
+    <rect x="${tcaX}" y="${tcaY}" width="${fW}" height="${tcaH}"
           fill="rgba(41,128,185,.03)"/>
-    <rect x="\${tcaX + fW + fuseW}" y="\${tcaY}" width="\${fW}" height="\${tcaH}"
+    <rect x="${tcaX + fW + fuseW}" y="${tcaY}" width="${fW}" height="${tcaH}"
           fill="rgba(41,128,185,.03)"/>
 
-    <!-- ── LEFT MAIN WING ── -->
-    <polygon points="\${cx-fuseW/2},\${wingY} \${cx-fuseW/2},\${wingY+wingChord} \${cx-wingSpan/2},\${wingY+wingSweep+wingTip} \${cx-wingSpan/2},\${wingY+wingSweep}"
-             fill="rgba(210,218,234,.09)" stroke="#c0cce0" stroke-width="1.5" stroke-linejoin="round"/>
-    <line x1="\${cx-fuseW/2}" y1="\${wingY}" x2="\${cx-wingSpan/2}" y2="\${wingY+wingSweep}"
-          stroke="#d8e2f0" stroke-width="2" stroke-linecap="round"/>
+    <!-- Ala izquierda -->
+    <polygon points="${cx-fuseW/2},${wingY}
+                     ${cx-fuseW/2},${wingY+wingCh}
+                     ${cx-wingSpan/2},${wingY+wingSw+wingTip}
+                     ${cx-wingSpan/2},${wingY+wingSw}"
+             fill="rgba(200,214,234,.09)" stroke="#b8ccdc" stroke-width="1.5"
+             stroke-linejoin="round"/>
+    <line x1="${cx-fuseW/2}" y1="${wingY}" x2="${cx-wingSpan/2}" y2="${wingY+wingSw}"
+          stroke="#d0e0f0" stroke-width="2" stroke-linecap="round"/>
 
-    <!-- ── RIGHT MAIN WING ── -->
-    <polygon points="\${cx+fuseW/2},\${wingY} \${cx+fuseW/2},\${wingY+wingChord} \${cx+wingSpan/2},\${wingY+wingSweep+wingTip} \${cx+wingSpan/2},\${wingY+wingSweep}"
-             fill="rgba(210,218,234,.09)" stroke="#c0cce0" stroke-width="1.5" stroke-linejoin="round"/>
-    <line x1="\${cx+fuseW/2}" y1="\${wingY}" x2="\${cx+wingSpan/2}" y2="\${wingY+wingSweep}"
-          stroke="#d8e2f0" stroke-width="2" stroke-linecap="round"/>
+    <!-- Ala derecha -->
+    <polygon points="${cx+fuseW/2},${wingY}
+                     ${cx+fuseW/2},${wingY+wingCh}
+                     ${cx+wingSpan/2},${wingY+wingSw+wingTip}
+                     ${cx+wingSpan/2},${wingY+wingSw}"
+             fill="rgba(200,214,234,.09)" stroke="#b8ccdc" stroke-width="1.5"
+             stroke-linejoin="round"/>
+    <line x1="${cx+fuseW/2}" y1="${wingY}" x2="${cx+wingSpan/2}" y2="${wingY+wingSw}"
+          stroke="#d0e0f0" stroke-width="2" stroke-linecap="round"/>
 
-    <!-- ── ENGINE NACELLES ── -->
-    <rect x="\${cx - engDist - engW/2}" y="\${engCY - engH/2}"
-          width="\${engW}" height="\${engH}" rx="\${engW*0.46}"
-          fill="rgba(170,185,210,.14)" stroke="#a8b8cc" stroke-width="1.2"/>
-    <ellipse cx="\${cx - engDist}" cy="\${engCY - engH/2 + engW*0.15}"
-             rx="\${engW*0.44}" ry="\${engW*0.15}"
-             fill="rgba(80,100,140,.3)" stroke="#7090b8" stroke-width=".8"/>
+    <!-- Motor izquierdo -->
+    <rect x="${cx - fuseW/2 - engDist - engW/2}" y="${engCY - engH/2}"
+          width="${engW}" height="${engH}" rx="${engW*0.46}"
+          fill="rgba(160,180,210,.13)" stroke="#a0b4cc" stroke-width="1.2"/>
+    <ellipse cx="${cx - fuseW/2 - engDist}" cy="${engCY - engH/2 + engW*0.14}"
+             rx="${engW*0.43}" ry="${engW*0.14}"
+             fill="rgba(70,95,140,.28)" stroke="#6888b0" stroke-width=".8"/>
 
-    <rect x="\${cx + engDist - engW/2}" y="\${engCY - engH/2}"
-          width="\${engW}" height="\${engH}" rx="\${engW*0.46}"
-          fill="rgba(170,185,210,.14)" stroke="#a8b8cc" stroke-width="1.2"/>
-    <ellipse cx="\${cx + engDist}" cy="\${engCY - engH/2 + engW*0.15}"
-             rx="\${engW*0.44}" ry="\${engW*0.15}"
-             fill="rgba(80,100,140,.3)" stroke="#7090b8" stroke-width=".8"/>
+    <!-- Motor derecho -->
+    <rect x="${cx + fuseW/2 + engDist - engW/2}" y="${engCY - engH/2}"
+          width="${engW}" height="${engH}" rx="${engW*0.46}"
+          fill="rgba(160,180,210,.13)" stroke="#a0b4cc" stroke-width="1.2"/>
+    <ellipse cx="${cx + fuseW/2 + engDist}" cy="${engCY - engH/2 + engW*0.14}"
+             rx="${engW*0.43}" ry="${engW*0.14}"
+             fill="rgba(70,95,140,.28)" stroke="#6888b0" stroke-width=".8"/>
 
-    <!-- ── LEFT STABILIZER ── -->
-    <polygon points="\${cx-fuseW/2},\${stabY} \${cx-fuseW/2},\${stabY+stabCh} \${cx-stabSpan/2},\${stabY+stabSw+stabTip} \${cx-stabSpan/2},\${stabY+stabSw}"
-             fill="rgba(200,210,228,.08)" stroke="#a8b4c8" stroke-width="1.2" stroke-linejoin="round"/>
-    <line x1="\${cx-fuseW/2}" y1="\${stabY}" x2="\${cx-stabSpan/2}" y2="\${stabY+stabSw}"
-          stroke="#b8c4d8" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- Estabilizador izquierdo -->
+    <polygon points="${cx-fuseW/2},${stabY}
+                     ${cx-fuseW/2},${stabY+stabCh}
+                     ${cx-stabSp/2},${stabY+stabSw+stabTip}
+                     ${cx-stabSp/2},${stabY+stabSw}"
+             fill="rgba(190,205,225,.08)" stroke="#9eb0c8" stroke-width="1.2"
+             stroke-linejoin="round"/>
+    <line x1="${cx-fuseW/2}" y1="${stabY}" x2="${cx-stabSp/2}" y2="${stabY+stabSw}"
+          stroke="#b4c8dc" stroke-width="1.5" stroke-linecap="round"/>
 
-    <!-- ── RIGHT STABILIZER ── -->
-    <polygon points="\${cx+fuseW/2},\${stabY} \${cx+fuseW/2},\${stabY+stabCh} \${cx+stabSpan/2},\${stabY+stabSw+stabTip} \${cx+stabSpan/2},\${stabY+stabSw}"
-             fill="rgba(200,210,228,.08)" stroke="#a8b4c8" stroke-width="1.2" stroke-linejoin="round"/>
-    <line x1="\${cx+fuseW/2}" y1="\${stabY}" x2="\${cx+stabSpan/2}" y2="\${stabY+stabSw}"
-          stroke="#b8c4d8" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- Estabilizador derecho -->
+    <polygon points="${cx+fuseW/2},${stabY}
+                     ${cx+fuseW/2},${stabY+stabCh}
+                     ${cx+stabSp/2},${stabY+stabSw+stabTip}
+                     ${cx+stabSp/2},${stabY+stabSw}"
+             fill="rgba(190,205,225,.08)" stroke="#9eb0c8" stroke-width="1.2"
+             stroke-linejoin="round"/>
+    <line x1="${cx+fuseW/2}" y1="${stabY}" x2="${cx+stabSp/2}" y2="${stabY+stabSw}"
+          stroke="#b4c8dc" stroke-width="1.5" stroke-linecap="round"/>
 
-    <!-- ── FUSELAGE BODY ── -->
-    <rect x="\${cx - fuseW/2}" y="\${bodyTop}" width="\${fuseW}" height="\${bodyLen}"
-          fill="rgba(215,225,242,.10)" stroke="#c8d4e8" stroke-width="2"
-          rx="\${fuseW*0.10}"/>
+    <!-- Fuselaje — cuerpo principal -->
+    <rect x="${cx - fuseW/2}" y="${bodyTop}" width="${fuseW}" height="${bodyLen}"
+          fill="rgba(210,222,240,.09)" stroke="#c4d4e8" stroke-width="2"
+          rx="${fuseW*0.10}"/>
 
-    <!-- ── NOSE SECTION ── -->
-    <ellipse cx="\${cx}" cy="\${noseTip + noseR * 0.9}"
-             rx="\${noseR}" ry="\${noseR * 1.05}"
-             fill="rgba(215,225,242,.12)" stroke="#c8d4e8" stroke-width="1.8"/>
-    <!-- Radome -->
-    <ellipse cx="\${cx}" cy="\${noseTip + noseR * 0.58}"
-             rx="\${noseR * 0.5}" ry="\${noseR * 0.44}"
-             fill="rgba(120,150,200,.10)" stroke="#8090b8" stroke-width=".9"
+    <!-- Nariz (elipse apuntada) -->
+    <ellipse cx="${cx}" cy="${tcaY + noseR * 0.88}"
+             rx="${noseR}" ry="${noseR * 1.04}"
+             fill="rgba(210,222,240,.11)" stroke="#c4d4e8" stroke-width="1.8"/>
+
+    <!-- Radomo (punteado interior de nariz) -->
+    <ellipse cx="${cx}" cy="${tcaY + noseR * 0.55}"
+             rx="${noseR * 0.48}" ry="${noseR * 0.42}"
+             fill="none" stroke="#7890b8" stroke-width=".9"
              stroke-dasharray="2.5 2"/>
 
-    <!-- ── COCKPIT WINDOWS ── -->
-    <rect x="\${cx - cockW/2}" y="\${cockY}"
-          width="\${cockW}" height="\${cockH}"
-          rx="\${cockW * 0.28}"
-          fill="rgba(70,120,200,.22)" stroke="#4878c8" stroke-width=".9"/>
+    <!-- Ventanas cockpit -->
+    <rect x="${cx - cockW/2}" y="${cockY}"
+          width="${cockW}" height="${cockH}" rx="${cockW*0.28}"
+          fill="rgba(60,110,195,.20)" stroke="#4070c0" stroke-width=".9"/>
 
-    <!-- ── TAIL CONE ── -->
-    <path d="M\${cx-fuseW/2},\${bodyBot} Q\${cx-fuseW*0.2},\${tailY} \${cx},\${tailY}
-             Q\${cx+fuseW*0.2},\${tailY} \${cx+fuseW/2},\${bodyBot}"
-          fill="rgba(200,212,232,.08)" stroke="#b8c8dc" stroke-width="1.4"/>
+    <!-- Cono de cola -->
+    <path d="M${cx-fuseW/2},${bodyBot} Q${cx-fuseW*0.18},${tailY} ${cx},${tailY}
+             Q${cx+fuseW*0.18},${tailY} ${cx+fuseW/2},${bodyBot}"
+          fill="rgba(195,210,230,.07)" stroke="#b0c4dc" stroke-width="1.4"/>
 
-    <!-- ── VERTICAL FIN line (top view) ── -->
-    <line x1="\${cx}" y1="\${stabY - bodyLen*0.01}" x2="\${cx}" y2="\${tailY}"
-          stroke="#c0cce0" stroke-width="2.8" stroke-linecap="round" opacity=".45"/>
+    <!-- Línea de timón vertical (top-view) -->
+    <line x1="${cx}" y1="${stabY}" x2="${cx}" y2="${tailY}"
+          stroke="#b8c8dc" stroke-width="2.6" stroke-linecap="round" opacity=".40"/>
 
-    <!-- ── LANDING GEAR DOOR ── -->
-    <rect x="\${cx - lgW/2}" y="\${lgY}" width="\${lgW}" height="\${lgH}"
-          rx="\${lgW*0.2}"
-          fill="rgba(100,120,160,.07)" stroke="#6880a8" stroke-width=".8"
-          stroke-dasharray="2.5 2"/>
-
-    <!-- ══ DIMENSION COTAS ══ -->
-    <!-- L — right side vertical -->
-    <line x1="\${tcaX + tcaW + 20}" y1="\${tcaY}" x2="\${tcaX + tcaW + 20}" y2="\${tcaY + tcaH}"
+    <!-- ═══ COTAS ═══ -->
+    <!-- L — derecha, vertical -->
+    <line x1="${tcaX + tcaW + 18}" y1="${tcaY}"
+          x2="${tcaX + tcaW + 18}" y2="${tcaY + tcaH}"
           stroke="#f76707" stroke-width=".9"
           marker-start="url(#aOb)" marker-end="url(#aO)"/>
-    <text x="\${tcaX + tcaW + 24}" y="\${cy}" dominant-baseline="middle"
-          fill="#f76707" font-family="DM Mono,monospace" font-size="10" font-weight="600">L=\${L}m</text>
+    <text x="${tcaX + tcaW + 22}" y="${cy}" dominant-baseline="middle"
+          fill="#f76707" font-family="DM Mono,monospace" font-size="10" font-weight="600">L=${L}m</text>
 
-    <!-- Wf — below fuselage, horizontal -->
-    <line x1="\${cx - fuseW/2}" y1="\${tcaY + tcaH + 14}" x2="\${cx + fuseW/2}" y2="\${tcaY + tcaH + 14}"
+    <!-- Wf — bajo fuselaje, horizontal -->
+    <line x1="${cx - fuseW/2}" y1="${tcaY + tcaH + 13}"
+          x2="${cx + fuseW/2}" y2="${tcaY + tcaH + 13}"
           stroke="#f59f00" stroke-width=".9"
           marker-start="url(#aBb)" marker-end="url(#aB)"/>
-    <text x="\${cx}" y="\${tcaY + tcaH + 25}" text-anchor="middle"
-          fill="#f59f00" font-family="DM Mono,monospace" font-size="9">Wf=\${Wf}m</text>
+    <text x="${cx}" y="${tcaY + tcaH + 24}" text-anchor="middle"
+          fill="#f59f00" font-family="DM Mono,monospace" font-size="9">Wf=${Wf}m</text>
 
-    <!-- f — top, left spill zone width -->
-    <line x1="\${tcaX}" y1="\${tcaY - 13}" x2="\${cx - fuseW/2}" y2="\${tcaY - 13}"
+    <!-- f — arriba, zona spill izquierda -->
+    <line x1="${tcaX}" y1="${tcaY - 12}" x2="${cx - fuseW/2}" y2="${tcaY - 12}"
           stroke="#339af0" stroke-width=".9"
           marker-start="url(#aBb)" marker-end="url(#aB)"/>
-    <text x="\${tcaX + fW/2}" y="\${tcaY - 17}" text-anchor="middle"
-          fill="#339af0" font-family="DM Mono,monospace" font-size="9">f=\${f}m</text>
+    <text x="${tcaX + fW/2}" y="${tcaY - 16}" text-anchor="middle"
+          fill="#339af0" font-family="DM Mono,monospace" font-size="9">f=${f}m</text>
 
-    <!-- ══ CALLOUT LABELS (right of TCA) ══ -->
-    <line x1="\${tcaX + tcaW}" y1="\${tcaY + tcaH * 0.08}"
-          x2="\${tcaX + tcaW + 8}" y2="\${tcaY + tcaH * 0.08}"
+    <!-- ═══ ETIQUETAS CALLOUT ═══ -->
+    <!-- TCA -->
+    <line x1="${tcaX + tcaW}" y1="${tcaY + tcaH * 0.09}"
+          x2="${tcaX + tcaW + 8}" y2="${tcaY + tcaH * 0.09}"
           stroke="#c0392b" stroke-width=".9"/>
-    <text x="\${tcaX + tcaW + 11}" y="\${tcaY + tcaH * 0.08 + 3}"
+    <text x="${tcaX + tcaW + 11}" y="${tcaY + tcaH * 0.09 + 3}"
           fill="#e05050" font-family="DM Mono,monospace" font-size="9" font-weight="700">TCA</text>
-    <text x="\${tcaX + tcaW + 11}" y="\${tcaY + tcaH * 0.08 + 14}"
-          fill="#7a8baa" font-family="DM Mono,monospace" font-size="7.5">Área teórica</text>
+    <text x="${tcaX + tcaW + 11}" y="${tcaY + tcaH * 0.09 + 14}"
+          fill="#6a7b9a" font-family="DM Mono,monospace" font-size="7.5">Área teórica</text>
 
-    <line x1="\${cx + fuseW/2}" y1="\${tcaY + tcaH * 0.36}"
-          x2="\${tcaX + tcaW + 8}" y2="\${tcaY + tcaH * 0.36}"
+    <!-- Ap -->
+    <line x1="${cx + fuseW/2}" y1="${tcaY + tcaH * 0.36}"
+          x2="${tcaX + tcaW + 8}" y2="${tcaY + tcaH * 0.36}"
           stroke="#2980b9" stroke-width=".9"/>
-    <text x="\${tcaX + tcaW + 11}" y="\${tcaY + tcaH * 0.36 + 3}"
+    <text x="${tcaX + tcaW + 11}" y="${tcaY + tcaH * 0.36 + 3}"
           fill="#5aafef" font-family="DM Mono,monospace" font-size="9" font-weight="700">Ap</text>
-    <text x="\${tcaX + tcaW + 11}" y="\${tcaY + tcaH * 0.36 + 14}"
-          fill="#7a8baa" font-family="DM Mono,monospace" font-size="7.5">Área práctica</text>
+    <text x="${tcaX + tcaW + 11}" y="${tcaY + tcaH * 0.36 + 14}"
+          fill="#6a7b9a" font-family="DM Mono,monospace" font-size="7.5">Área práctica</text>
 
-    <!-- Wind arrow -->
-    <line x1="\${tcaX + tcaW * 0.88}" y1="\${windY}"
-          x2="\${tcaX + tcaW * 0.40}" y2="\${windY}"
-          stroke="#5a6e94" stroke-width="1.5" marker-end="url(#wA)"/>
-    <text x="\${tcaX + tcaW * 0.93}" y="\${windY + 4}"
+    <!-- Flecha de viento -->
+    <line x1="${tcaX + tcaW * 0.88}" y1="${windY}"
+          x2="${tcaX + tcaW * 0.38}" y2="${windY}"
+          stroke="#5a6e94" stroke-width="1.5" marker-end="url(#wArr)"/>
+    <text x="${tcaX + tcaW * 0.93}" y="${windY + 4}"
           dominant-baseline="middle"
           fill="#5a6e94" font-family="DM Mono,monospace" font-size="9" letter-spacing=".05em">VIENTO</text>
 
-    <!-- Ap value -->
-    <text x="\${W - 5}" y="\${H - 6}" text-anchor="end"
+    <!-- Ap valor -->
+    <text x="${W - 5}" y="${H - 6}" text-anchor="end"
           fill="#c0392b" font-family="DM Mono,monospace" font-size="11" font-weight="700">
-      Ap = \${Ac.toFixed(2)} m²
+      Ap = ${Ac.toFixed(2)} m²
     </text>
 
-    <!-- Legend box -->
-    <rect x="4" y="4" width="122" height="52" rx="3"
+    <!-- Leyenda -->
+    <rect x="4" y="4" width="124" height="52" rx="3"
           fill="rgba(8,12,18,.75)" stroke="#243047" stroke-width=".8"/>
     <line x1="10" y1="16" x2="24" y2="16" stroke="#c0392b" stroke-width="1.3" stroke-dasharray="8,4"/>
-    <text x="28" y="19" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">TCA (área teórica)</text>
+    <text x="28" y="19" fill="#ced8f0" font-family="DM Mono,monospace" font-size="8">TCA (área teórica)</text>
     <line x1="10" y1="28" x2="24" y2="28" stroke="#2980b9" stroke-width="1.1" stroke-dasharray="4,3"/>
-    <text x="28" y="31" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Área Crítica Práctica</text>
-    <rect x="10" y="37" width="14" height="6" rx="1" fill="rgba(210,220,238,.12)" stroke="#b8c8e0" stroke-width="1"/>
-    <text x="28" y="43" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Aeronave (top-view)</text>
-  \`;
+    <text x="28" y="31" fill="#ced8f0" font-family="DM Mono,monospace" font-size="8">Área Crítica Práctica</text>
+    <rect x="10" y="37" width="14" height="6" rx="1" fill="rgba(200,215,235,.12)" stroke="#b0c4dc" stroke-width="1"/>
+    <text x="28" y="43" fill="#ced8f0" font-family="DM Mono,monospace" font-size="8">Aeronave (top-view)</text>
+  `;
 
       document.getElementById('diag-placeholder').style.display = 'none';
       svg.style.display = 'block';
-      window._pdfDiag = { L, Wf, f, Ac };
+      window._pdfDiag = { L: L, Wf: Wf, f: f, Ac: Ac };
     }
 
     /* ─── HISTORY ───────────────────────────────────── */
@@ -2693,10 +2689,10 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* SVG B&N para impresión — vista superior OACI (blanco puro, sin fondos oscuros) */
+    /* SVG B&N para impresión — vista superior OACI, fondo blanco puro */
     function _svgBN(L, Wf, f, Ac) {
-      var W=460, H=540;
-      var padT=44,padB=38,padL=64,padR=92;
+      var W=460, H=530;
+      var padT=42, padB=36, padL=62, padR=90;
       var availH=H-padT-padB, availW=W-padL-padR;
       var sc=Math.min(availH/L, availW/(Wf+2*f));
 
@@ -2705,140 +2701,125 @@
       var cx=W/2, cy=H/2;
       var tcaX=cx-tcaW/2, tcaY=cy-tcaH/2;
 
-      var noseR=fuseW*0.52;
-      var bodyTop=tcaY+noseR*1.6, bodyBot=tcaY+tcaH-fuseW*0.22;
+      var noseR=fuseW*0.50;
+      var bodyTop=tcaY+noseR*1.55;
+      var bodyBot=tcaY+tcaH-fuseW*0.20;
       var bodyLen=bodyBot-bodyTop;
-      var fuseCY=cy;
 
       var wingY=bodyTop+bodyLen*0.28;
-      var wingSpan=tcaW*0.88, wingChord=bodyLen*0.20;
-      var wingSweep=wingChord*0.60, wingTip=wingChord*0.35;
+      var wingSpan=tcaW*0.90, wingCh=bodyLen*0.20;
+      var wingSw=wingCh*0.62, wingTip=wingCh*0.33;
 
-      var engDist=(wingSpan/2)*0.52;
-      var engCY=wingY+wingSweep*0.55;
-      var engH=wingChord*0.52, engW=fuseW*0.19;
+      var engDist=(wingSpan/2)*0.50;
+      var engCY=wingY+wingSw*0.52;
+      var engH=wingCh*0.50, engW=fuseW*0.18;
 
-      var stabY=bodyTop+bodyLen*0.83;
-      var stabSpan=tcaW*0.40, stabCh=bodyLen*0.092;
-      var stabSw=stabCh*0.48, stabTip=stabCh*0.42;
+      var stabY=bodyTop+bodyLen*0.84;
+      var stabSp=tcaW*0.38, stabCh=bodyLen*0.090;
+      var stabSw=stabCh*0.46, stabTip=stabCh*0.40;
 
-      var cockY=tcaY+noseR*0.9;
-      var cockH=fuseW*0.30, cockW=fuseW*0.38;
+      var cockY=tcaY+noseR*0.85;
+      var cockH=fuseW*0.28, cockW=fuseW*0.36;
       var tailY=tcaY+tcaH;
-      var windY=tailY+22;
+      var windY=tailY+20;
 
-      return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'+
-        ' viewBox="0 0 '+W+' '+H+'"'+
-        ' style="display:block;background:#fff;width:100%;height:auto;max-height:300px">'+
-        '<rect width="'+W+'" height="'+H+'" fill="#fff"/>'+
-        '<defs>'+
-          '<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">'+
-            '<path d="M20 0L0 0 0 20" fill="none" stroke="#eee" stroke-width=".4"/>'+
-          '</pattern>'+
-          '<marker id="ma" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">'+
-            '<polygon points="0 0,6 2,0 4" fill="#000"/></marker>'+
-          '<marker id="mb" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">'+
-            '<polygon points="6 0,0 2,6 4" fill="#000"/></marker>'+
-          '<marker id="mw" markerWidth="7" markerHeight="5" refX="0" refY="2.5" orient="auto">'+
-            '<polygon points="7 0,0 2.5,7 5" fill="#555"/></marker>'+
-        '</defs>'+
-        '<rect width="'+W+'" height="'+H+'" fill="url(#g)"/>'+
-        // TCA outer
-        '<rect x="'+tcaX+'" y="'+tcaY+'" width="'+tcaW+'" height="'+tcaH+'"'+
-          ' fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="10,5" rx="3"/>'+
-        // Ap inner column
-        '<rect x="'+( cx-fuseW/2 )+'" y="'+tcaY+'" width="'+fuseW+'" height="'+tcaH+'"'+
-          ' fill="none" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>'+
-        // Left wing
-        '<polygon points="'+
-          (cx-fuseW/2)+','+wingY+' '+
-          (cx-fuseW/2)+','+( wingY+wingChord )+' '+
-          (cx-wingSpan/2)+','+( wingY+wingSweep+wingTip )+' '+
-          (cx-wingSpan/2)+','+( wingY+wingSweep )+
-          '" fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/>'+
-        // Right wing
-        '<polygon points="'+
-          (cx+fuseW/2)+','+wingY+' '+
-          (cx+fuseW/2)+','+( wingY+wingChord )+' '+
-          (cx+wingSpan/2)+','+( wingY+wingSweep+wingTip )+' '+
-          (cx+wingSpan/2)+','+( wingY+wingSweep )+
-          '" fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/>'+
-        // Left engine
-        '<rect x="'+( cx-engDist-engW/2 )+'" y="'+( engCY-engH/2 )+'" width="'+engW+'" height="'+engH+'"'+
-          ' rx="'+( engW*0.46 )+'" fill="none" stroke="#000" stroke-width="1.1"/>'+
-        // Right engine
-        '<rect x="'+( cx+engDist-engW/2 )+'" y="'+( engCY-engH/2 )+'" width="'+engW+'" height="'+engH+'"'+
-          ' rx="'+( engW*0.46 )+'" fill="none" stroke="#000" stroke-width="1.1"/>'+
-        // Left stabilizer
-        '<polygon points="'+
-          (cx-fuseW/2)+','+stabY+' '+
-          (cx-fuseW/2)+','+( stabY+stabCh )+' '+
-          (cx-stabSpan/2)+','+( stabY+stabSw+stabTip )+' '+
-          (cx-stabSpan/2)+','+( stabY+stabSw )+
-          '" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/>'+
-        // Right stabilizer
-        '<polygon points="'+
-          (cx+fuseW/2)+','+stabY+' '+
-          (cx+fuseW/2)+','+( stabY+stabCh )+' '+
-          (cx+stabSpan/2)+','+( stabY+stabSw+stabTip )+' '+
-          (cx+stabSpan/2)+','+( stabY+stabSw )+
-          '" fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/>'+
-        // Fuselage body
-        '<rect x="'+( cx-fuseW/2 )+'" y="'+bodyTop+'" width="'+fuseW+'" height="'+bodyLen+'"'+
-          ' rx="'+( fuseW*0.10 )+'" fill="none" stroke="#000" stroke-width="2"/>'+
-        // Nose ellipse
-        '<ellipse cx="'+cx+'" cy="'+( tcaY+noseR*0.9 )+'" rx="'+noseR+'" ry="'+( noseR*1.05 )+'"'+
-          ' fill="none" stroke="#000" stroke-width="1.8"/>'+
+      function pt(x,y){return x.toFixed(1)+','+y.toFixed(1);}
+
+      return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'
+        +' viewBox="0 0 '+W+' '+H+'"'
+        +' style="display:block;background:#fff;width:100%;height:auto;max-height:300px">'
+        +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
+        +'<defs>'
+          +'<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">'
+            +'<path d="M20 0L0 0 0 20" fill="none" stroke="#eee" stroke-width=".4"/>'
+          +'</pattern>'
+          +'<marker id="ma" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">'
+            +'<polygon points="0 0,6 2,0 4" fill="#000"/></marker>'
+          +'<marker id="mb" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">'
+            +'<polygon points="6 0,0 2,6 4" fill="#000"/></marker>'
+          +'<marker id="mw" markerWidth="7" markerHeight="5" refX="0" refY="2.5" orient="auto">'
+            +'<polygon points="7 0,0 2.5,7 5" fill="#555"/></marker>'
+        +'</defs>'
+        +'<rect width="'+W+'" height="'+H+'" fill="url(#g)"/>'
+        // TCA exterior punteado
+        +'<rect x="'+tcaX.toFixed(1)+'" y="'+tcaY.toFixed(1)+'" width="'+tcaW.toFixed(1)+'" height="'+tcaH.toFixed(1)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="10,5" rx="3"/>'
+        // Ap columna fuselaje
+        +'<rect x="'+(cx-fuseW/2).toFixed(1)+'" y="'+tcaY.toFixed(1)+'" width="'+fuseW.toFixed(1)+'" height="'+tcaH.toFixed(1)+'"'
+          +' fill="none" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>'
+        // Ala izquierda
+        +'<polygon points="'+pt(cx-fuseW/2,wingY)+' '+pt(cx-fuseW/2,wingY+wingCh)+' '+pt(cx-wingSpan/2,wingY+wingSw+wingTip)+' '+pt(cx-wingSpan/2,wingY+wingSw)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/>'
+        // Ala derecha
+        +'<polygon points="'+pt(cx+fuseW/2,wingY)+' '+pt(cx+fuseW/2,wingY+wingCh)+' '+pt(cx+wingSpan/2,wingY+wingSw+wingTip)+' '+pt(cx+wingSpan/2,wingY+wingSw)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/>'
+        // Motor izquierdo
+        +'<rect x="'+(cx-fuseW/2-engDist-engW/2).toFixed(1)+'" y="'+(engCY-engH/2).toFixed(1)+'" width="'+engW.toFixed(1)+'" height="'+engH.toFixed(1)+'"'
+          +' rx="'+(engW*0.46).toFixed(1)+'" fill="none" stroke="#000" stroke-width="1.1"/>'
+        // Motor derecho
+        +'<rect x="'+(cx+fuseW/2+engDist-engW/2).toFixed(1)+'" y="'+(engCY-engH/2).toFixed(1)+'" width="'+engW.toFixed(1)+'" height="'+engH.toFixed(1)+'"'
+          +' rx="'+(engW*0.46).toFixed(1)+'" fill="none" stroke="#000" stroke-width="1.1"/>'
+        // Estabilizador izquierdo
+        +'<polygon points="'+pt(cx-fuseW/2,stabY)+' '+pt(cx-fuseW/2,stabY+stabCh)+' '+pt(cx-stabSp/2,stabY+stabSw+stabTip)+' '+pt(cx-stabSp/2,stabY+stabSw)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/>'
+        // Estabilizador derecho
+        +'<polygon points="'+pt(cx+fuseW/2,stabY)+' '+pt(cx+fuseW/2,stabY+stabCh)+' '+pt(cx+stabSp/2,stabY+stabSw+stabTip)+' '+pt(cx+stabSp/2,stabY+stabSw)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.1" stroke-linejoin="round"/>'
+        // Fuselaje
+        +'<rect x="'+(cx-fuseW/2).toFixed(1)+'" y="'+bodyTop.toFixed(1)+'" width="'+fuseW.toFixed(1)+'" height="'+bodyLen.toFixed(1)+'"'
+          +' rx="'+(fuseW*0.10).toFixed(1)+'" fill="none" stroke="#000" stroke-width="2"/>'
+        // Nariz
+        +'<ellipse cx="'+cx.toFixed(1)+'" cy="'+(tcaY+noseR*0.88).toFixed(1)+'" rx="'+noseR.toFixed(1)+'" ry="'+(noseR*1.04).toFixed(1)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.8"/>'
         // Cockpit
-        '<rect x="'+( cx-cockW/2 )+'" y="'+cockY+'" width="'+cockW+'" height="'+cockH+'"'+
-          ' rx="'+( cockW*0.28 )+'" fill="none" stroke="#000" stroke-width=".9"/>'+
-        // Tail cone
-        '<path d="M'+( cx-fuseW/2 )+','+bodyBot+' Q'+( cx-fuseW*0.2 )+','+tailY+' '+cx+','+tailY+' Q'+( cx+fuseW*0.2 )+','+tailY+' '+( cx+fuseW/2 )+','+bodyBot+'"'+
-          ' fill="none" stroke="#000" stroke-width="1.3"/>'+
-        // Fin centerline
-        '<line x1="'+cx+'" y1="'+( stabY-bodyLen*0.01 )+'" x2="'+cx+'" y2="'+tailY+'"'+
-          ' stroke="#555" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>'+
+        +'<rect x="'+(cx-cockW/2).toFixed(1)+'" y="'+cockY.toFixed(1)+'" width="'+cockW.toFixed(1)+'" height="'+cockH.toFixed(1)+'"'
+          +' rx="'+(cockW*0.28).toFixed(1)+'" fill="none" stroke="#000" stroke-width=".9"/>'
+        // Cono de cola
+        +'<path d="M'+(cx-fuseW/2).toFixed(1)+','+bodyBot.toFixed(1)+' Q'+(cx-fuseW*0.18).toFixed(1)+','+tailY.toFixed(1)+' '+cx.toFixed(1)+','+tailY.toFixed(1)+' Q'+(cx+fuseW*0.18).toFixed(1)+','+tailY.toFixed(1)+' '+(cx+fuseW/2).toFixed(1)+','+bodyBot.toFixed(1)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.3"/>'
+        // Timón (línea central cola)
+        +'<line x1="'+cx.toFixed(1)+'" y1="'+stabY.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+tailY.toFixed(1)+'"'
+          +' stroke="#555" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>'
         // Cota L
-        '<line x1="'+( tcaX+tcaW+18 )+'" y1="'+tcaY+'" x2="'+( tcaX+tcaW+18 )+'" y2="'+( tcaY+tcaH )+'"'+
-          ' stroke="#000" stroke-width=".9" marker-start="url(#mb)" marker-end="url(#ma)"/>'+
-        '<text x="'+( tcaX+tcaW+22 )+'" y="'+cy+'" dominant-baseline="middle"'+
-          ' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">L='+L+'m</text>'+
+        +'<line x1="'+(tcaX+tcaW+18).toFixed(1)+'" y1="'+tcaY.toFixed(1)+'" x2="'+(tcaX+tcaW+18).toFixed(1)+'" y2="'+(tcaY+tcaH).toFixed(1)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+(tcaX+tcaW+22).toFixed(1)+'" y="'+cy.toFixed(1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">L='+L+'m</text>'
         // Cota Wf
-        '<line x1="'+( cx-fuseW/2 )+'" y1="'+( tcaY+tcaH+13 )+'" x2="'+( cx+fuseW/2 )+'" y2="'+( tcaY+tcaH+13 )+'"'+
-          ' stroke="#000" stroke-width=".9" marker-start="url(#mb)" marker-end="url(#ma)"/>'+
-        '<text x="'+cx+'" y="'+( tcaY+tcaH+24 )+'" text-anchor="middle"'+
-          ' font-family="Courier New,monospace" font-size="9" fill="#000">Wf='+Wf+'m</text>'+
+        +'<line x1="'+(cx-fuseW/2).toFixed(1)+'" y1="'+(tcaY+tcaH+12).toFixed(1)+'" x2="'+(cx+fuseW/2).toFixed(1)+'" y2="'+(tcaY+tcaH+12).toFixed(1)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+cx.toFixed(1)+'" y="'+(tcaY+tcaH+23).toFixed(1)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="8.5" fill="#000">Wf='+Wf+'m</text>'
         // Cota f
-        '<line x1="'+tcaX+'" y1="'+( tcaY-13 )+'" x2="'+( cx-fuseW/2 )+'" y2="'+( tcaY-13 )+'"'+
-          ' stroke="#555" stroke-width=".8" marker-start="url(#mb)" marker-end="url(#ma)"/>'+
-        '<text x="'+( tcaX+fW/2 )+'" y="'+( tcaY-17 )+'" text-anchor="middle"'+
-          ' font-family="Courier New,monospace" font-size="8.5" fill="#444">f='+f+'m</text>'+
-        // TCA callout
-        '<line x1="'+( tcaX+tcaW )+'" y1="'+( tcaY+tcaH*0.08 )+'" x2="'+( tcaX+tcaW+10 )+'" y2="'+( tcaY+tcaH*0.08 )+'" stroke="#000" stroke-width=".8"/>'+
-        '<text x="'+( tcaX+tcaW+13 )+'" y="'+( tcaY+tcaH*0.08+3 )+'"'+
-          ' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">TCA</text>'+
-        // Ap callout
-        '<line x1="'+( cx+fuseW/2 )+'" y1="'+( tcaY+tcaH*0.36 )+'" x2="'+( tcaX+tcaW+10 )+'" y2="'+( tcaY+tcaH*0.36 )+'" stroke="#444" stroke-width=".8"/>'+
-        '<text x="'+( tcaX+tcaW+13 )+'" y="'+( tcaY+tcaH*0.36+3 )+'"'+
-          ' font-family="Courier New,monospace" font-size="9" fill="#333">Ap</text>'+
-        // Wind arrow
-        '<line x1="'+( tcaX+tcaW*0.88 )+'" y1="'+windY+'" x2="'+( tcaX+tcaW*0.38 )+'" y2="'+windY+'"'+
-          ' stroke="#555" stroke-width="1.3" marker-end="url(#mw)"/>'+
-        '<text x="'+( tcaX+tcaW*0.92 )+'" y="'+( windY+4 )+'" dominant-baseline="middle"'+
-          ' font-family="Courier New,monospace" font-size="8.5" fill="#555">VIENTO</text>'+
-        // Ap value
-        '<text x="'+( W-4 )+'" y="'+( H-4 )+'" text-anchor="end"'+
-          ' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'+
-        // Legend
-        '<line x1="5" y1="11" x2="19" y2="11" stroke="#000" stroke-width="1.3" stroke-dasharray="8,4"/>'+
-        '<text x="23" y="14" font-family="Courier New,monospace" font-size="8" fill="#000">TCA (teórica)</text>'+
-        '<line x1="5" y1="22" x2="19" y2="22" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>'+
-        '<text x="23" y="25" font-family="Courier New,monospace" font-size="8" fill="#222">Área Crítica Práctica</text>'+
-        '<rect x="5" y="30" width="14" height="6" rx="1" fill="none" stroke="#000" stroke-width="1"/>'+
-        '<text x="23" y="36" font-family="Courier New,monospace" font-size="8" fill="#000">Aeronave</text>'+
-        '</svg>';
+        +'<line x1="'+tcaX.toFixed(1)+'" y1="'+(tcaY-12).toFixed(1)+'" x2="'+(cx-fuseW/2).toFixed(1)+'" y2="'+(tcaY-12).toFixed(1)+'"'
+          +' stroke="#555" stroke-width=".8" marker-start="url(#mb)" marker-end="url(#ma)"/>'
+        +'<text x="'+(tcaX+fW/2).toFixed(1)+'" y="'+(tcaY-16).toFixed(1)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="8.5" fill="#444">f='+f+'m</text>'
+        // Callout TCA
+        +'<line x1="'+(tcaX+tcaW).toFixed(1)+'" y1="'+(tcaY+tcaH*0.09).toFixed(1)+'" x2="'+(tcaX+tcaW+10).toFixed(1)+'" y2="'+(tcaY+tcaH*0.09).toFixed(1)+'" stroke="#000" stroke-width=".8"/>'
+        +'<text x="'+(tcaX+tcaW+13).toFixed(1)+'" y="'+(tcaY+tcaH*0.09+3).toFixed(1)+'"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">TCA</text>'
+        // Callout Ap
+        +'<line x1="'+(cx+fuseW/2).toFixed(1)+'" y1="'+(tcaY+tcaH*0.36).toFixed(1)+'" x2="'+(tcaX+tcaW+10).toFixed(1)+'" y2="'+(tcaY+tcaH*0.36).toFixed(1)+'" stroke="#444" stroke-width=".8"/>'
+        +'<text x="'+(tcaX+tcaW+13).toFixed(1)+'" y="'+(tcaY+tcaH*0.36+3).toFixed(1)+'"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#333">Ap</text>'
+        // Flecha de viento
+        +'<line x1="'+(tcaX+tcaW*0.86).toFixed(1)+'" y1="'+windY.toFixed(1)+'" x2="'+(tcaX+tcaW*0.36).toFixed(1)+'" y2="'+windY.toFixed(1)+'"'
+          +' stroke="#555" stroke-width="1.3" marker-end="url(#mw)"/>'
+        +'<text x="'+(tcaX+tcaW*0.91).toFixed(1)+'" y="'+(windY+4).toFixed(1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8.5" fill="#555">VIENTO</text>'
+        // Ap valor
+        +'<text x="'+(W-4)+'" y="'+(H-4)+'" text-anchor="end"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'
+        // Leyenda
+        +'<line x1="5" y1="11" x2="19" y2="11" stroke="#000" stroke-width="1.3" stroke-dasharray="8,4"/>'
+        +'<text x="23" y="14" font-family="Courier New,monospace" font-size="8" fill="#000">TCA (teórica)</text>'
+        +'<line x1="5" y1="22" x2="19" y2="22" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>'
+        +'<text x="23" y="25" font-family="Courier New,monospace" font-size="8" fill="#222">Área Crítica Práctica</text>'
+        +'<rect x="5" y="30" width="14" height="6" rx="1" fill="none" stroke="#000" stroke-width="1"/>'
+        +'<text x="23" y="36" font-family="Courier New,monospace" font-size="8" fill="#000">Aeronave</text>'
+        +'</svg>';
     }
-
 
     function exportPDF() {
       // 1. Sustituir SVG de pantalla por versión B&N
