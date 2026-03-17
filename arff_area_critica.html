@@ -2366,140 +2366,160 @@
       window.location.href = targetUrl;
     }
 
-    /* ─── SVG DIAGRAM — Capas de Protección OACI (ACP / ACT / Fuselaje) ── */
+    /* ─── SVG DIAGRAM — Vista de Planta OACI: ACT / ACP / Avión ── */
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
       const W = 400, H = 300;
 
-      // Factor K basado en L (ya calculado, se pasa como f)
-      // Escala: ajustar para que el ACT quepa con márgenes para etiquetas
-      const padH = 50, padV = 36;
-      // ACT total: L × (Wf + f)  — en pantalla: largo=L, ancho=Wf+f
-      const scaleX = (W - padH * 2) / L;
-      const scaleY = (H - padV * 2) / (Wf + f);
-      const sc = Math.min(scaleX, scaleY);
+      // ── Factor K por longitud (ya calculado como f, se reconfirma) ──
+      const factorK    = (L >= 28) ? 30 : 12;
+      const distLateral = factorK / 2;   // colchón por lado: 6m o 15m
 
-      // Dimensiones escaladas
-      const actW = L * sc;           // ACT largo (eje horizontal)
-      const actH = (Wf + f) * sc;    // ACT ancho (eje vertical)
-      const acpW = actW;             // ACP mismo largo que ACT
-      const acpH = Wf * sc;         // ACP solo el fuselaje en alto (sin f)
-      const fusW = actW;             // Fuselaje: mismo largo
-      const fusH = (Wf * 0.55) * sc; // Fuselaje: cuerpo central (~55% del ancho)
+      // ── Escala: ajustar para que el ACT quepa dejando margen para cotas ──
+      const padH = 52, padV = 32;
+      const scX  = (W - padH * 2) / L;
+      const scY  = (H - padV * 2) / (Wf + factorK);
+      const sc   = Math.min(scX, scY);
 
-      // Centrado
+      // ── Dimensiones escaladas ──
+      // 1. ACT: largo=L, ancho=Wf+factorK
+      const actL = L  * sc;
+      const actA = (Wf + factorK) * sc;
+
+      // 2. ACP: largo=L (100%), ancho=66% del ACT
+      const acpL = actL;
+      const acpA = actA * 0.66;
+
+      // 3. Avión: largo=L, ancho=Wf
+      const avL = actL;
+      const avA = Wf * sc;
+
+      // ── Centro del canvas ──
       const cx = W / 2, cy = H / 2;
-      const actX = cx - actW / 2, actY = cy - actH / 2;
-      const acpX = cx - acpW / 2, acpY = cy - acpH / 2;
-      const fusX = cx - fusW / 2,  fusY = cy - fusH / 2;
 
-      // Factor K por lado escalado
-      const fHalf = (f / 2) * sc;
+      // ── Posicionamiento centrado (x=largo horizontal, y=ancho vertical) ──
+      const actX = cx - actL / 2,  actY = cy - actA / 2;
+      const acpX = cx - acpL / 2,  acpY = cy - acpA / 2;
+      const avX  = cx - avL  / 2,  avY  = cy - avA  / 2;
+
+      // Colchón visual = distLateral * sc (para la cota)
+      const colchon = distLateral * sc;
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = `
     <defs>
-      <pattern id="dotgrid" width="18" height="18" patternUnits="userSpaceOnUse">
+      <pattern id="dotg" width="18" height="18" patternUnits="userSpaceOnUse">
         <path d="M18 0L0 0 0 18" fill="none" stroke="#1a2840" stroke-width=".4"/>
       </pattern>
-      <marker id="arO" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#f76707"/>
-      </marker>
-      <marker id="arB" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#339af0"/>
-      </marker>
-      <marker id="arR" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#e03131"/>
-      </marker>
+      <marker id="mO" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#f76707"/></marker>
+      <marker id="mOb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
+        <polygon points="5 0,0 2.5,5 5" fill="#f76707"/></marker>
+      <marker id="mR" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#e03131"/></marker>
+      <marker id="mRb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
+        <polygon points="5 0,0 2.5,5 5" fill="#e03131"/></marker>
+      <marker id="mB" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#339af0"/></marker>
+      <marker id="mBb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
+        <polygon points="5 0,0 2.5,5 5" fill="#339af0"/></marker>
     </defs>
 
     <!-- Fondo -->
     <rect width="${W}" height="${H}" fill="#080c12"/>
-    <rect width="${W}" height="${H}" fill="url(#dotgrid)"/>
+    <rect width="${W}" height="${H}" fill="url(#dotg)"/>
 
-    <!-- ══ ACT — Área Crítica Teórica (límite exterior, línea punteada roja) ══ -->
-    <rect x="${actX}" y="${actY}" width="${actW}" height="${actH}"
-          fill="rgba(224,49,49,.05)" stroke="#e03131" stroke-width="1.4"
-          stroke-dasharray="8 4" rx="3"/>
+    <!-- ══ CAPA 1 (fondo): ACT — Área Crítica Teórica — punteado rojo ══ -->
+    <rect x="${actX}" y="${actY}" width="${actL}" height="${actA}"
+          fill="rgba(224,49,49,.06)" stroke="#e03131" stroke-width="1.5"
+          stroke-dasharray="9 4" rx="3"/>
 
-    <!-- ══ ACP — Área Crítica Práctica (relleno naranja semitransparente) ══ -->
-    <rect x="${acpX}" y="${acpY}" width="${acpW}" height="${acpH}"
-          fill="rgba(247,103,7,.13)" stroke="#f76707" stroke-width="1.6" rx="2"/>
+    <!-- ══ CAPA 2 (medio): ACP — Área Crítica Práctica — naranja sólido ══ -->
+    <rect x="${acpX}" y="${acpY}" width="${acpL}" height="${acpA}"
+          fill="rgba(247,103,7,.18)" stroke="#f76707" stroke-width="1.8" rx="2"/>
 
-    <!-- ══ Factor K por lado — líneas punteadas azules simétricas ══ -->
-    <!-- Lado superior (f/2) -->
+    <!-- ══ CAPA 3 (frente): Avión — rectángulo blanco centrado ══ -->
+    <rect x="${avX}" y="${avY}" width="${avL}" height="${avA}"
+          fill="rgba(220,228,244,.93)" stroke="#94a8cc" stroke-width="1.8"
+          rx="${avA * 0.36}"/>
+    <!-- Eje longitudinal del avión -->
+    <line x1="${avX + avL * 0.04}" y1="${cy}"
+          x2="${avX + avL * 0.96}" y2="${cy}"
+          stroke="#7090b8" stroke-width=".8" stroke-dasharray="5 3" opacity=".7"/>
+
+    <!-- ══ COLCHÓN — líneas punteadas azules (distLateral por lado) ══ -->
+    <!-- Superior: de borde-ACP a borde-ACT, línea central vertical -->
     <line x1="${cx}" y1="${actY}" x2="${cx}" y2="${acpY}"
           stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
-    <line x1="${cx - 18}" y1="${actY + 2}" x2="${cx + 18}" y2="${actY + 2}"
-          stroke="#339af0" stroke-width=".9"/>
-    <line x1="${cx - 18}" y1="${acpY - 2}" x2="${cx + 18}" y2="${acpY - 2}"
-          stroke="#339af0" stroke-width=".9"/>
-    <text x="${cx + 5}" y="${actY + (fHalf / 2)}" dominant-baseline="middle"
-          fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f/2=${(f/2)}m</text>
-    <!-- Lado inferior (f/2) -->
-    <line x1="${cx}" y1="${acpY + acpH}" x2="${cx}" y2="${actY + actH}"
+    <!-- tick tope ACT -->
+    <line x1="${cx - 14}" y1="${actY + 1.5}" x2="${cx + 14}" y2="${actY + 1.5}"
+          stroke="#339af0" stroke-width="1"/>
+    <!-- tick tope ACP -->
+    <line x1="${cx - 14}" y1="${acpY - 1.5}" x2="${cx + 14}" y2="${acpY - 1.5}"
+          stroke="#339af0" stroke-width="1"/>
+    <text x="${cx + 7}" y="${actY + colchon / 2 + 1}" dominant-baseline="middle"
+          fill="#339af0" font-family="DM Mono,monospace" font-size="9" font-weight="600">
+      ${distLateral}m
+    </text>
+
+    <!-- Inferior: de borde-ACP a borde-ACT -->
+    <line x1="${cx}" y1="${acpY + acpA}" x2="${cx}" y2="${actY + actA}"
           stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
-    <line x1="${cx - 18}" y1="${acpY + acpH + 2}" x2="${cx + 18}" y2="${acpY + acpH + 2}"
-          stroke="#339af0" stroke-width=".9"/>
-    <line x1="${cx - 18}" y1="${actY + actH - 2}" x2="${cx + 18}" y2="${actY + actH - 2}"
-          stroke="#339af0" stroke-width=".9"/>
-    <text x="${cx + 5}" y="${acpY + acpH + fHalf / 2}" dominant-baseline="middle"
-          fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f/2=${(f/2)}m</text>
+    <!-- tick inf ACP -->
+    <line x1="${cx - 14}" y1="${acpY + acpA + 1.5}" x2="${cx + 14}" y2="${acpY + acpA + 1.5}"
+          stroke="#339af0" stroke-width="1"/>
+    <!-- tick inf ACT -->
+    <line x1="${cx - 14}" y1="${actY + actA - 1.5}" x2="${cx + 14}" y2="${actY + actA - 1.5}"
+          stroke="#339af0" stroke-width="1"/>
+    <text x="${cx + 7}" y="${acpY + acpA + colchon / 2 + 1}" dominant-baseline="middle"
+          fill="#339af0" font-family="DM Mono,monospace" font-size="9" font-weight="600">
+      ${distLateral}m
+    </text>
 
-    <!-- ══ FUSELAJE — rectángulo blanco con bordes redondeados ══ -->
-    <rect x="${fusX}" y="${fusY}" width="${fusW}" height="${fusH}"
-          fill="rgba(220,228,244,.92)" stroke="#c8d4e8" stroke-width="1.8"
-          rx="${fusH * 0.38}"/>
-    <!-- Línea central del fuselaje (eje longitudinal) -->
-    <line x1="${fusX + fusW * 0.06}" y1="${cy}" x2="${fusX + fusW * 0.94}" y2="${cy}"
-          stroke="#9aabcc" stroke-width=".7" stroke-dasharray="6 3" opacity=".6"/>
-
-    <!-- ══ ETIQUETAS laterales ══ -->
-    <!-- ACT label — arriba derecha -->
-    <text x="${actX + actW - 4}" y="${actY + 12}" text-anchor="end"
+    <!-- ══ ETIQUETAS de capa ══ -->
+    <text x="${actX + 6}" y="${actY + 13}"
           fill="#e03131" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACT</text>
-
-    <!-- ACP label — dentro del área naranja -->
-    <text x="${cx}" y="${acpY + 11}" text-anchor="middle"
+    <text x="${acpX + 6}" y="${acpY + 13}"
           fill="#f76707" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACP</text>
+    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+          fill="#1e2d47" font-family="DM Mono,monospace" font-size="8.5" font-weight="700">AVIÓN</text>
 
-    <!-- Fuselaje label -->
-    <text x="${cx}" y="${cy + 3}" text-anchor="middle" dominant-baseline="middle"
-          fill="#243047" font-family="DM Mono,monospace" font-size="8.5" font-weight="700">FUSELAJE</text>
-
-    <!-- ══ COTA L — horizontal inferior ══ -->
-    <line x1="${actX}" y1="${actY + actH + 14}" x2="${actX + actW}" y2="${actY + actH + 14}"
-          stroke="#f76707" stroke-width=".9"
-          marker-start="url(#arO)" marker-end="url(#arO)"/>
-    <text x="${cx}" y="${actY + actH + 24}" text-anchor="middle"
+    <!-- ══ COTA L — horizontal bajo el ACT ══ -->
+    <line x1="${actX}" y1="${actY + actA + 14}" x2="${actX + actL}" y2="${actY + actA + 14}"
+          stroke="#f76707" stroke-width=".9" marker-start="url(#mOb)" marker-end="url(#mO)"/>
+    <text x="${cx}" y="${actY + actA + 24}" text-anchor="middle"
           fill="#f76707" font-family="DM Mono,monospace" font-size="9.5" font-weight="600">L = ${L} m</text>
 
-    <!-- ══ COTA Wf+f — vertical derecha ══ -->
-    <line x1="${actX + actW + 14}" y1="${actY}" x2="${actX + actW + 14}" y2="${actY + actH}"
-          stroke="#e03131" stroke-width=".9"
-          marker-start="url(#arR)" marker-end="url(#arR)"/>
-    <text x="${actX + actW + 18}" y="${cy}" dominant-baseline="middle"
-          fill="#e03131" font-family="DM Mono,monospace" font-size="8.5">Wf+f=${(Wf+f)}m</text>
+    <!-- ══ COTA Wf+factorK — vertical derecha ══ -->
+    <line x1="${actX + actL + 14}" y1="${actY}"
+          x2="${actX + actL + 14}" y2="${actY + actA}"
+          stroke="#e03131" stroke-width=".9" marker-start="url(#mRb)" marker-end="url(#mR)"/>
+    <text x="${actX + actL + 18}" y="${cy}" dominant-baseline="middle"
+          fill="#e03131" font-family="DM Mono,monospace" font-size="8.5">
+      ${Wf + factorK}m
+    </text>
 
-    <!-- ══ Ap valor ══ -->
-    <text x="6" y="${H - 6}" fill="#e03131" font-family="DM Mono,monospace"
+    <!-- ══ Ap valor y Factor K ══ -->
+    <text x="5" y="${H - 15}" fill="#e03131" font-family="DM Mono,monospace"
           font-size="11" font-weight="700">Ap = ${Ac.toFixed(2)} m²</text>
+    <text x="5" y="${H - 4}" fill="#339af0" font-family="DM Mono,monospace"
+          font-size="8.5">Factor K = ${factorK}m · ${distLateral}m por lado</text>
 
     <!-- ══ LEYENDA ══ -->
-    <rect x="${W - 132}" y="5" width="126" height="60" rx="3"
-          fill="rgba(8,12,18,.80)" stroke="#243047" stroke-width=".8"/>
-    <line x1="${W-126}" y1="17" x2="${W-112}" y2="17"
+    <rect x="${W - 136}" y="4" width="130" height="64" rx="3"
+          fill="rgba(8,12,18,.82)" stroke="#243047" stroke-width=".8"/>
+    <line x1="${W-130}" y1="16" x2="${W-116}" y2="16"
           stroke="#e03131" stroke-width="1.3" stroke-dasharray="7,3"/>
-    <text x="${W-108}" y="20" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACT — Área Teórica</text>
-    <rect x="${W-126}" y="26" width="14" height="7" rx="1"
-          fill="rgba(247,103,7,.25)" stroke="#f76707" stroke-width="1"/>
-    <text x="${W-108}" y="33" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACP — Área Práctica</text>
-    <rect x="${W-126}" y="38" width="14" height="7" rx="1"
-          fill="rgba(220,228,244,.70)" stroke="#c8d4e8" stroke-width="1"/>
-    <text x="${W-108}" y="45" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Fuselaje</text>
-    <line x1="${W-126}" y1="52" x2="${W-112}" y2="52"
-          stroke="#339af0" stroke-width="1" stroke-dasharray="4,3"/>
-    <text x="${W-108}" y="55" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Factor K (f)</text>
+    <text x="${W-112}" y="19" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACT — Área Teórica</text>
+    <rect x="${W-130}" y="25" width="14" height="7" rx="1"
+          fill="rgba(247,103,7,.28)" stroke="#f76707" stroke-width="1"/>
+    <text x="${W-112}" y="32" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACP — Área Práctica</text>
+    <rect x="${W-130}" y="38" width="14" height="7" rx="1"
+          fill="rgba(220,228,244,.75)" stroke="#94a8cc" stroke-width="1"/>
+    <text x="${W-112}" y="45" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Avión (Wf)</text>
+    <line x1="${W-130}" y1="54" x2="${W-116}" y2="54"
+          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4,3"/>
+    <text x="${W-112}" y="57" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Colchón ${distLateral}m c/lado</text>
   `;
 
       document.getElementById('diag-placeholder').style.display = 'none';
@@ -2567,21 +2587,26 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ─── SVG B&N PARA EXPORTACIÓN A PDF — Capas ACP / ACT / Fuselaje ── */
+    /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
     function _svgBN(L, Wf, f, Ac) {
       var W=460, H=300;
-      var padH=54, padV=38;
-      var scX=(W-padH*2)/L, scY=(H-padV*2)/(Wf+f);
+      var factorK     = (L >= 28) ? 30 : 12;
+      var distLateral = factorK / 2;
+
+      var padH=56, padV=34;
+      var scX=(W-padH*2)/L, scY=(H-padV*2)/(Wf+factorK);
       var sc=Math.min(scX,scY);
 
-      var actW=L*sc, actH=(Wf+f)*sc;
-      var acpW=actW, acpH=Wf*sc;
-      var fusW=actW, fusH=(Wf*0.55)*sc;
-      var cx=W/2, cy=H/2;
-      var actX=cx-actW/2, actY=cy-actH/2;
-      var acpX=cx-acpW/2, acpY=cy-acpH/2;
-      var fusX=cx-fusW/2, fusY=cy-fusH/2;
-      var fHalf=(f/2)*sc;
+      var actL=L*sc,      actA=(Wf+factorK)*sc;
+      var acpL=actL,      acpA=actA*0.66;
+      var avL=actL,       avA=Wf*sc;
+      var cx=W/2,         cy=H/2;
+      var actX=cx-actL/2, actY=cy-actA/2;
+      var acpX=cx-acpL/2, acpY=cy-acpA/2;
+      var avX=cx-avL/2,   avY=cy-avA/2;
+      var colchon=distLateral*sc;
+
+      function t(n){ return n.toFixed(1); }
 
       return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'
         +' viewBox="0 0 '+W+' '+H+'"'
@@ -2592,51 +2617,63 @@
           +'</pattern>'
           +'<marker id="ma" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">'
             +'<polygon points="0 0,5 2.5,0 5" fill="#000"/></marker>'
+          +'<marker id="mab" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">'
+            +'<polygon points="5 0,0 2.5,5 5" fill="#000"/></marker>'
         +'</defs>'
         +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
         +'<rect width="'+W+'" height="'+H+'" fill="url(#gbn)"/>'
-        // ACT — exterior punteado
-        +'<rect x="'+actX.toFixed(1)+'" y="'+actY.toFixed(1)+'" width="'+actW.toFixed(1)+'" height="'+actH.toFixed(1)+'"'
-          +' fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="8,4" rx="3"/>'
-        // ACP — relleno gris claro
-        +'<rect x="'+acpX.toFixed(1)+'" y="'+acpY.toFixed(1)+'" width="'+acpW.toFixed(1)+'" height="'+acpH.toFixed(1)+'"'
-          +' fill="#f0f0f0" stroke="#000" stroke-width="1.5" rx="2"/>'
-        // Factor K líneas punteadas — lado sup
-        +'<line x1="'+cx.toFixed(1)+'" y1="'+actY.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+acpY.toFixed(1)+'"'
+
+        // CAPA 1 — ACT exterior punteado
+        +'<rect x="'+t(actX)+'" y="'+t(actY)+'" width="'+t(actL)+'" height="'+t(actA)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="9,4" rx="3"/>'
+
+        // CAPA 2 — ACP relleno gris claro
+        +'<rect x="'+t(acpX)+'" y="'+t(acpY)+'" width="'+t(acpL)+'" height="'+t(acpA)+'"'
+          +' fill="#e8e8e8" stroke="#333" stroke-width="1.6" rx="2"/>'
+
+        // CAPA 3 — Avión blanco centrado
+        +'<rect x="'+t(avX)+'" y="'+t(avY)+'" width="'+t(avL)+'" height="'+t(avA)+'"'
+          +' fill="#fff" stroke="#000" stroke-width="1.8" rx="'+t(avA*0.36)+'"/>'
+
+        // Colchón superior — punteado gris
+        +'<line x1="'+t(cx)+'" y1="'+t(actY)+'" x2="'+t(cx)+'" y2="'+t(acpY)+'"'
           +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
-        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(actY+2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(actY+2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
-        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(acpY-2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(acpY-2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
-        +'<text x="'+(cx+4).toFixed(1)+'" y="'+(actY+fHalf/2).toFixed(1)+'" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="8" fill="#444">f/2='+( f/2 )+'m</text>'
-        // Factor K líneas punteadas — lado inf
-        +'<line x1="'+cx.toFixed(1)+'" y1="'+(acpY+acpH).toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+(actY+actH).toFixed(1)+'"'
+        +'<line x1="'+t(cx-12)+'" y1="'+t(actY+1.5)+'" x2="'+t(cx+12)+'" y2="'+t(actY+1.5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<line x1="'+t(cx-12)+'" y1="'+t(acpY-1.5)+'" x2="'+t(cx+12)+'" y2="'+t(acpY-1.5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<text x="'+t(cx+5)+'" y="'+t(actY+colchon/2+1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#333">'+distLateral+'m</text>'
+
+        // Colchón inferior — punteado gris
+        +'<line x1="'+t(cx)+'" y1="'+t(acpY+acpA)+'" x2="'+t(cx)+'" y2="'+t(actY+actA)+'"'
           +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
-        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(acpY+acpH+2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(acpY+acpH+2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
-        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(actY+actH-2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(actY+actH-2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
-        +'<text x="'+(cx+4).toFixed(1)+'" y="'+(acpY+acpH+fHalf/2).toFixed(1)+'" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="8" fill="#444">f/2='+( f/2 )+'m</text>'
-        // Fuselaje — blanco con bordes negros
-        +'<rect x="'+fusX.toFixed(1)+'" y="'+fusY.toFixed(1)+'" width="'+fusW.toFixed(1)+'" height="'+fusH.toFixed(1)+'"'
-          +' fill="#fff" stroke="#000" stroke-width="2" rx="'+(fusH*0.38).toFixed(1)+'"/>'
-        // Etiquetas dentro del diagrama
-        +'<text x="'+(actX+actW-4).toFixed(1)+'" y="'+(actY+12).toFixed(1)+'" text-anchor="end"'
+        +'<line x1="'+t(cx-12)+'" y1="'+t(acpY+acpA+1.5)+'" x2="'+t(cx+12)+'" y2="'+t(acpY+acpA+1.5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<line x1="'+t(cx-12)+'" y1="'+t(actY+actA-1.5)+'" x2="'+t(cx+12)+'" y2="'+t(actY+actA-1.5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<text x="'+t(cx+5)+'" y="'+t(acpY+acpA+colchon/2+1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#333">'+distLateral+'m</text>'
+
+        // Etiquetas de capa
+        +'<text x="'+t(actX+6)+'" y="'+t(actY+13)+'"'
           +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACT</text>'
-        +'<text x="'+cx.toFixed(1)+'" y="'+(acpY+11).toFixed(1)+'" text-anchor="middle"'
+        +'<text x="'+t(acpX+6)+'" y="'+t(acpY+13)+'"'
           +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACP</text>'
-        +'<text x="'+cx.toFixed(1)+'" y="'+cy.toFixed(1)+'" text-anchor="middle" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="8" fill="#333" font-weight="bold">FUSELAJE</text>'
+        +'<text x="'+t(cx)+'" y="'+t(cy)+'" text-anchor="middle" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8.5" fill="#222" font-weight="bold">AVIÓN</text>'
+
         // Cota L
-        +'<line x1="'+actX.toFixed(1)+'" y1="'+(actY+actH+13).toFixed(1)+'" x2="'+(actX+actW).toFixed(1)+'" y2="'+(actY+actH+13).toFixed(1)+'"'
-          +' stroke="#000" stroke-width=".9" marker-start="url(#ma)" marker-end="url(#ma)"/>'
-        +'<text x="'+cx.toFixed(1)+'" y="'+(actY+actH+23).toFixed(1)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">L='+L+'m</text>'
-        // Cota Wf+f
-        +'<line x1="'+(actX+actW+13).toFixed(1)+'" y1="'+actY.toFixed(1)+'" x2="'+(actX+actW+13).toFixed(1)+'" y2="'+(actY+actH).toFixed(1)+'"'
-          +' stroke="#000" stroke-width=".9" marker-start="url(#ma)" marker-end="url(#ma)"/>'
-        +'<text x="'+(actX+actW+17).toFixed(1)+'" y="'+cy.toFixed(1)+'" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="8" fill="#000">Wf+f='+(Wf+f)+'m</text>'
-        // Ap valor
-        +'<text x="6" y="'+(H-6)+'" font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'
+        +'<line x1="'+t(actX)+'" y1="'+t(actY+actA+14)+'" x2="'+t(actX+actL)+'" y2="'+t(actY+actA+14)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#mab)" marker-end="url(#ma)"/>'
+        +'<text x="'+t(cx)+'" y="'+t(actY+actA+24)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="9.5" fill="#000" font-weight="bold">L='+L+'m</text>'
+
+        // Cota Wf+factorK
+        +'<line x1="'+t(actX+actL+14)+'" y1="'+t(actY)+'" x2="'+t(actX+actL+14)+'" y2="'+t(actY+actA)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#mab)" marker-end="url(#ma)"/>'
+        +'<text x="'+t(actX+actL+18)+'" y="'+t(cy)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8.5" fill="#000">'+(Wf+factorK)+'m</text>'
+
+        // Ap + Factor K
+        +'<text x="5" y="'+(H-14)+'" font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'
+        +'<text x="5" y="'+(H-3)+'" font-family="Courier New,monospace" font-size="8" fill="#444">Factor K='+factorK+'m · '+distLateral+'m por lado</text>'
         +'</svg>';
     }
 
