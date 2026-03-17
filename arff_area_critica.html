@@ -1522,7 +1522,7 @@
     <!-- FORMULA CARD -->
     <div class="formula-card">
       <div class="formula-main">
-        <span class="var-ac">Ac</span>
+        <span class="var-ac">Ap</span>
         <span class="op"> = </span>
         <span class="var-l">L</span>
         <span class="op"> × (</span>
@@ -1533,8 +1533,8 @@
       </div>
       <div class="formula-legend">
         <div class="legend-item">
-          <span class="legend-var" style="color:var(--red);border:1px solid var(--red-dim)">Ac</span>
-          <span class="legend-desc">Área crítica de aeronave — superficie de intervención (m²)</span>
+          <span class="legend-var" style="color:var(--red);border:1px solid var(--red-dim)">Ap</span>
+          <span class="legend-desc">Área Crítica Práctica — superficie de intervención (m²)</span>
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--orange);border:1px solid var(--orange-dim)">L</span>
@@ -1546,7 +1546,7 @@
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--blue-bright);border:1px solid #1971c2">f</span>
-          <span class="legend-desc">Factor de derrame: <strong style="color:#339af0">12 m</strong> si Wf &lt; 12 m ·
+          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si Wf &lt; 12 m ·
             <strong style="color:#339af0">30 m</strong> si Wf ≥ 12 m (OACI Doc 9137, Parte 1 §2.3.2)</span>
         </div>
       </div>
@@ -1646,7 +1646,7 @@
             <div class="field">
               <label>
                 <span class="var-badge" style="color:var(--blue-bright);border:1px solid var(--blue)">f</span>
-                Factor de derrame
+                Factor K (constante)
                 <span id="f-rule-badge" style="
                 display:inline-flex;align-items:center;gap:4px;
                 background:rgba(51,154,240,.10);border:1px solid rgba(51,154,240,.3);
@@ -1724,7 +1724,7 @@
     <div class="result-box" id="result-box">
       <div class="result-header">
         <div>
-          <div class="result-label">Área Crítica Calculada (Ac)</div>
+          <div class="result-label">Área Crítica Práctica (A<sub style="font-size:0.75em">p</sub>)</div>
           <div class="result-value" id="val-ac">—<span class="unit">m²</span></div>
         </div>
         <div style="text-align:right">
@@ -1743,7 +1743,7 @@
         </div>
         <div class="breakdown-item">
           <div class="breakdown-val" style="color:var(--blue-bright)" id="break-f">—</div>
-          <div class="breakdown-lbl">Factor (f) <span id="res-f-rule"
+          <div class="breakdown-lbl">Factor K (f) <span id="res-f-rule"
               style="font-size:9px;display:block;color:var(--text-muted);margin-top:2px"></span></div>
         </div>
       </div>
@@ -1758,8 +1758,8 @@
       color:var(--text-dim);line-height:1.6;display:none">
         📋 <strong style="color:#339af0">Referencia normativa:</strong>
         <span id="res-norm-text"></span><br>
-        <span style="color:var(--text-muted)">Cálculo basado en OACI Doc 9137, Parte 1, Sección 2.3.2 — Factor de
-          derrame automático según ancho de fuselaje.</span>
+        <span style="color:var(--text-muted)">Cálculo basado en OACI Doc 9137, Parte 1, Sección 2.3.2 — Factor K (constante)
+          automático según ancho de fuselaje.</span>
       </div>
 
       <!-- CONTINUAR A RATA DE DESCARGA -->
@@ -1859,9 +1859,9 @@
           </div>
           <div class="panel-body" style="color:var(--text-dim);font-size:12.5px;line-height:1.7">
             <strong style="color:var(--text)">Airport Services Manual — Part 1</strong><br>
-            §2.3 establece la fórmula <code style="color:var(--orange)">Ac = L × (Wf + f)</code>
+            §2.3 establece la fórmula <code style="color:var(--orange)">Ap = L × (Wf + f)</code>
             como base para dimensionar el área de intervención.
-            El factor <strong style="color:var(--blue-bright)">f ≥ 1.0 m</strong> cubre el derrame máximo previsto.
+            El Factor K (constante) <strong style="color:var(--blue-bright)">f ≥ 1.0 m</strong> cubre el derrame máximo previsto.
             Las categorías 1–10 se determinan por longitud y anchura de fuselaje.
           </div>
         </div>
@@ -2199,10 +2199,10 @@
 
       if (Wf < 12) {
         badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
-        noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor de derrame obligatorio: f = 12 m`;
+        noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
       } else {
         badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
-        noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor de derrame obligatorio: f = 30 m`;
+        noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
       }
       badge.style.color = '#2f9e44';
       badge.style.background = 'rgba(47,158,68,.10)';
@@ -2283,8 +2283,8 @@
       document.getElementById('res-f-rule').textContent = fRule;
 
       const normText = Wf < 12
-        ? `Wf = ${Wf} m (< 12 m) — Factor de derrame asignado: f = 12 m obligatorio.`
-        : `Wf = ${Wf} m (≥ 12 m) — Factor de derrame asignado: f = 30 m obligatorio.`;
+        ? `Wf = ${Wf} m (< 12 m) — Factor K (constante) asignado: f = 12 m obligatorio.`
+        : `Wf = ${Wf} m (≥ 12 m) — Factor K (constante) asignado: f = 30 m obligatorio.`;
       document.getElementById('res-norm-text').textContent = normText;
       document.getElementById('res-norm-note').style.display = 'block';
 
@@ -2316,7 +2316,7 @@
       if (history.length > 20) history.pop();
       renderHistory();
 
-      showToast(`✓ Ac = ${AcRound.toFixed(2)} m² · f = ${f} m (OACI §2.3.2)`);
+      showToast(`✓ Ap = ${AcRound.toFixed(2)} m² · f = ${f} m (OACI §2.3.2)`);
     }
 
     function detectCat(L) {
