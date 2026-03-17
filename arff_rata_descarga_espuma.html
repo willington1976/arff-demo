@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ARFF Colombia — Rata de Descarga de Espuma</title>
+  <meta name="description"
+    content="Calculadora de caudal requerido de espuma para incendios aeronáuticos ARFF — ICAO Doc 9137">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- SEI PDF Generator -->
+  <link rel="stylesheet" href="css/sei-pdf-style.css">
+  <script src="js/sei-pdf-generator.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+    :root {
+      --bg: #0d1117;
+      --panel: #161d2b;
+      --panel2: #1c2638;
+      --panel3: #212d42;
+      --border: #243047;
+      --border2: #2e3f5c;
+
+      --red: #e03131;
+      --red-dim: #b52525;
+      --orange: #f76707;
+      --orange-dim: #c25208;
+      --amber: #f59f00;
+      --cyan: #0bc5ea;
+      --cyan-dim: #0891b2;
+      --teal: #099268;
+      --green: #2f9e44;
+      --blue: #1971c2;
+      --blue-bright: #339af0;
+      --purple: #7048e8;
+
+      --text: #e2e8f0;
+      --text-dim: #8a9bba;
+      --text-muted: #4a5878;
+
+      --font-title: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+
+      --radius: 10px;
+      --radius-sm: 6px;
+      --t: .18s ease;
+
+      /* Rate color mapping */
+      --rate-4: #2f9e44;
+      --rate-5: #f59f00;
+      --rate-6: #e03131;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image: radial-gradient(circle, #1e2d47 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* ═══════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, .92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      height: 58px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .nav-brand-main {
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 12.5px;
+      color: var(--text);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .nav-brand-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .nav-sep {
+      flex: 1;
+    }
+
+    .nav-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+
+    .nav-badge span {
+      color: var(--cyan);
+    }
+
+    @media (max-width: 600px) {
+      .nav-badge:not(:first-of-type) {
+        display: none;
+      }
+    }
+
+    /* Return Button */
+    .btn-return {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-decoration: none;
+      letter-spacing: .05em;
+      transition: all var(--t);
+    }
+
+    .btn-return:hover {
+      background: rgba(255, 255, 255, .1);
+      color: var(--text);
+      border-color: var(--border2);
+    }
+
+    /* ═══════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════ */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 16px 120px;
+    }
+
+    /* ═══════════════════════════════════════════
+   MODULE HEADER
+═══════════════════════════════════════════ */
+    .module-header {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .module-strip {
+      height: 4px;
+      background: linear-gradient(90deg, var(--cyan-dim) 0%, var(--cyan) 40%, var(--blue-bright) 100%);
+    }
+
+    .module-head-inner {
+      padding: 24px 28px 20px;
+    }
+
+    .module-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .module-title {
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 24px;
+      color: var(--text);
+      letter-spacing: -.01em;
+      margin-bottom: 5px;
+    }
+
+    .module-subtitle {
+      color: var(--text-dim);
+      font-size: 13px;
+      max-width: 620px;
+    }
+
+    .module-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 11px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-dim);
+      letter-spacing: .04em;
+    }
+
+    .meta-chip .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════
+   FORMULA BAR
+═══════════════════════════════════════════ */
+    .formula-bar {
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--cyan);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      margin-bottom: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .formula-main {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .fv-q {
+      color: var(--cyan);
+    }
+
+    .fv-ac {
+      color: var(--orange);
+    }
+
+    .fv-r {
+      color: var(--amber);
+    }
+
+    .fv-op {
+      color: var(--text-muted);
+    }
+
+    .formula-defs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .fdef {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      min-width: 160px;
+    }
+
+    .fdef-var {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 1px 7px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, .04);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .fdef-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* ═══════════════════════════════════════════
+   TWO-COLUMN GRID
+═══════════════════════════════════════════ */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 820px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
+   PANELS
+═══════════════════════════════════════════ */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+
+    .panel-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 12.5px;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    /* ═══════════════════════════════════════════
+   FORM FIELDS
+═══════════════════════════════════════════ */
+    .field-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .var-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 7px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap input[type="number"] {
+      width: 100%;
+      background: var(--panel2);
+      border: 1.5px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 16px;
+      padding: 11px 52px 11px 14px;
+      outline: none;
+      transition: border-color var(--t), box-shadow var(--t);
+      -webkit-appearance: none;
+    }
+
+    .input-wrap input[type="number"]:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(11, 197, 234, .12);
+    }
+
+    .input-wrap input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(224, 49, 49, .12);
+    }
+
+    .input-unit {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .field-error {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--red);
+      letter-spacing: .04em;
+      display: none;
+    }
+
+    .field-error.show {
+      display: block;
+      animation: fadeUp .2s ease;
+    }
+
+    /* Rate selector */
+    .rate-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .rate-label {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      letter-spacing: .04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rate-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .rate-pill {
+      flex: 1;
+      min-width: 60px;
+      padding: 10px 6px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border2);
+      background: var(--panel2);
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--t);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rate-pill:hover {
+      border-color: var(--cyan);
+    }
+
+    .rate-pill.selected {
+      border-color: var(--cyan);
+      background: rgba(11, 197, 234, .08);
+      box-shadow: 0 0 0 1px rgba(11, 197, 234, .2);
+    }
+
+    .rate-pill .rp-val {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 500;
+      display: block;
+      line-height: 1.1;
+    }
+
+    .rate-pill .rp-unit {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-muted);
+      letter-spacing: .06em;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .rate-pill .rp-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      display: block;
+      line-height: 1.3;
+    }
+
+    .rate-pill[data-rate="4.1"] .rp-val {
+      color: var(--rate-4);
+    }
+
+    .rate-pill[data-rate="5.5"] .rp-val {
+      color: var(--rate-5);
+    }
+
+    .rate-pill[data-rate="6.5"] .rp-val {
+      color: var(--rate-6);
+    }
+
+    .rate-pill .rp-norm {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 5px;
+      letter-spacing: .04em;
+    }
+
+    /* ── ICAO Rate Selector ── */
+    .icao-rate-select-wrap {
+      margin-top: 6px;
+      position: relative;
+    }
+
+    .icao-rate-select-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icao-rate-select-label::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      flex-shrink: 0;
+    }
+
+    /* The dropdown itself */
+    .icao-select {
+      width: 100%;
+      background: var(--panel2);
+      border: 1.5px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      padding: 10px 40px 10px 14px;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9bba'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+
+    .icao-select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(11, 197, 234, .12);
+    }
+
+    .icao-select option {
+      background: #1c2638;
+      color: var(--text);
+    }
+
+    .icao-select.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(224, 49, 49, .12);
+    }
+
+    /* Info card that appears below the dropdown showing agent details */
+    .icao-rate-info {
+      margin-top: 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--cyan);
+      background: rgba(11, 197, 234, .05);
+      padding: 9px 13px;
+      display: none;
+      animation: fadeUp .2s ease;
+    }
+
+    .icao-rate-info.show {
+      display: block;
+    }
+
+    .iri-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .iri-rate {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .iri-unit {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: 3px;
+    }
+
+    .iri-norm {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--text-muted);
+      letter-spacing: .05em;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .iri-body {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .iri-body strong {
+      color: var(--text);
+    }
+
+    /* Validation warning for non-ICAO value */
+    .icao-select-warn {
+      display: none;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--red);
+      letter-spacing: .04em;
+    }
+
+    .icao-select-warn.show {
+      display: block;
+      animation: fadeUp .2s ease;
+    }
+
+    /* Calc button */
+    .btn-calc {
+      width: 100%;
+      margin-top: 6px;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--cyan-dim) 0%, var(--cyan) 100%);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #0d1117;
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity var(--t), transform var(--t), box-shadow var(--t);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-calc:hover {
+      opacity: .92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(11, 197, 234, .35);
+    }
+
+    .btn-calc:active {
+      transform: translateY(0);
+    }
+
+    /* ═══════════════════════════════════════════
+   RESULT HERO
+═══════════════════════════════════════════ */
+    .result-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .result-hero {
+      padding: 22px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(11, 197, 234, .06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .result-lbl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .result-big {
+      font-family: var(--font-mono);
+      font-size: 52px;
+      font-weight: 500;
+      color: var(--cyan);
+      line-height: 1;
+      text-shadow: 0 0 40px rgba(11, 197, 234, .35);
+      transition: all .3s ease;
+    }
+
+    .result-big .r-unit {
+      font-size: 20px;
+      color: var(--text-dim);
+      margin-left: 6px;
+    }
+
+    .result-big.animate {
+      animation: countUp .4s ease;
+    }
+
+    @keyframes countUp {
+      from {
+        transform: translateY(6px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .result-sub {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .result-sub strong {
+      color: var(--cyan);
+    }
+
+    /* Breakdown grid */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+    }
+
+    .breakdown-cell {
+      background: var(--panel2);
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .bc-val {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .bc-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* Rate indicator strip */
+    .rate-strip {
+      padding: 12px 18px;
+      background: var(--panel2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .rate-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .rate-strip-text {
+      color: var(--text-dim);
+    }
+
+    .rate-strip-text strong {
+      font-weight: 500;
+    }
+
+    /* Tank equivalence row */
+    .tank-row {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tank-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .tank-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tank-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .tank-chip .tc-icon {
+      font-size: 13px;
+    }
+
+    .tank-chip .tc-val {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Empty state */
+    .result-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      gap: 12px;
+      min-height: 200px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* ═══════════════════════════════════════════
+   RESULTS TABLE
+═══════════════════════════════════════════ */
+    .section {
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-dim);
+      margin-bottom: 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      min-width: 600px;
+    }
+
+    thead tr.t-group th {
+      padding: 7px 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    thead tr.t-cols th {
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      white-space: nowrap;
+    }
+
+    thead tr.t-cols th:first-child {
+      text-align: center;
+    }
+
+    thead tr.t-cols th:nth-child(2) {
+      text-align: left;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(36, 48, 71, .5);
+      transition: background var(--t);
+    }
+
+    tbody tr:hover {
+      background: rgba(11, 197, 234, .03);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr.active-row {
+      background: rgba(11, 197, 234, .05);
+    }
+
+    tbody td {
+      padding: 9px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-align: right;
+      color: var(--text-dim);
+    }
+
+    tbody td:first-child {
+      text-align: center;
+      color: var(--text);
+    }
+
+    tbody td:nth-child(2) {
+      text-align: left;
+      color: var(--text);
+    }
+
+    .td-q {
+      color: var(--cyan);
+      font-weight: 500;
+    }
+
+    .td-q-hi {
+      color: var(--cyan);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-shadow: 0 0 12px rgba(11, 197, 234, .5);
+    }
+
+    .rate-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* ═══════════════════════════════════════════
+   NORMATIVE BANNER
+═══════════════════════════════════════════ */
+    .norm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .norm-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .norm-card-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+
+    .norm-card-body {
+      padding: 14px 16px;
+      color: var(--text-dim);
+      font-size: 12.5px;
+      line-height: 1.7;
+    }
+
+    /* ═══════════════════════════════════════════
+   FAB
+═══════════════════════════════════════════ */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      z-index: 200;
+    }
+
+    .fab-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+      background: linear-gradient(135deg, var(--cyan-dim) 0%, var(--cyan) 100%);
+      transition: transform var(--t), box-shadow var(--t);
+      position: relative;
+    }
+
+    .fab-btn:hover {
+      transform: scale(1.07);
+      box-shadow: 0 10px 36px rgba(11, 197, 234, .4);
+    }
+
+    .fab-tooltip {
+      position: absolute;
+      right: 68px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t);
+      letter-spacing: .04em;
+    }
+
+    .fab-btn:hover .fab-tooltip {
+      opacity: 1;
+    }
+
+    /* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--cyan);
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--text);
+      z-index: 300;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all .3s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ═══════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════ */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 3px;
+    }
+
+    /* ═══════════════════════════════════════════
+   MOBILE ADJUSTMENTS
+═══════════════════════════════════════════ */
+    @media (max-width: 500px) {
+      .result-big {
+        font-size: 40px;
+      }
+
+      .breakdown-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .module-title {
+        font-size: 20px;
+      }
+
+      .formula-main {
+        font-size: 20px;
+      }
+    }
+  </style>
+<link rel="stylesheet" href="css/sei-pdf-style.css">
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════
+     NAV
+═══════════════════════════════════════════ -->
+  <nav>
+    <a class="nav-logo" href="#">
+      <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="8" fill="#1c2638" />
+        <path d="M18 5L7 9.5V18c0 5.5 4.7 10.6 11 12 6.3-1.4 11-6.5 11-12V9.5L18 5z" fill="none" stroke="#e03131"
+          stroke-width="1.5" />
+        <path d="M18 10c0 0-2 3-1 5.5C14.5 14.5 14 12 14 12c0 0-2 2.5-2 5 0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-4-7-6-7z"
+          fill="url(#fg2)" />
+        <defs>
+          <linearGradient id="fg2" x1="18" y1="10" x2="18" y2="23" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#f59f00" />
+            <stop offset=".5" stop-color="#f76707" />
+            <stop offset="1" stop-color="#e03131" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="nav-brand">
+        <span class="nav-brand-main">Bomberos Aeronáuticos</span>
+        <span class="nav-brand-sub">ARFF Colombia · Cálculos Críticos</span>
+      </div>
+    </a>
+    <div class="nav-sep"></div>
+    <a href="dashboard_principal.html" class="btn-return">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
+      </svg>
+      Volver al Dashboard
+    </a>
+    <div class="nav-badge">MÓDULO <span>02</span> / ESPUMA</div>
+    <div class="nav-badge">ICAO <span>9137</span></div>
+    <div class="nav-badge">NFPA <span>403</span></div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+     PAGE
+═══════════════════════════════════════════ -->
+  <main class="page" id="pdf-content">
+
+    <!-- MODULE HEADER -->
+    <div class="module-header">
+      <div class="module-strip"></div>
+      <div class="module-head-inner">
+        <div class="module-eyebrow">Módulo 02 · ICAO Doc 9137 Pt.1 §2.3.3 · NFPA 403 §5.3</div>
+        <h1 class="module-title">Rata de Descarga de Espuma ARFF</h1>
+        <p class="module-subtitle">
+          Calcula el caudal mínimo de espuma requerido para extinguir o controlar un incendio
+          aeronáutico en función del Área Crítica y la tasa de aplicación normativa.
+        </p>
+        <div class="module-meta">
+          <div class="meta-chip"><span class="dot" style="background:var(--cyan)"></span>Fórmula Q = Ac × R</div>
+          <div class="meta-chip"><span class="dot" style="background:var(--green)"></span>ICAO Rates: 4.1 / 5.5 / 6.5
+            L/min/m²</div>
+          <div class="meta-chip"><span class="dot" style="background:var(--amber)"></span>AFFF / AR-AFFF / FFFP</div>
+          <div class="meta-chip"><span class="dot" style="background:var(--blue-bright)"></span>Equivalencias de tanque
+            ARFF</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMULA BAR -->
+    <div class="formula-bar">
+      <div class="formula-main">
+        <span class="fv-q">Q<sub style="font-size:0.6em">1</sub></span>
+        <span class="fv-op"> = </span>
+        <span class="fv-ac">Ap</span>
+        <span class="fv-op"> × </span>
+        <span class="fv-r">R</span>
+        <span class="fv-op" style="margin:0 14px;color:var(--border2)">|</span>
+        <span class="fv-q" style="color:var(--blue-bright)">Q<sub style="font-size:0.6em">t</sub></span>
+        <span class="fv-op"> = </span>
+        <span style="color:var(--cyan)">Q<sub style="font-size:0.6em">1</sub></span>
+        <span class="fv-op"> + </span>
+        <span style="color:var(--blue-bright)">Q<sub style="font-size:0.6em">2</sub></span>
+      </div>
+      <div class="formula-defs">
+        <div class="fdef">
+          <span class="fdef-var" style="color:var(--cyan);border:1px solid rgba(11,197,234,.3)">Q₁</span>
+          <span class="fdef-desc">Caudal de Control — producción de espuma para controlar el incendio en área crítica en 1 min (L/min)</span>
+        </div>
+        <div class="fdef">
+          <span class="fdef-var" style="color:var(--blue-bright);border:1px solid rgba(51,154,240,.3)">Q₂</span>
+          <span class="fdef-desc">Caudal de Enfriamiento — agua para mantener control y extinción total del fuselaje (L/min)</span>
+        </div>
+        <div class="fdef">
+          <span class="fdef-var" style="color:var(--orange);border:1px solid rgba(247,103,7,.3)">Qt</span>
+          <span class="fdef-desc">Capacidad Total de Bomba = Q₁ + Q₂ · dimensiona el vehículo ARFF (L/min)</span>
+        </div>
+        <div class="fdef">
+          <span class="fdef-var" style="color:var(--orange);border:1px solid rgba(247,103,7,.3)">Ap</span>
+          <span class="fdef-desc">Área Crítica Práctica (m²) — calculada en Módulo 01</span>
+        </div>
+        <div class="fdef">
+          <span class="fdef-var" style="color:var(--amber);border:1px solid rgba(245,159,0,.3)">R</span>
+          <span class="fdef-desc">Tasa de aplicación de espuma (L/min/m²) — según nivel OACI</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-grid">
+
+      <!-- ── LEFT: INPUTS ── -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-icon" style="background:rgba(11,197,234,.12)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l6.59-6.59a1 1 0 0 0 0-1.41z" />
+              <circle cx="7" cy="7" r="1" fill="var(--cyan)" />
+            </svg>
+          </div>
+          <span class="panel-title">Parámetros de Entrada</span>
+        </div>
+        <div class="panel-body">
+          <div class="field-stack">
+
+            <!-- Ap Input — importado del Módulo 01 -->
+            <div class="field">
+              <label>
+                <span class="var-pill" style="color:var(--orange);border:1px solid rgba(247,103,7,.3)">Ap</span>
+                Área Crítica Práctica — importada del Módulo 01
+              </label>
+              <div id="ap-imported-banner" style="display:none;
+                background:rgba(47,158,68,.08);border:1px solid rgba(47,158,68,.3);
+                border-left:3px solid #2f9e44;border-radius:var(--radius-sm);
+                padding:10px 14px;font-family:var(--font-mono);font-size:13px;
+                color:#69db7c;display:flex;align-items:center;gap:10px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Área Crítica Práctica: <strong id="ap-display-val">—</strong> m²</span>
+                <span style="font-size:10px;color:#2f9e44;margin-left:auto">importado del Módulo 01</span>
+              </div>
+              <div class="input-wrap" id="ap-manual-wrap">
+                <input type="number" id="inp-ac" min="1" step="0.01" placeholder="ej. 548.35" oninput="onInputChange()">
+                <span class="input-unit">m²</span>
+              </div>
+              <span class="field-error" id="err-ac">⚠ Ingrese un área crítica válida (> 0 m²)</span>
+            </div>
+
+            <!-- Rate Selector -->
+            <div class="rate-selector">
+              <div class="rate-label">
+                <span class="var-pill" style="color:var(--amber);border:1px solid rgba(245,159,0,.3)">R</span>
+                Tasa de aplicación — seleccione según agente extintor
+              </div>
+              <div class="rate-pills">
+                <div class="rate-pill" data-rate="3.7" onclick="selectRate(this)">
+                  <span class="rp-val">3.7</span>
+                  <span class="rp-unit">L/min/m²</span>
+                  <span class="rp-label">Nivel C<br>Mínimo OACI</span>
+                  <span class="rp-norm">Cat. 1–5</span>
+                </div>
+                <div class="rate-pill" data-rate="4.1" onclick="selectRate(this)">
+                  <span class="rp-val">4.1</span>
+                  <span class="rp-unit">L/min/m²</span>
+                  <span class="rp-label">Nivel B<br>AFFF 3%</span>
+                  <span class="rp-norm">Cat. 1–6</span>
+                </div>
+                <div class="rate-pill selected" data-rate="5.5" onclick="selectRate(this)">
+                  <span class="rp-val">5.5</span>
+                  <span class="rp-unit">L/min/m²</span>
+                  <span class="rp-label">Nivel B<br>AR-AFFF</span>
+                  <span class="rp-norm">Cat. 7–9</span>
+                </div>
+                <div class="rate-pill" data-rate="6.5" onclick="selectRate(this)">
+                  <span class="rp-val">6.5</span>
+                  <span class="rp-unit">L/min/m²</span>
+                  <span class="rp-label">Nivel A<br>FFFP/AR</span>
+                  <span class="rp-norm">Cat. 10 / H</span>
+                </div>
+              </div>
+              <span class="field-error" id="err-rate">⚠ Seleccione o ingrese una tasa válida</span>
+
+              <!-- ICAO Rate Dropdown -->
+              <div class="icao-rate-select-wrap">
+                <div class="icao-rate-select-label">Selección directa por normativa OACI</div>
+
+                <select id="icao-rate-select" class="icao-select" onchange="onSelectRate(this)">
+                  <option value="">— Seleccione nivel de espuma OACI —</option>
+                  <option value="3.7">3.7 L/min/m² · Nivel C — Mínimo OACI (Cat. 1–5)</option>
+                  <option value="4.1">4.1 L/min/m² · Nivel B — AFFF 3% (Cat. 1–6)</option>
+                  <option value="5.5">5.5 L/min/m² · Nivel B — AR-AFFF (Cat. 7–9)</option>
+                  <option value="6.5">6.5 L/min/m² · Nivel A — FFFP / Helicópteros (Cat. 10 / H)</option>
+                </select>
+
+                <!-- Validation warning if pills disagree with dropdown -->
+                <div class="icao-select-warn" id="icao-select-warn">
+                  ⚠ Valor fuera del rango normativo OACI Doc 9137 §2.3.3 — use 4.1, 5.5 o 6.5
+                </div>
+
+                <!-- Info card -->
+                <div class="icao-rate-info" id="icao-rate-info">
+                  <div class="iri-header">
+                    <span class="iri-rate" id="iri-rate-val">—<span class="iri-unit">L/min/m²</span></span>
+                    <span class="iri-norm" id="iri-norm-ref">—</span>
+                  </div>
+                  <div class="iri-body" id="iri-body-text"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Note -->
+            <div class="field">
+              <label>Nota / identificación</label>
+              <div class="input-wrap">
+                <input type="text" id="inp-note" placeholder="ej. B737-800 · Cat.6 · LEMD" style="font-family:var(--font-body);font-size:13px;
+                            background:var(--panel2);border:1.5px solid var(--border2);
+                            border-radius:var(--radius-sm);color:var(--text);
+                            padding:10px 14px;outline:none;width:100%;
+                            transition:border-color var(--t)" onfocus="this.style.borderColor='var(--cyan)'"
+                  onblur="this.style.borderColor='var(--border2)'">
+              </div>
+            </div>
+
+            <!-- CTA -->
+            <button class="btn-calc" onclick="calcular()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+              Calcular Caudal Requerido
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: RESULT ── -->
+      <div class="panel result-panel" id="result-panel">
+        <div class="panel-head">
+          <div class="panel-icon" style="background:rgba(11,197,234,.12)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"
+              stroke-linecap="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          </div>
+          <span class="panel-title">Resultado · Caudal Q</span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="result-empty" id="res-empty">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Seleccione nivel de espuma para calcular
+        </div>
+
+        <!-- Result (hidden until calc) -->
+        <div id="res-content" style="display:none">
+          <div class="result-hero">
+            <div class="result-lbl">Q<sub>total</sub> — Capacidad Total de Bomba</div>
+            <div class="result-big" id="res-q">—<span class="r-unit">L/min</span></div>
+            <div class="result-sub" id="res-formula-str"></div>
+          </div>
+
+          <!-- Q1 / Q2 / Qt Breakdown -->
+          <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
+            <!-- Q1 -->
+            <div style="background:var(--panel);border:1px solid var(--border2);border-left:3px solid var(--cyan);
+                        border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;gap:12px">
+              <div style="flex:1">
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:.06em;
+                            text-transform:uppercase;margin-bottom:4px">
+                  Q<sub>1</sub> · Caudal de Control (1 min)
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5">
+                  Agua para producción de espuma · control del incendio en el área crítica en <strong style="color:var(--cyan)">1 minuto</strong>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--cyan)" id="res-q1">—</div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">L/min</div>
+              </div>
+            </div>
+            <!-- Q2 -->
+            <div style="background:var(--panel);border:1px solid var(--border2);border-left:3px solid var(--blue-bright);
+                        border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;gap:12px">
+              <div style="flex:1">
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);letter-spacing:.06em;
+                            text-transform:uppercase;margin-bottom:4px">
+                  Q<sub>2</sub> · Caudal de Enfriamiento
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5">
+                  Agua para mantener control / extinción total · <strong style="color:var(--blue-bright)">enfriamiento de fuselaje</strong> (OACI §2.3.4)
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--blue-bright)" id="res-q2">—</div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">L/min</div>
+              </div>
+            </div>
+            <!-- Qt -->
+            <div style="background:rgba(247,103,7,.06);border:1px solid rgba(247,103,7,.3);border-left:3px solid var(--orange);
+                        border-radius:var(--radius-sm);padding:12px 16px;display:flex;align-items:center;gap:12px">
+              <div style="flex:1">
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--orange);letter-spacing:.06em;
+                            text-transform:uppercase;margin-bottom:4px;font-weight:600">
+                  Q<sub>t</sub> · Capacidad Total de Bomba
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);line-height:1.5">
+                  Q<sub>1</sub> + Q<sub>2</sub> · dimensiona la bomba del vehículo ARFF (ej. Rosenbauer Panther)
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-family:var(--font-mono);font-size:24px;font-weight:500;color:var(--orange);
+                            text-shadow:0 0 20px rgba(247,103,7,.4)" id="res-qt">—</div>
+                <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">L/min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="breakdown-grid">
+            <div class="breakdown-cell">
+              <div class="bc-val" style="color:var(--orange)" id="bc-ac">—</div>
+              <div class="bc-lbl">Área Práctica (Ap)</div>
+            </div>
+            <div class="breakdown-cell">
+              <div class="bc-val" style="color:var(--amber)" id="bc-rate">—</div>
+              <div class="bc-lbl">Tasa R</div>
+            </div>
+            <div class="breakdown-cell">
+              <div class="bc-val" style="color:var(--blue-bright)" id="bc-qpm">—</div>
+              <div class="bc-lbl">Q₁ por minuto</div>
+            </div>
+          </div>
+
+          <div class="rate-strip" id="rate-strip">
+            <div class="rate-dot" id="rate-dot"></div>
+            <span class="rate-strip-text" id="rate-strip-text"></span>
+          </div>
+
+          <div class="tank-row">
+            <span class="tank-label">Equivale a:</span>
+            <div class="tank-chips" id="tank-chips"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main-grid -->
+
+    <!-- ── RESULTS TABLE (all 3 rates for current Ac) ── -->
+    <div class="section" id="table-section" style="display:none">
+      <div class="section-title">Comparativa Q₁ / Q₂ / Qt — las 4 tasas OACI para el Área Crítica Práctica ingresada</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr class="t-group">
+              <th colspan="2" style="background:var(--panel2);color:var(--text-dim);text-align:left">
+                Agente / Tasa OACI
+              </th>
+              <th colspan="3" style="background:rgba(11,197,234,.06);color:var(--cyan)">
+                Caudales (L/min)
+              </th>
+              <th colspan="2" style="background:rgba(245,159,0,.06);color:var(--amber)">
+                Conversión Qt
+              </th>
+              <th colspan="2" style="background:rgba(47,158,68,.06);color:var(--green)">
+                Duración mínima OACI
+              </th>
+            </tr>
+            <tr class="t-cols">
+              <th style="text-align:center">Tasa R</th>
+              <th>Agente extintor / Nivel</th>
+              <th>Q₁ — Control</th>
+              <th>Q₂ — Enfriamiento</th>
+              <th>Qt — Total Bomba</th>
+              <th>Qt (m³/min)</th>
+              <th>Qt (L/s)</th>
+              <th>1 min (L)</th>
+              <th>3 min (L)</th>
+            </tr>
+          </thead>
+          <tbody id="result-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="section" id="history-section">
+      <div class="section-title">Historial de Cálculos</div>
+      <div class="panel">
+        <div class="panel-body">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button onclick="clearHistory()" style="padding:5px 12px;border-radius:5px;border:1px solid var(--border2);
+                   background:var(--panel2);color:var(--text-dim);font-family:var(--font-mono);
+                   font-size:10.5px;cursor:pointer;letter-spacing:.04em;transition:all var(--t)"
+              onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'"
+              onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text-dim)'">
+              ✕ Limpiar historial
+            </button>
+          </div>
+          <div id="history-list" style="display:flex;flex-direction:column;gap:8px;max-height:280px;
+                    overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent">
+            <div id="history-empty" style="text-align:center;padding:28px;color:var(--text-muted);
+                      font-family:var(--font-mono);font-size:11px;letter-spacing:.06em">
+              Sin cálculos registrados
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Marco Normativo — Niveles de Espuma OACI</div>
+      <div class="norm-grid">
+
+        <div class="norm-card">
+          <div class="norm-card-head">
+            <div class="panel-icon" style="background:rgba(116,192,252,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#74c0fc" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/>
+              </svg>
+            </div>
+            <span class="panel-title" style="color:#74c0fc">3.7 L/min/m² · Nivel C</span>
+          </div>
+          <div class="norm-card-body">
+            <strong style="color:var(--text)">Mínimo OACI — Cat. 1–5</strong><br>
+            Tasa mínima normativa para aeródromos de categorías bajas con aeronaves ligeras.
+            OACI Doc 9137 §2.3.3 Tabla 2-1. Piso normativo para operaciones de aviación general.
+          </div>
+        </div>
+
+        <div class="norm-card">
+          <div class="norm-card-head">
+            <div class="panel-icon" style="background:rgba(47,158,68,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <span class="panel-title" style="color:var(--green)">4.1 L/min/m² · Nivel B</span>
+          </div>
+          <div class="norm-card-body">
+            <strong style="color:var(--text)">AFFF al 3% — Cat. 1–6</strong><br>
+            Tasa estándar para espumas proteínicas fluoradas (AFFF) al 3%.
+            OACI Doc 9137 §2.3.3 Tabla 2-2. Requiere alta presión y certificación ARFF Nivel 3.
+          </div>
+        </div>
+
+        <div class="norm-card">
+          <div class="norm-card-head">
+            <div class="panel-icon" style="background:rgba(245,159,0,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </div>
+            <span class="panel-title" style="color:var(--amber)">5.5 L/min/m² · Nivel B</span>
+          </div>
+          <div class="norm-card-body">
+            <strong style="color:var(--text)">AR-AFFF — Cat. 7–9</strong><br>
+            Tasa estándar para espumas resistentes al alcohol (AR-AFFF).
+            Recomendada para aeronaves de fuselaje ancho. Compatible con Jet A-1 y mezclas alcohólicas.
+          </div>
+        </div>
+
+        <div class="norm-card">
+          <div class="norm-card-head">
+            <div class="panel-icon" style="background:rgba(224,49,49,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                <path d="M12 2c0 0-6 4-6 9a6 6 0 0 0 12 0c0-5-6-9-6-9z" /><path d="M12 17v4M8 21h8" />
+              </svg>
+            </div>
+            <span class="panel-title" style="color:var(--red)">6.5 L/min/m² · Nivel A</span>
+          </div>
+          <div class="norm-card-body">
+            <strong style="color:var(--text)">FFFP / AR máximo — Cat. 10 / H</strong><br>
+            Tasa máxima para formadores de película proteínica (FFFP) y aeronaves super-jumbo
+            o helicópteros. NFPA 403 §5.3.2 tasa de diseño para vehículos ARFF de primera intervención.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FAB -->
+  <div class="fab">
+    <button class="fab-btn" onclick="exportPDF()">
+      <span class="fab-tooltip">Exportar PDF maquetado</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d1117" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14,2 14,8 20,8" />
+        <line x1="12" y1="18" x2="12" y2="12" />
+        <polyline points="9,15 12,18 15,15" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ═══════════════════════════════════════════
+     SCRIPT
+═══════════════════════════════════════════ -->
+  <script>
+    /* ─── STATE ─────────────────────────────── */
+    let selectedRate = 5.5;
+    let calcHistory = [];
+    let importedAp = null;   // Área Crítica Práctica importada del Módulo 01
+
+    /* ─── ICAO RATE CONFIG ──────────────────── */
+    // Q2 = 50% de Q1 según OACI Doc 9137 §2.3.4 para enfriamiento complementario
+    const RATE_CONFIG = {
+      3.7: {
+        color: '#74c0fc', label: 'Nivel C — Mínimo OACI',
+        agent: 'Espuma Nivel C', cats: 'Cat. 1–5', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-1',
+        q2Factor: 0.5
+      },
+      4.1: {
+        color: '#2f9e44', label: 'Nivel B — AFFF al 3%',
+        agent: 'AFFF al 3%', cats: 'Cat. 1–6', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-2',
+        q2Factor: 0.5
+      },
+      5.5: {
+        color: '#f59f00', label: 'Nivel B — AR-AFFF Estándar',
+        agent: 'AR-AFFF', cats: 'Cat. 7–9', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-3',
+        q2Factor: 0.5
+      },
+      6.5: {
+        color: '#e03131', label: 'Nivel A — FFFP / Tasa máxima',
+        agent: 'FFFP / AR', cats: 'Cat. 10 / H', norm: 'OACI Doc 9137 §2.3.3 / NFPA 403 §5.3.2',
+        q2Factor: 0.5
+      }
+    };
+
+    /* Tank reference volumes (L) */
+    const TANKS = [
+      { label: 'Tanque 1000 L', vol: 1000, icon: '🪣' },
+      { label: 'ARFF ligero', vol: 4000, icon: '🚒' },
+      { label: 'ARFF medio', vol: 10000, icon: '🚒' },
+      { label: 'ARFF pesado', vol: 19000, icon: '🚒' },
+    ];
+
+    /* ─── ICAO RATE INFO ─────────────────────── */
+    const ICAO_RATE_DETAIL = {
+      3.7: {
+        color: '#74c0fc',
+        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-1',
+        body: '<strong>Nivel C — Espuma mínima OACI</strong> · Tasa mínima normativa para aeródromos con categorías 1–5. ' +
+          'Aplicable con espuma proteínica fluorada en concentraciones reducidas. ' +
+          'Es el piso normativo mínimo aceptado para operaciones con aeronaves ligeras.'
+      },
+      4.1: {
+        color: '#2f9e44',
+        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-2',
+        body: '<strong>Nivel B — AFFF al 3%</strong> · Tasa mínima para espumas proteínicas fluoradas (AFFF) al 3%. ' +
+          'Aplicable en categorías ARFF 1–6 (aeronaves de fuselaje estrecho y aviación general). ' +
+          'Requiere equipo de alta presión y agente concentrado al 3%.'
+      },
+      5.5: {
+        color: '#f59f00',
+        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-3',
+        body: '<strong>Nivel B — AR-AFFF</strong> · Tasa estándar para espumas resistentes al alcohol. ' +
+          'Recomendada en categorías 7–9 (fuselaje ancho: B767, A330, B777). ' +
+          'Compatible con Jet A-1 y combustibles con componentes alcohólicos (SAF blends).'
+      },
+      6.5: {
+        color: '#e03131',
+        norm: 'OACI Doc 9137 §2.3.3 · NFPA 403 §5.3.2',
+        body: '<strong>Nivel A — FFFP / AR</strong> · Tasa máxima requerida para formadores de película ' +
+          'proteínica (FFFP) y operaciones de categoría 10 (B747, A380) o helicópteros ARFF-H. ' +
+          'NFPA 403 §5.3.2 la establece como tasa de diseño para vehículos de primera intervención.'
+      }
+    };
+
+    /* ─── URL PARAM IMPORT ──────────────────── */
+    window.addEventListener('DOMContentLoaded', function() {
+      const params = new URLSearchParams(window.location.search);
+      const apVal = parseFloat(params.get('ac'));
+      const catVal = params.get('cat');
+
+      if (!isNaN(apVal) && apVal > 0) {
+        importedAp = apVal;
+
+        // Show imported banner, hide manual input
+        const banner = document.getElementById('ap-imported-banner');
+        const manualWrap = document.getElementById('ap-manual-wrap');
+        banner.style.display = 'flex';
+        if (manualWrap) manualWrap.style.display = 'none';
+        document.getElementById('ap-display-val').textContent = apVal.toFixed(2);
+
+        // Also set hidden input value for validation
+        document.getElementById('inp-ac').value = apVal;
+
+        // Auto-select rate based on category if available
+        if (catVal) {
+          const catNum = parseInt(catVal);
+          let autoRate = 5.5;
+          if (catNum <= 5) autoRate = 3.7;
+          else if (catNum <= 6) autoRate = 4.1;
+          else if (catNum <= 9) autoRate = 5.5;
+          else autoRate = 6.5;
+
+          selectedRate = autoRate;
+          document.querySelectorAll('.rate-pill').forEach(p => {
+            p.classList.toggle('selected', parseFloat(p.dataset.rate) === autoRate);
+          });
+          const sel = document.getElementById('icao-rate-select');
+          if (sel) sel.value = String(autoRate);
+          showRateInfo(autoRate);
+        }
+
+        window.currentCat = catVal || 'XX';
+
+        // Auto-calculate immediately
+        setTimeout(function() { calcularLive(); }, 100);
+
+        showToast(`✓ Ap = ${apVal.toFixed(2)} m² importado del Módulo 01`);
+      }
+    });
+
+    /* ─── RATE SELECTION ────────────────────── */
+    function selectRate(el) {
+      document.querySelectorAll('.rate-pill').forEach(p => p.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedRate = parseFloat(el.dataset.rate);
+
+      const sel = document.getElementById('icao-rate-select');
+      sel.value = String(selectedRate);
+      sel.classList.remove('error');
+      document.getElementById('icao-select-warn').classList.remove('show');
+
+      showRateInfo(selectedRate);
+      document.getElementById('err-rate').classList.remove('show');
+      calcularLive();
+    }
+
+    function onSelectRate(sel) {
+      const v = parseFloat(sel.value);
+      const VALID = [3.7, 4.1, 5.5, 6.5];
+
+      sel.classList.remove('error');
+      document.getElementById('icao-select-warn').classList.remove('show');
+
+      if (isNaN(v)) {
+        document.querySelectorAll('.rate-pill').forEach(p => p.classList.remove('selected'));
+        document.getElementById('icao-rate-info').classList.remove('show');
+        return;
+      }
+
+      if (!VALID.includes(v)) {
+        sel.classList.add('error');
+        document.getElementById('icao-select-warn').classList.add('show');
+        document.getElementById('icao-rate-info').classList.remove('show');
+        return;
+      }
+
+      selectedRate = v;
+      document.querySelectorAll('.rate-pill').forEach(p => {
+        p.classList.toggle('selected', parseFloat(p.dataset.rate) === v);
+      });
+
+      showRateInfo(v);
+      document.getElementById('err-rate').classList.remove('show');
+      calcularLive();
+    }
+
+    function showRateInfo(rate) {
+      const detail = ICAO_RATE_DETAIL[rate];
+      if (!detail) { document.getElementById('icao-rate-info').classList.remove('show'); return; }
+
+      const info = document.getElementById('icao-rate-info');
+      info.style.borderLeftColor = detail.color;
+      info.style.background = detail.color + '0d';
+
+      document.getElementById('iri-rate-val').innerHTML =
+        `<span style="color:${detail.color}">${rate}</span><span class="iri-unit"> L/min/m²</span>`;
+      document.getElementById('iri-norm-ref').textContent = detail.norm;
+      document.getElementById('iri-body-text').innerHTML = detail.body;
+      info.classList.add('show');
+    }
+
+    function onInputChange() {
+      calcularLive();
+    }
+
+    /* ─── LIVE CALCULATION (real-time) ──────── */
+    function calcularLive() {
+      const ac = importedAp !== null ? importedAp : parseFloat(document.getElementById('inp-ac').value);
+      if (isNaN(ac) || ac <= 0 || !selectedRate || selectedRate <= 0) return;
+      const note = document.getElementById('inp-note') ? document.getElementById('inp-note').value.trim() : '';
+      const cfg = RATE_CONFIG[selectedRate] || { color: '#339af0', q2Factor: 0.5 };
+      const Q1 = ac * selectedRate;
+      const Q2 = Q1 * cfg.q2Factor;
+      const Qt = Q1 + Q2;
+      showResult(ac, selectedRate, Math.round(Q1 * 100) / 100,
+                                   Math.round(Q2 * 100) / 100,
+                                   Math.round(Qt * 100) / 100);
+      buildTable(ac, selectedRate);
+      document.getElementById('table-section').style.display = 'block';
+    }
+
+    /* ─── VALIDATE ──────────────────────────── */
+    function validate() {
+      let ok = true;
+      const ac = importedAp !== null ? importedAp : parseFloat(document.getElementById('inp-ac').value);
+      if (isNaN(ac) || ac <= 0) {
+        document.getElementById('err-ac').classList.add('show');
+        document.getElementById('inp-ac').classList.add('error');
+        ok = false;
+      } else {
+        document.getElementById('err-ac').classList.remove('show');
+        document.getElementById('inp-ac').classList.remove('error');
+      }
+      if (!selectedRate || selectedRate <= 0) {
+        document.getElementById('err-rate').classList.add('show');
+        ok = false;
+      } else {
+        document.getElementById('err-rate').classList.remove('show');
+      }
+      return ok;
+    }
+
+    /* ─── CALCULATE (button) ─────────────────── */
+    function calcular() {
+      if (!validate()) {
+        showToast('⚠ Verifique los campos de entrada');
+        return;
+      }
+      const ac = importedAp !== null ? importedAp : parseFloat(document.getElementById('inp-ac').value);
+      const rate = selectedRate;
+      const note = document.getElementById('inp-note').value.trim();
+      const cfg = RATE_CONFIG[rate] || { color: '#339af0', q2Factor: 0.5 };
+
+      const Q1 = ac * rate;
+      const Q2 = Q1 * cfg.q2Factor;
+      const Qt = Q1 + Q2;
+      const Q1rnd = Math.round(Q1 * 100) / 100;
+      const Q2rnd = Math.round(Q2 * 100) / 100;
+      const Qtrnd = Math.round(Qt * 100) / 100;
+
+      showResult(ac, rate, Q1rnd, Q2rnd, Qtrnd);
+      buildTable(ac, rate);
+      document.getElementById('table-section').style.display = 'block';
+
+      const entry = {
+        id: Date.now(),
+        ac, rate, Q1: Q1rnd, Q2: Q2rnd, Qt: Qtrnd, note,
+        ts: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+      };
+      calcHistory.unshift(entry);
+      if (calcHistory.length > 20) calcHistory.pop();
+      renderHistory();
+
+      showToast(`✓ Q₁=${Q1rnd.toFixed(1)} · Qt=${Qtrnd.toFixed(1)} L/min`);
+    }
+
+    /* ─── SHOW RESULT ───────────────────────── */
+    function showResult(ac, rate, Q1, Q2, Qt) {
+      const cfg = RATE_CONFIG[rate] || { color: '#339af0', label: `Tasa ${rate} L/min/m²`, agent: 'Personalizada', cats: '—', norm: '—' };
+
+      document.getElementById('res-empty').style.display = 'none';
+      document.getElementById('res-content').style.display = 'block';
+
+      // Qt — main display
+      const qEl = document.getElementById('res-q');
+      qEl.innerHTML = `${Qt.toFixed(1)}<span class="r-unit"> L/min</span>`;
+      qEl.style.color = cfg.color;
+      qEl.style.textShadow = `0 0 40px ${cfg.color}55`;
+      qEl.classList.remove('animate');
+      void qEl.offsetWidth;
+      qEl.classList.add('animate');
+
+      // Q1, Q2, Qt individual cells
+      document.getElementById('res-q1').textContent = Q1.toFixed(1);
+      document.getElementById('res-q2').textContent = Q2.toFixed(1);
+      document.getElementById('res-qt').textContent = Qt.toFixed(1);
+
+      document.getElementById('res-formula-str').innerHTML =
+        `Q₁ = <strong style="color:var(--orange)">${ac} m²</strong> × <strong style="color:var(--amber)">${rate} L/min/m²</strong> &nbsp;|&nbsp; Q₂ = Q₁ × 0.5 &nbsp;|&nbsp; Qt = Q₁ + Q₂`;
+
+      document.getElementById('bc-ac').textContent = `${ac} m²`;
+      document.getElementById('bc-rate').textContent = `${rate} L/min/m²`;
+      document.getElementById('bc-qpm').textContent = `${Q1.toFixed(1)} L/min`;
+
+      document.getElementById('rate-dot').style.background = cfg.color;
+      document.getElementById('rate-strip-text').innerHTML =
+        `<strong style="color:${cfg.color}">${cfg.agent}</strong> · ${cfg.label} · ${cfg.norm}`;
+
+      // Tank equivalences (based on Qt 1-min volume)
+      let chips = '';
+      TANKS.forEach(t => {
+        const n = (Qt / t.vol).toFixed(1);
+        chips += `<div class="tank-chip">
+      <span class="tc-icon">${t.icon}</span>
+      <span class="tc-val">${n}×</span>
+      <span>${t.label}</span>
+    </div>`;
+      });
+      document.getElementById('tank-chips').innerHTML = chips;
+    }
+
+    /* ─── COMPARISON TABLE ──────────────────── */
+    function buildTable(ac, selectedR) {
+      const tbody = document.getElementById('result-tbody');
+      tbody.innerHTML = '';
+
+      const rates = [3.7, 4.1, 5.5, 6.5];
+      rates.forEach(r => {
+        const Q1 = ac * r;
+        const Q2 = Q1 * 0.5;
+        const Qt = Q1 + Q2;
+        const cfg = RATE_CONFIG[r] || { color: '#339af0', agent: `${r}`, cats: '—' };
+        const isActive = Math.abs(r - selectedR) < 0.01;
+
+        tbody.insertAdjacentHTML('beforeend', `
+      <tr class="${isActive ? 'active-row' : ''}">
+        <td>
+          <span class="rate-tag"
+                style="background:${cfg.color}18;color:${cfg.color};border:1px solid ${cfg.color}44">
+            ${r}
+          </span>
+        </td>
+        <td>
+          ${cfg.agent}
+          <span style="font-size:9.5px;color:var(--text-muted);margin-left:6px">${cfg.cats}</span>
+        </td>
+        <td class="${isActive ? 'td-q-hi' : 'td-q'}">${Q1.toFixed(1)}</td>
+        <td class="${isActive ? 'td-q-hi' : 'td-q'}" style="color:var(--blue-bright)">${Q2.toFixed(1)}</td>
+        <td class="${isActive ? 'td-q-hi' : 'td-q'}" style="color:var(--orange)">${Qt.toFixed(1)}</td>
+        <td>${(Qt / 1000).toFixed(3)}</td>
+        <td>${(Qt / 60).toFixed(2)}</td>
+        <td>${Math.round(Qt).toLocaleString()}</td>
+        <td>${Math.round(Qt * 3).toLocaleString()}</td>
+      </tr>
+    `);
+      });
+    }
+
+    /* ─── HISTORY ───────────────────────────── */
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      const empty = document.getElementById('history-empty');
+      list.querySelectorAll('.h-item').forEach(el => el.remove());
+
+      if (calcHistory.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+
+      calcHistory.forEach((e, i) => {
+        const cfg = RATE_CONFIG[e.rate] || { color: '#339af0', agent: `${e.rate} L/min/m²` };
+        const item = document.createElement('div');
+        item.className = 'h-item';
+        item.style.cssText = `
+      display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+      background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius-sm);
+      padding:10px 14px;cursor:pointer;transition:border-color var(--t),background var(--t);
+    `;
+        item.onmouseover = () => { item.style.borderColor = 'var(--cyan)'; item.style.background = 'rgba(11,197,234,.04)'; };
+        item.onmouseout = () => { item.style.borderColor = 'var(--border)'; item.style.background = 'var(--panel2)'; };
+        item.onclick = () => loadEntry(e);
+        item.innerHTML = `
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);width:18px;text-align:right">
+        ${calcHistory.length - i}
+      </span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);
+                     background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 7px">
+          Ap=${e.ac} m²
+        </span>
+        <span style="font-family:var(--font-mono);font-size:10.5px;
+                     background:${cfg.color}18;color:${cfg.color};
+                     border:1px solid ${cfg.color}44;border-radius:4px;padding:1px 7px">
+          R=${e.rate}
+        </span>
+        ${e.note ? `<span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text);
+                       background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 7px">
+          ${e.note}</span>` : ''}
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">${e.ts}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cyan)">
+          Q₁ ${e.Q1.toFixed(1)} <span style="font-size:9px;color:var(--text-muted)">L/min</span>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--orange)">
+          Qt ${e.Qt.toFixed(1)} <span style="font-size:9px;color:var(--text-muted)">L/min</span>
+        </div>
+      </div>
+    `;
+        list.appendChild(item);
+      });
+    }
+
+    function loadEntry(e) {
+      if (!importedAp) {
+        document.getElementById('inp-ac').value = e.ac;
+      }
+      document.getElementById('inp-note').value = e.note || '';
+      selectedRate = e.rate;
+      document.querySelectorAll('.rate-pill').forEach(p => {
+        p.classList.toggle('selected', parseFloat(p.dataset.rate) === e.rate);
+      });
+      const sel = document.getElementById('icao-rate-select');
+      sel.value = String(e.rate);
+      showRateInfo(e.rate);
+      calcularLive();
+    }
+
+    function clearHistory() {
+      calcHistory = [];
+      renderHistory();
+      showToast('Historial borrado');
+    }
+
+    /* ─── TOAST ─────────────────────────────── */
+    let _toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+    }
+
+    /* ─── PDF EXPORT (mismo estilo que Área Crítica) ──────── */
+    function exportPDF() {
+      showToast('⏳ Generando PDF...');
+
+      const ac  = importedAp !== null ? importedAp : parseFloat(document.getElementById('inp-ac').value);
+      const rate = selectedRate;
+      if (isNaN(ac) || ac <= 0 || !rate) {
+        showToast('⚠ Calcule primero antes de exportar');
+        return;
+      }
+
+      const cfg  = RATE_CONFIG[rate] || {};
+      const Q1   = ac * rate;
+      const Q2   = Q1 * (cfg.q2Factor || 0.5);
+      const Qt   = Q1 + Q2;
+      const cat  = window.currentCat || 'XX';
+      const now  = new Date();
+      const fecha = now.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' });
+      const hora  = now.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+
+      const pdfWin = window.open('', '_blank');
+      pdfWin.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>ARFF-Colombia — Rata de Descarga — Cat ${cat}</title>
+<style>
+  @page { size: A4 landscape; margin: 14mm 16mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
+  /* ── HEADER STRIP ── */
+  .hdr { border-bottom: 3px solid #e03131; padding-bottom: 10px; margin-bottom: 14px;
+         display: flex; justify-content: space-between; align-items: flex-end; }
+  .hdr-left .org { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #666; margin-bottom: 2px; }
+  .hdr-left .title { font-size: 18px; font-weight: 800; color: #1a1a2e; line-height: 1.1; }
+  .hdr-left .subtitle { font-size: 10px; color: #555; margin-top: 3px; }
+  .hdr-right { text-align: right; font-size: 9px; color: #777; line-height: 1.6; }
+  .hdr-right strong { color: #1a1a2e; }
+  /* ── BADGE BAR ── */
+  .badge-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .badge { border-radius: 4px; padding: 4px 10px; font-size: 9px; font-weight: 700;
+           letter-spacing: .06em; text-transform: uppercase; border: 1px solid; }
+  /* ── MAIN GRID ── */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  /* ── SECTION BOX ── */
+  .box { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+  .box-head { background: #f4f4f8; padding: 7px 12px; font-size: 10px; font-weight: 700;
+              text-transform: uppercase; letter-spacing: .08em; color: #444;
+              border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 6px; }
+  .box-head .accent { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .box-body { padding: 12px; }
+  /* ── INPUT GRID ── */
+  .inp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .inp-item { background: #f9f9fc; border: 1px solid #e5e5f0; border-radius: 4px; padding: 8px 10px; }
+  .inp-label { font-size: 8.5px; color: #888; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; }
+  .inp-val { font-size: 16px; font-weight: 700; color: #1a1a2e; font-family: 'Courier New', monospace; }
+  .inp-unit { font-size: 9px; color: #999; margin-left: 3px; }
+  /* ── FLOW RESULTS ── */
+  .q-grid { display: flex; flex-direction: column; gap: 8px; }
+  .q-card { border-radius: 4px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .q-card.q1 { background: #e6f9ff; border: 1px solid #a5d8f7; border-left: 4px solid #339af0; }
+  .q-card.q2 { background: #eef3ff; border: 1px solid #bac8ff; border-left: 4px solid #5c7cfa; }
+  .q-card.qt { background: #fff4e6; border: 1px solid #ffc078; border-left: 4px solid #f76707; }
+  .q-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .q-desc { font-size: 9px; color: #666; }
+  .q-val { font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700; text-align: right; }
+  .q-val-unit { font-size: 10px; font-weight: 400; color: #888; display: block; }
+  .q-val.q1c { color: #1971c2; }
+  .q-val.q2c { color: #3b5bdb; }
+  .q-val.qtc { color: #d9480f; }
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  th { background: #f0f2f8; padding: 5px 8px; font-size: 8.5px; text-transform: uppercase;
+       letter-spacing: .07em; color: #555; border-bottom: 1.5px solid #ddd; text-align: right; }
+  th:first-child, th:nth-child(2) { text-align: left; }
+  td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; text-align: right; color: #444;
+       font-family: 'Courier New', monospace; }
+  td:first-child { text-align: center; }
+  td:nth-child(2) { text-align: left; font-family: Arial, sans-serif; }
+  tr.active td { background: #fff9f0; font-weight: 700; }
+  /* ── FORMULA BOX ── */
+  .formula-box { background: #f8f9ff; border: 1px solid #d0d8f0; border-radius: 6px;
+                 padding: 10px 14px; margin-bottom: 12px; font-family: 'Courier New', monospace;
+                 font-size: 12px; color: #1a1a2e; text-align: center; }
+  /* ── FOOTER ── */
+  .footer { border-top: 1px solid #ddd; padding-top: 8px; margin-top: 12px;
+            display: flex; justify-content: space-between; font-size: 8px; color: #aaa; }
+  .footer strong { color: #666; }
+</style></head><body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="org">República de Colombia · Aeronáutica Civil · Servicios de Extinción de Incendios</div>
+    <div class="title">Rata de Descarga de Espuma ARFF</div>
+    <div class="subtitle">Módulo 02 · Caudal Q₁, Q₂ y Q<sub>t</sub> — OACI Doc 9137 §2.3.3 · RAC 14 · NFPA 403</div>
+  </div>
+  <div class="hdr-right">
+    <div>Categoría ARFF: <strong>${cat}</strong></div>
+    <div>Fecha: <strong>${fecha}</strong> · <strong>${hora}</strong></div>
+    <div>Tasa R: <strong>${rate} L/min/m²</strong></div>
+    <div>Agente: <strong>${cfg.agent || '—'}</strong></div>
+  </div>
+</div>
+
+<div class="badge-bar">
+  <span class="badge" style="color:#1971c2;border-color:#a5d8f7;background:#e6f9ff">OACI Doc 9137 §2.3.3</span>
+  <span class="badge" style="color:#2f9e44;border-color:#b2f2bb;background:#ebfbee">RAC 14 Colombia</span>
+  <span class="badge" style="color:#e03131;border-color:#ffa8a8;background:#fff5f5">NFPA 403 §5.3</span>
+  <span class="badge" style="color:#f76707;border-color:#ffc078;background:#fff4e6">Módulo 02 / ESPUMA</span>
+</div>
+
+<div class="formula-box">
+  Q₁ = Ap × R &nbsp;=&nbsp; ${ac} m² × ${rate} L/min/m² &nbsp;&nbsp;|&nbsp;&nbsp;
+  Q₂ = Q₁ × 0.5 &nbsp;&nbsp;|&nbsp;&nbsp; Q<sub>t</sub> = Q₁ + Q₂
+</div>
+
+<div class="main-grid">
+  <div>
+    <div class="box" style="margin-bottom:10px">
+      <div class="box-head"><span class="accent" style="background:#f76707"></span>Parámetros de Entrada</div>
+      <div class="box-body">
+        <div class="inp-grid">
+          <div class="inp-item">
+            <div class="inp-label">Área Crítica Práctica (Ap)</div>
+            <div class="inp-val">${ac}<span class="inp-unit">m²</span></div>
+          </div>
+          <div class="inp-item">
+            <div class="inp-label">Tasa de Aplicación (R)</div>
+            <div class="inp-val">${rate}<span class="inp-unit">L/min/m²</span></div>
+          </div>
+          <div class="inp-item">
+            <div class="inp-label">Nivel de Espuma</div>
+            <div class="inp-val" style="font-size:13px">${cfg.label || '—'}</div>
+          </div>
+          <div class="inp-item">
+            <div class="inp-label">Norma aplicable</div>
+            <div class="inp-val" style="font-size:10px;font-family:Arial">${cfg.norm || '—'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-head"><span class="accent" style="background:#1971c2"></span>Resultados de Caudal</div>
+    <div class="box-body">
+      <div class="q-grid">
+        <div class="q-card q1">
+          <div>
+            <div class="q-label" style="color:#1971c2">Q₁ · Caudal de Control</div>
+            <div class="q-desc">Producción de espuma · control en área crítica en 1 minuto</div>
+          </div>
+          <div>
+            <div class="q-val q1c">${Q1.toFixed(1)}</div>
+            <span class="q-val-unit">L/min</span>
+          </div>
+        </div>
+        <div class="q-card q2">
+          <div>
+            <div class="q-label" style="color:#3b5bdb">Q₂ · Caudal de Enfriamiento</div>
+            <div class="q-desc">Mantenimiento / extinción total · enfriamiento fuselaje</div>
+          </div>
+          <div>
+            <div class="q-val q2c">${Q2.toFixed(1)}</div>
+            <span class="q-val-unit">L/min</span>
+          </div>
+        </div>
+        <div class="q-card qt">
+          <div>
+            <div class="q-label" style="color:#d9480f">Qt · Capacidad Total de Bomba</div>
+            <div class="q-desc">Q₁ + Q₂ · dimensiona el vehículo ARFF (Rosenbauer Panther)</div>
+          </div>
+          <div>
+            <div class="q-val qtc">${Qt.toFixed(1)}</div>
+            <span class="q-val-unit">L/min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="box">
+  <div class="box-head"><span class="accent" style="background:#339af0"></span>Comparativa — Todas las Tasas OACI para Ap = ${ac} m²</div>
+  <div class="box-body" style="padding:0">
+    <table>
+      <thead>
+        <tr>
+          <th>Tasa R</th>
+          <th>Agente / Nivel</th>
+          <th>Categorías</th>
+          <th>Q₁ — Control (L/min)</th>
+          <th>Q₂ — Enfriamiento (L/min)</th>
+          <th>Qt — Total Bomba (L/min)</th>
+          <th>Qt (m³/min)</th>
+          <th>Qt (L/s)</th>
+          <th>Vol. 1 min (L)</th>
+          <th>Vol. 3 min (L)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${[3.7, 4.1, 5.5, 6.5].map(r => {
+          const c = RATE_CONFIG[r] || {};
+          const q1r = (ac * r).toFixed(1);
+          const q2r = (ac * r * 0.5).toFixed(1);
+          const qtr = (ac * r * 1.5).toFixed(1);
+          const qtFull = ac * r * 1.5;
+          const isAct = Math.abs(r - rate) < 0.01;
+          return `<tr class="${isAct ? 'active' : ''}">
+            <td style="font-weight:700;color:${c.color || '#333'}">${r}</td>
+            <td>${c.agent || r}</td>
+            <td>${c.cats || '—'}</td>
+            <td>${q1r}</td>
+            <td>${q2r}</td>
+            <td style="font-weight:700">${qtr}</td>
+            <td>${(qtFull/1000).toFixed(3)}</td>
+            <td>${(qtFull/60).toFixed(2)}</td>
+            <td>${Math.round(qtFull).toLocaleString()}</td>
+            <td>${Math.round(qtFull*3).toLocaleString()}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  <div>Generado por <strong>ARFF Colombia — Sistema de Cálculos Críticos</strong> · OACI Doc 9137 / RAC 14 / NFPA 403</div>
+  <div><strong>Módulo 02</strong> · Rata de Descarga de Espuma · Cat. ${cat} · ${fecha}</div>
+</div>
+
+</body></html>`);
+      pdfWin.document.close();
+      setTimeout(() => { pdfWin.focus(); pdfWin.print(); }, 600);
+    }
+  </script>
+</body>
+
+</html>
