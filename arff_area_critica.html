@@ -1546,8 +1546,7 @@
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--blue-bright);border:1px solid #1971c2">f</span>
-          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si Wf &lt; 12 m ·
-            <strong style="color:#339af0">30 m</strong> si Wf ≥ 12 m (OACI Doc 9137, Parte 1 §2.3.2)</span>
+          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si L &lt; 28 m · <strong style="color:#339af0">30 m</strong> si L ≥ 28 m — prioridad longitud (OACI Doc 9137 §2.3.2)</span>
         </div>
       </div>
     </div>
@@ -1626,7 +1625,7 @@
               </label>
               <div class="input-wrap">
                 <input type="number" id="inp-L" min="1" max="90" step="0.1" placeholder="ej. 63.73"
-                  oninput="clearResult()">
+                  oninput="autoCalcF(); clearResult()">
                 <span class="input-unit">m</span>
               </div>
             </div>
@@ -2172,15 +2171,20 @@
 
 
     /* ─── FACTOR f — OACI Doc 9137 Parte 1 §2.3.2 ──── */
-    function calcFactorF(Wf) {
-      // Regla normativa OACI Doc 9137, Parte 1, Sección 2.3.2:
-      //   Wf < 12 m  →  f = 12 m
-      //   Wf ≥ 12 m  →  f = 30 m
+    function calcFactorF(Wf, L) {
+      // Regla normativa OACI Doc 9137, Parte 1 §2.3.2 — PRIORIDAD: longitud L
+      //   L >= 28 m  →  f = 30 m (15 m por lado) — aeronave comercial / fuselaje ancho
+      //   L <  28 m  →  f = 12 m (6 m por lado)  — aviación general / regional
+      if (typeof L === 'number' && !isNaN(L)) {
+        return L >= 28 ? 30 : 12;
+      }
+      // Fallback legacy (solo si L no está disponible)
       return Wf < 12 ? 12 : 30;
     }
 
     function autoCalcF() {
       const Wf = parseFloat(document.getElementById('inp-Wf').value);
+      const L  = parseFloat(document.getElementById('inp-L').value);
       const badge = document.getElementById('f-rule-badge');
       const note = document.getElementById('f-norm-note');
       const noteText = document.getElementById('f-norm-text');
@@ -2194,15 +2198,26 @@
         return;
       }
 
-      const f = calcFactorF(Wf);
+      const f = calcFactorF(Wf, L);
       inp.value = f;
 
-      if (Wf < 12) {
-        badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
-        noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
+      const lValid = !isNaN(L) && L > 0;
+      if (lValid) {
+        if (L >= 28) {
+          badge.innerHTML = '✓ L ≥ 28 m → f = 30 m';
+          noteText.textContent = `L = ${L} m (≥ 28 m) → Factor K obligatorio: f = 30 m (15 m por lado)`;
+        } else {
+          badge.innerHTML = '✓ L &lt; 28 m → f = 12 m';
+          noteText.textContent = `L = ${L} m (< 28 m) → Factor K obligatorio: f = 12 m (6 m por lado)`;
+        }
       } else {
-        badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
-        noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
+        if (Wf < 12) {
+          badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
+          noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
+        } else {
+          badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
+          noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
+        }
       }
       badge.style.color = '#2f9e44';
       badge.style.background = 'rgba(47,158,68,.10)';
@@ -2255,8 +2270,8 @@
         return;
       }
 
-      // Factor f calculado automáticamente según OACI Doc 9137 Parte 1 §2.3.2
-      const f = calcFactorF(Wf);
+      // Factor K calculado por PRIORIDAD de L — OACI Doc 9137 Parte 1 §2.3.2
+      const f = calcFactorF(Wf, L);
       document.getElementById('inp-f').value = f;
       autoCalcF();
 
@@ -2276,15 +2291,15 @@
       const breakF = document.getElementById('break-f');
       if (breakF) breakF.textContent = `${f} m`;
 
-      // Normative rule display
-      const fRule = Wf < 12
-        ? 'Wf < 12 m → f = 12 m (norma)'
-        : 'Wf ≥ 12 m → f = 30 m (norma)';
+      // Normative rule display — prioridad L >= 28 m
+      const fRule = L >= 28
+        ? 'L ≥ 28 m → f = 30 m (norma)'
+        : 'L < 28 m → f = 12 m (norma)';
       document.getElementById('res-f-rule').textContent = fRule;
 
-      const normText = Wf < 12
-        ? `Wf = ${Wf} m (< 12 m) — Factor K (constante) asignado: f = 12 m obligatorio.`
-        : `Wf = ${Wf} m (≥ 12 m) — Factor K (constante) asignado: f = 30 m obligatorio.`;
+      const normText = L >= 28
+        ? `L = ${L} m (≥ 28 m) — Factor K asignado: f = 30 m (15 m por lado).`
+        : `L = ${L} m (< 28 m) — Factor K asignado: f = 12 m (6 m por lado).`;
       document.getElementById('res-norm-text').textContent = normText;
       document.getElementById('res-norm-note').style.display = 'block';
 
@@ -2351,115 +2366,141 @@
       window.location.href = targetUrl;
     }
 
-    /* ─── SVG DIAGRAM (Actualizado OACI) ───────────────────────────────── */
+    /* ─── SVG DIAGRAM — Capas de Protección OACI (ACP / ACT / Fuselaje) ── */
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
-      const W = 400, H = 340; 
-      
-      // Calculamos la escala dejando un margen amplio a la derecha (140px) para los textos
-      const scale = Math.min(
-        (W - 140) / (Wf + f + 20), 
-        (H - 60) / (L + 20)
-      );
+      const W = 400, H = 300;
+
+      // Factor K basado en L (ya calculado, se pasa como f)
+      // Escala: ajustar para que el ACT quepa con márgenes para etiquetas
+      const padH = 50, padV = 36;
+      // ACT total: L × (Wf + f)  — en pantalla: largo=L, ancho=Wf+f
+      const scaleX = (W - padH * 2) / L;
+      const scaleY = (H - padV * 2) / (Wf + f);
+      const sc = Math.min(scaleX, scaleY);
 
       // Dimensiones escaladas
-      const pL = L * scale;
-      const pW = Wf * scale;
-      const fS = f * scale;
+      const actW = L * sc;           // ACT largo (eje horizontal)
+      const actH = (Wf + f) * sc;    // ACT ancho (eje vertical)
+      const acpW = actW;             // ACP mismo largo que ACT
+      const acpH = Wf * sc;         // ACP solo el fuselaje en alto (sin f)
+      const fusW = actW;             // Fuselaje: mismo largo
+      const fusH = (Wf * 0.55) * sc; // Fuselaje: cuerpo central (~55% del ancho)
 
-      // Centro desplazado a la izquierda para acomodar las flechas y textos
-      const cx = W / 2 - 45; 
-      const cy = H / 2;
-      const x0 = cx - pW / 2;
-      const y0 = cy - pL / 2;
+      // Centrado
+      const cx = W / 2, cy = H / 2;
+      const actX = cx - actW / 2, actY = cy - actH / 2;
+      const acpX = cx - acpW / 2, acpY = cy - acpH / 2;
+      const fusX = cx - fusW / 2,  fusY = cy - fusH / 2;
 
-      // Área Crítica Práctica (Ac) - Caja discontinua
-      const acW = pW + fS; // Ancho total normativo
-      const acH = pL;      // Largo normativo
-      const acX = cx - acW / 2;
-      const acY = cy - acH / 2;
-
-      // Teórica Área de Fuego Crítica (TCA) - Caja continua (más amplia)
-      const tcaMargin = 18;
-      const tcaW = acW + tcaMargin * 2;
-      const tcaH = acH + tcaMargin * 2;
-      const tcaX = acX - tcaMargin;
-      const tcaY = acY - tcaMargin;
+      // Factor K por lado escalado
+      const fHalf = (f / 2) * sc;
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-
       svg.innerHTML = `
-        <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2d47" stroke-width=".5"/>
-          </pattern>
-          <marker id="arrow" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-            <polygon points="0 0, 5 2.5, 0 5" fill="#8a9bba"/>
-          </marker>
-          <marker id="arrow-label" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-            <polygon points="0 0, 5 2.5, 0 5" fill="#e2e8f0"/>
-          </marker>
-        </defs>
-        
-        <rect width="${W}" height="${H}" fill="#0a0e14"/>
-        <rect width="${W}" height="${H}" fill="url(#grid)"/>
+    <defs>
+      <pattern id="dotgrid" width="18" height="18" patternUnits="userSpaceOnUse">
+        <path d="M18 0L0 0 0 18" fill="none" stroke="#1a2840" stroke-width=".4"/>
+      </pattern>
+      <marker id="arO" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#f76707"/>
+      </marker>
+      <marker id="arB" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#339af0"/>
+      </marker>
+      <marker id="arR" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#e03131"/>
+      </marker>
+    </defs>
 
-        <rect x="${tcaX}" y="${tcaY}" width="${tcaW}" height="${tcaH}"
-              fill="rgba(224,49,49,.04)" stroke="#e03131" stroke-width="1.5" rx="3"/>
+    <!-- Fondo -->
+    <rect width="${W}" height="${H}" fill="#080c12"/>
+    <rect width="${W}" height="${H}" fill="url(#dotgrid)"/>
 
-        <rect x="${acX}" y="${acY}" width="${acW}" height="${acH}"
-              fill="rgba(224,49,49,.08)" stroke="#e03131" stroke-width="2" stroke-dasharray="6 4" rx="2"/>
+    <!-- ══ ACT — Área Crítica Teórica (límite exterior, línea punteada roja) ══ -->
+    <rect x="${actX}" y="${actY}" width="${actW}" height="${actH}"
+          fill="rgba(224,49,49,.05)" stroke="#e03131" stroke-width="1.4"
+          stroke-dasharray="8 4" rx="3"/>
 
-        <!-- Factor K (f) — línea punteada azul que indica el ancho del factor K en el lado derecho -->
-        <line x1="${acX + pW}" y1="${cy}" x2="${acX + pW + fS}" y2="${cy}"
-              stroke="#339af0" stroke-width="1.4" stroke-dasharray="4 3"/>
-        <text x="${acX + pW + fS/2}" y="${cy - 5}" text-anchor="middle"
-              fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f=${f}m</text>
-        <!-- tick marks at each end of f line -->
-        <line x1="${acX + pW}" y1="${cy - 5}" x2="${acX + pW}" y2="${cy + 5}"
-              stroke="#339af0" stroke-width="1"/>
-        <line x1="${acX + pW + fS}" y1="${cy - 5}" x2="${acX + pW + fS}" y2="${cy + 5}"
-              stroke="#339af0" stroke-width="1"/>
+    <!-- ══ ACP — Área Crítica Práctica (relleno naranja semitransparente) ══ -->
+    <rect x="${acpX}" y="${acpY}" width="${acpW}" height="${acpH}"
+          fill="rgba(247,103,7,.13)" stroke="#f76707" stroke-width="1.6" rx="2"/>
 
-        <g stroke="#f76707" stroke-width="1.5" fill="rgba(247,103,7,.12)" stroke-linejoin="round">
-          <polygon points="${x0},${y0 + pL*0.35} ${x0 - pL*0.4},${y0 + pL*0.5} ${x0 - pL*0.4},${y0 + pL*0.55} ${x0},${y0 + pL*0.45}"/>
-          <polygon points="${x0 + pW},${y0 + pL*0.35} ${x0 + pW + pL*0.4},${y0 + pL*0.5} ${x0 + pW + pL*0.4},${y0 + pL*0.55} ${x0 + pW},${y0 + pL*0.45}"/>
-          <polygon points="${x0},${y0 + pL*0.88} ${x0 - pW*1.5},${y0 + pL*0.96} ${x0 - pW*1.5},${y0 + pL*0.99} ${x0},${y0 + pL*0.96}"/>
-          <polygon points="${x0 + pW},${y0 + pL*0.88} ${x0 + pW + pW*1.5},${y0 + pL*0.96} ${x0 + pW + pW*1.5},${y0 + pL*0.99} ${x0 + pW},${y0 + pL*0.96}"/>
-          <rect x="${x0}" y="${y0}" width="${pW}" height="${pL}" rx="${pW/2}"/>
-        </g>
+    <!-- ══ Factor K por lado — líneas punteadas azules simétricas ══ -->
+    <!-- Lado superior (f/2) -->
+    <line x1="${cx}" y1="${actY}" x2="${cx}" y2="${acpY}"
+          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
+    <line x1="${cx - 18}" y1="${actY + 2}" x2="${cx + 18}" y2="${actY + 2}"
+          stroke="#339af0" stroke-width=".9"/>
+    <line x1="${cx - 18}" y1="${acpY - 2}" x2="${cx + 18}" y2="${acpY - 2}"
+          stroke="#339af0" stroke-width=".9"/>
+    <text x="${cx + 5}" y="${actY + (fHalf / 2)}" dominant-baseline="middle"
+          fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f/2=${(f/2)}m</text>
+    <!-- Lado inferior (f/2) -->
+    <line x1="${cx}" y1="${acpY + acpH}" x2="${cx}" y2="${actY + actH}"
+          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
+    <line x1="${cx - 18}" y1="${acpY + acpH + 2}" x2="${cx + 18}" y2="${acpY + acpH + 2}"
+          stroke="#339af0" stroke-width=".9"/>
+    <line x1="${cx - 18}" y1="${actY + actH - 2}" x2="${cx + 18}" y2="${actY + actH - 2}"
+          stroke="#339af0" stroke-width=".9"/>
+    <text x="${cx + 5}" y="${acpY + acpH + fHalf / 2}" dominant-baseline="middle"
+          fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f/2=${(f/2)}m</text>
 
-        <g font-family="DM Sans, sans-serif" font-size="11" fill="#e2e8f0">
-          
-          <text x="${W - 10}" y="${tcaY + 24}" text-anchor="end">Dirección del</text>
-          <text x="${W - 10}" y="${tcaY + 38}" text-anchor="end">viento</text>
-          <line x1="${W - 65}" y1="${tcaY + 45}" x2="${tcaX + tcaW - 20}" y2="${tcaY + 45}" 
-                stroke="#8a9bba" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <!-- ══ FUSELAJE — rectángulo blanco con bordes redondeados ══ -->
+    <rect x="${fusX}" y="${fusY}" width="${fusW}" height="${fusH}"
+          fill="rgba(220,228,244,.92)" stroke="#c8d4e8" stroke-width="1.8"
+          rx="${fusH * 0.38}"/>
+    <!-- Línea central del fuselaje (eje longitudinal) -->
+    <line x1="${fusX + fusW * 0.06}" y1="${cy}" x2="${fusX + fusW * 0.94}" y2="${cy}"
+          stroke="#9aabcc" stroke-width=".7" stroke-dasharray="6 3" opacity=".6"/>
 
-          <text x="${W - 10}" y="${cy - 4}" text-anchor="end">Área crítica</text>
-          <text x="${W - 10}" y="${cy + 10}" text-anchor="end">práctica</text>
-          <line x1="${W - 85}" y1="${cy + 3}" x2="${acX + acW}" y2="${cy + 3}" 
-                stroke="#e2e8f0" stroke-width="1.2" marker-end="url(#arrow-label)"/>
+    <!-- ══ ETIQUETAS laterales ══ -->
+    <!-- ACT label — arriba derecha -->
+    <text x="${actX + actW - 4}" y="${actY + 12}" text-anchor="end"
+          fill="#e03131" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACT</text>
 
-          <text x="${W - 10}" y="${tcaY + tcaH - 24}" text-anchor="end">Teórica Área de</text>
-          <text x="${W - 10}" y="${tcaY + tcaH - 10}" text-anchor="end">fuego crítica (TCA)</text>
-          <line x1="${W - 120}" y1="${tcaY + tcaH - 17}" x2="${tcaX + tcaW}" y2="${tcaY + tcaH - 17}" 
-                stroke="#e2e8f0" stroke-width="1.2" marker-end="url(#arrow-label)"/>
-        </g>
+    <!-- ACP label — dentro del área naranja -->
+    <text x="${cx}" y="${acpY + 11}" text-anchor="middle"
+          fill="#f76707" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACP</text>
 
-        <text x="15" y="${H - 15}" fill="#e03131" font-family="DM Mono,monospace" font-size="12" font-weight="bold">
-          Ac = ${Ac.toFixed(2)} m²
-        </text>
+    <!-- Fuselaje label -->
+    <text x="${cx}" y="${cy + 3}" text-anchor="middle" dominant-baseline="middle"
+          fill="#243047" font-family="DM Mono,monospace" font-size="8.5" font-weight="700">FUSELAJE</text>
 
-        <g font-family="DM Mono,monospace" font-size="9" fill="#8a9bba">
-          <line x1="15" y1="18" x2="30" y2="18" stroke="#e03131" stroke-width="1.5"/>
-          <text x="36" y="21">TCA (TEÓRICA)</text>
-          <line x1="15" y1="32" x2="30" y2="32" stroke="#e03131" stroke-dasharray="4 2" stroke-width="1.5"/>
-          <text x="36" y="35">ÁREA PRÁCTICA</text>
-          <rect x="15" y="42" width="12" height="6" rx="2" fill="rgba(247,103,7,.2)" stroke="#f76707" stroke-width="1"/>
-          <text x="36" y="48">AERONAVE</text>
-        </g>
-      `;
+    <!-- ══ COTA L — horizontal inferior ══ -->
+    <line x1="${actX}" y1="${actY + actH + 14}" x2="${actX + actW}" y2="${actY + actH + 14}"
+          stroke="#f76707" stroke-width=".9"
+          marker-start="url(#arO)" marker-end="url(#arO)"/>
+    <text x="${cx}" y="${actY + actH + 24}" text-anchor="middle"
+          fill="#f76707" font-family="DM Mono,monospace" font-size="9.5" font-weight="600">L = ${L} m</text>
+
+    <!-- ══ COTA Wf+f — vertical derecha ══ -->
+    <line x1="${actX + actW + 14}" y1="${actY}" x2="${actX + actW + 14}" y2="${actY + actH}"
+          stroke="#e03131" stroke-width=".9"
+          marker-start="url(#arR)" marker-end="url(#arR)"/>
+    <text x="${actX + actW + 18}" y="${cy}" dominant-baseline="middle"
+          fill="#e03131" font-family="DM Mono,monospace" font-size="8.5">Wf+f=${(Wf+f)}m</text>
+
+    <!-- ══ Ap valor ══ -->
+    <text x="6" y="${H - 6}" fill="#e03131" font-family="DM Mono,monospace"
+          font-size="11" font-weight="700">Ap = ${Ac.toFixed(2)} m²</text>
+
+    <!-- ══ LEYENDA ══ -->
+    <rect x="${W - 132}" y="5" width="126" height="60" rx="3"
+          fill="rgba(8,12,18,.80)" stroke="#243047" stroke-width=".8"/>
+    <line x1="${W-126}" y1="17" x2="${W-112}" y2="17"
+          stroke="#e03131" stroke-width="1.3" stroke-dasharray="7,3"/>
+    <text x="${W-108}" y="20" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACT — Área Teórica</text>
+    <rect x="${W-126}" y="26" width="14" height="7" rx="1"
+          fill="rgba(247,103,7,.25)" stroke="#f76707" stroke-width="1"/>
+    <text x="${W-108}" y="33" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACP — Área Práctica</text>
+    <rect x="${W-126}" y="38" width="14" height="7" rx="1"
+          fill="rgba(220,228,244,.70)" stroke="#c8d4e8" stroke-width="1"/>
+    <text x="${W-108}" y="45" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Fuselaje</text>
+    <line x1="${W-126}" y1="52" x2="${W-112}" y2="52"
+          stroke="#339af0" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="${W-108}" y="55" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Factor K (f)</text>
+  `;
 
       document.getElementById('diag-placeholder').style.display = 'none';
       svg.style.display = 'block';
@@ -2526,62 +2567,76 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ─── SVG B&N PARA EXPORTACIÓN A PDF (Impresión) ─────────────────── */
-    function _svgBN(L,Wf,f,Ac){
-      var W=460, H=320;
-      var scale = Math.min((W-150)/(Wf+f+20), (H-40)/(L+20));
-      var pL = L*scale, pW = Wf*scale, fS = f*scale;
-      var cx = W/2 - 45, cy = H/2;
-      var x0 = cx - pW/2, y0 = cy - pL/2;
-      
-      var acW = pW + fS, acH = pL;
-      var acX = cx - acW/2, acY = cy - acH/2;
-      
-      var tcaMargin = 18;
-      var tcaW = acW + tcaMargin*2, tcaH = acH + tcaMargin*2;
-      var tcaX = acX - tcaMargin, tcaY = acY - tcaMargin;
+    /* ─── SVG B&N PARA EXPORTACIÓN A PDF — Capas ACP / ACT / Fuselaje ── */
+    function _svgBN(L, Wf, f, Ac) {
+      var W=460, H=300;
+      var padH=54, padV=38;
+      var scX=(W-padH*2)/L, scY=(H-padV*2)/(Wf+f);
+      var sc=Math.min(scX,scY);
+
+      var actW=L*sc, actH=(Wf+f)*sc;
+      var acpW=actW, acpH=Wf*sc;
+      var fusW=actW, fusH=(Wf*0.55)*sc;
+      var cx=W/2, cy=H/2;
+      var actX=cx-actW/2, actY=cy-actH/2;
+      var acpX=cx-acpW/2, acpY=cy-acpH/2;
+      var fusX=cx-fusW/2, fusY=cy-fusH/2;
+      var fHalf=(f/2)*sc;
 
       return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'
         +' viewBox="0 0 '+W+' '+H+'"'
         +' style="display:block;background:#fff;width:100%;height:auto;max-height:280px">'
         +'<defs>'
-          +'<pattern id="gbn" width="20" height="20" patternUnits="userSpaceOnUse">'
-            +'<path d="M20 0L0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width=".5"/>'
+          +'<pattern id="gbn" width="18" height="18" patternUnits="userSpaceOnUse">'
+            +'<path d="M18 0L0 0 0 18" fill="none" stroke="#efefef" stroke-width=".4"/>'
           +'</pattern>'
-          +'<marker id="m-arr" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">'
-            +'<polygon points="0 0, 5 2.5, 0 5" fill="#000"/>'
-          +'</marker>'
+          +'<marker id="ma" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">'
+            +'<polygon points="0 0,5 2.5,0 5" fill="#000"/></marker>'
         +'</defs>'
         +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
         +'<rect width="'+W+'" height="'+H+'" fill="url(#gbn)"/>'
-        +'<rect x="'+tcaX+'" y="'+tcaY+'" width="'+tcaW+'" height="'+tcaH+'" fill="none" stroke="#000" stroke-width="1.5"/>'
-        +'<rect x="'+acX+'" y="'+acY+'" width="'+acW+'" height="'+acH+'" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="6,4"/>'
-        // Factor K line — B&N
-        +'<line x1="'+(acX+pW)+'" y1="'+cy+'" x2="'+(acX+pW+fS)+'" y2="'+cy+'"'
-          +' stroke="#555" stroke-width="1.2" stroke-dasharray="4,3"/>'
-        +'<line x1="'+(acX+pW)+'" y1="'+(cy-5)+'" x2="'+(acX+pW)+'" y2="'+(cy+5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<line x1="'+(acX+pW+fS)+'" y1="'+(cy-5)+'" x2="'+(acX+pW+fS)+'" y2="'+(cy+5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<text x="'+(acX+pW+fS/2)+'" y="'+(cy-7)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="8" fill="#444">f='+f+'m</text>'
-        +'<g stroke="#000" stroke-width="1.5" fill="none" stroke-linejoin="round">'
-          +'<polygon points="'+x0+','+(y0+pL*0.35)+' '+(x0-pL*0.4)+','+(y0+pL*0.5)+' '+(x0-pL*0.4)+','+(y0+pL*0.55)+' '+x0+','+(y0+pL*0.45)+'"/>'
-          +'<polygon points="'+(x0+pW)+','+(y0+pL*0.35)+' '+(x0+pW+pL*0.4)+','+(y0+pL*0.5)+' '+(x0+pW+pL*0.4)+','+(y0+pL*0.55)+' '+(x0+pW)+','+(y0+pL*0.45)+'"/>'
-          +'<polygon points="'+x0+','+(y0+pL*0.88)+' '+(x0-pW*1.5)+','+(y0+pL*0.96)+' '+(x0-pW*1.5)+','+(y0+pL*0.99)+' '+x0+','+(y0+pL*0.96)+'"/>'
-          +'<polygon points="'+(x0+pW)+','+(y0+pL*0.88)+' '+(x0+pW+pW*1.5)+','+(y0+pL*0.96)+' '+(x0+pW+pW*1.5)+','+(y0+pL*0.99)+' '+(x0+pW)+','+(y0+pL*0.96)+'"/>'
-          +'<rect x="'+x0+'" y="'+y0+'" width="'+pW+'" height="'+pL+'" rx="'+(pW/2)+'"/>'
-        +'</g>'
-        +'<g font-family="sans-serif" font-size="11" fill="#000">'
-          +'<text x="'+(W-10)+'" y="'+(tcaY+24)+'" text-anchor="end">Dirección del</text>'
-          +'<text x="'+(W-10)+'" y="'+(tcaY+38)+'" text-anchor="end">viento</text>'
-          +'<line x1="'+(W-65)+'" y1="'+(tcaY+45)+'" x2="'+(tcaX+tcaW-20)+'" y2="'+(tcaY+45)+'" stroke="#000" stroke-width="1" marker-end="url(#m-arr)"/>'
-          +'<text x="'+(W-10)+'" y="'+(cy-4)+'" text-anchor="end" font-weight="bold">Área crítica</text>'
-          +'<text x="'+(W-10)+'" y="'+(cy+10)+'" text-anchor="end" font-weight="bold">práctica</text>'
-          +'<line x1="'+(W-85)+'" y1="'+(cy+3)+'" x2="'+(acX+acW)+'" y2="'+(cy+3)+'" stroke="#000" stroke-width="1" marker-end="url(#m-arr)"/>'
-          +'<text x="'+(W-10)+'" y="'+(tcaY+tcaH-24)+'" text-anchor="end">Teórica Área de</text>'
-          +'<text x="'+(W-10)+'" y="'+(tcaY+tcaH-10)+'" text-anchor="end">fuego crítica (TCA)</text>'
-          +'<line x1="'+(W-120)+'" y1="'+(tcaY+tcaH-17)+'" x2="'+(tcaX+tcaW)+'" y2="'+(tcaY+tcaH-17)+'" stroke="#000" stroke-width="1" marker-end="url(#m-arr)"/>'
-        +'</g>'
-        +'<text x="15" y="'+(H-15)+'" fill="#000" font-family="monospace" font-size="12" font-weight="bold">Ac = '+Ac.toFixed(2)+' m²</text>'
+        // ACT — exterior punteado
+        +'<rect x="'+actX.toFixed(1)+'" y="'+actY.toFixed(1)+'" width="'+actW.toFixed(1)+'" height="'+actH.toFixed(1)+'"'
+          +' fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="8,4" rx="3"/>'
+        // ACP — relleno gris claro
+        +'<rect x="'+acpX.toFixed(1)+'" y="'+acpY.toFixed(1)+'" width="'+acpW.toFixed(1)+'" height="'+acpH.toFixed(1)+'"'
+          +' fill="#f0f0f0" stroke="#000" stroke-width="1.5" rx="2"/>'
+        // Factor K líneas punteadas — lado sup
+        +'<line x1="'+cx.toFixed(1)+'" y1="'+actY.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+acpY.toFixed(1)+'"'
+          +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
+        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(actY+2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(actY+2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
+        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(acpY-2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(acpY-2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
+        +'<text x="'+(cx+4).toFixed(1)+'" y="'+(actY+fHalf/2).toFixed(1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8" fill="#444">f/2='+( f/2 )+'m</text>'
+        // Factor K líneas punteadas — lado inf
+        +'<line x1="'+cx.toFixed(1)+'" y1="'+(acpY+acpH).toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+(actY+actH).toFixed(1)+'"'
+          +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
+        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(acpY+acpH+2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(acpY+acpH+2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
+        +'<line x1="'+(cx-16).toFixed(1)+'" y1="'+(actY+actH-2).toFixed(1)+'" x2="'+(cx+16).toFixed(1)+'" y2="'+(actY+actH-2).toFixed(1)+'" stroke="#555" stroke-width=".8"/>'
+        +'<text x="'+(cx+4).toFixed(1)+'" y="'+(acpY+acpH+fHalf/2).toFixed(1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8" fill="#444">f/2='+( f/2 )+'m</text>'
+        // Fuselaje — blanco con bordes negros
+        +'<rect x="'+fusX.toFixed(1)+'" y="'+fusY.toFixed(1)+'" width="'+fusW.toFixed(1)+'" height="'+fusH.toFixed(1)+'"'
+          +' fill="#fff" stroke="#000" stroke-width="2" rx="'+(fusH*0.38).toFixed(1)+'"/>'
+        // Etiquetas dentro del diagrama
+        +'<text x="'+(actX+actW-4).toFixed(1)+'" y="'+(actY+12).toFixed(1)+'" text-anchor="end"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACT</text>'
+        +'<text x="'+cx.toFixed(1)+'" y="'+(acpY+11).toFixed(1)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACP</text>'
+        +'<text x="'+cx.toFixed(1)+'" y="'+cy.toFixed(1)+'" text-anchor="middle" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8" fill="#333" font-weight="bold">FUSELAJE</text>'
+        // Cota L
+        +'<line x1="'+actX.toFixed(1)+'" y1="'+(actY+actH+13).toFixed(1)+'" x2="'+(actX+actW).toFixed(1)+'" y2="'+(actY+actH+13).toFixed(1)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#ma)" marker-end="url(#ma)"/>'
+        +'<text x="'+cx.toFixed(1)+'" y="'+(actY+actH+23).toFixed(1)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">L='+L+'m</text>'
+        // Cota Wf+f
+        +'<line x1="'+(actX+actW+13).toFixed(1)+'" y1="'+actY.toFixed(1)+'" x2="'+(actX+actW+13).toFixed(1)+'" y2="'+(actY+actH).toFixed(1)+'"'
+          +' stroke="#000" stroke-width=".9" marker-start="url(#ma)" marker-end="url(#ma)"/>'
+        +'<text x="'+(actX+actW+17).toFixed(1)+'" y="'+cy.toFixed(1)+'" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="8" fill="#000">Wf+f='+(Wf+f)+'m</text>'
+        // Ap valor
+        +'<text x="6" y="'+(H-6)+'" font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'
         +'</svg>';
     }
 
