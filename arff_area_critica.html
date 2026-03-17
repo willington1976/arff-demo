@@ -2392,11 +2392,7 @@
       // Avión
       const avX  = centerX - lAvion / 2,  avY  = centerY - wAvion / 2;
 
-      // ── Cota azul horizontal — y fijo = centerY ──
-      const cotaY  = centerY;
-      const cotaX1 = centerX + wAvion / 2;    // piel derecha del avión
-      const cotaX2 = centerX + wACT   / 2;   // borde derecho ACT
-      const cotaMid = (cotaX1 + cotaX2) / 2;
+      // ── Cotas verticales: x fijo en borde avión, y recorre ACP ──
 
       svg.setAttribute('viewBox', '0 0 300 250');
       svg.innerHTML = `
@@ -2433,35 +2429,44 @@
           x2="${avX + lAvion * 0.95}" y2="${centerY}"
           stroke="#7090b8" stroke-width=".8" stroke-dasharray="5 3" opacity=".6"/>
 
-    <!-- ══ COTA AZUL — y fijo = centerY = 125 ══ -->
-    <!-- Lado derecho: piel avión → borde ACT -->
-    <line x1="${cotaX1}" y1="${cotaY}"
-          x2="${cotaX2}" y2="${cotaY}"
+    <!-- ══ COTAS AZULES VERTICALES — borde avión ↕ borde ACP (como las líneas amarillas) ══ -->
+    <!-- Línea derecha: x = borde derecho avión, de acpY a acpY+wACP -->
+    <line x1="${centerX + wAvion / 2}" y1="${acpY}"
+          x2="${centerX + wAvion / 2}" y2="${acpY + wACP}"
           stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
-    <line x1="${cotaX1}" y1="${cotaY - 7}" x2="${cotaX1}" y2="${cotaY + 7}"
+    <!-- tick superior -->
+    <line x1="${centerX + wAvion / 2 - 6}" y1="${acpY}"
+          x2="${centerX + wAvion / 2 + 6}" y2="${acpY}"
           stroke="#38bdf8" stroke-width="1.4"/>
-    <line x1="${cotaX2}" y1="${cotaY - 7}" x2="${cotaX2}" y2="${cotaY + 7}"
+    <!-- tick inferior -->
+    <line x1="${centerX + wAvion / 2 - 6}" y1="${acpY + wACP}"
+          x2="${centerX + wAvion / 2 + 6}" y2="${acpY + wACP}"
           stroke="#38bdf8" stroke-width="1.4"/>
-    <text x="${cotaMid}" y="${cotaY - 7}"
-          text-anchor="middle" dominant-baseline="auto"
+    <!-- texto centrado verticalmente, a la derecha de la línea -->
+    <text x="${centerX + wAvion / 2 + 10}"
+          y="${centerY}"
+          text-anchor="start" dominant-baseline="middle"
           fill="#38bdf8" font-family="DM Mono,monospace"
-          font-size="9.5" font-weight="700">${metrosCota}.0m</text>
+          font-size="10" font-weight="700">${metrosCota}.0m</text>
 
-    <!-- Lado izquierdo (simétrico): borde ACT → piel avión -->
-    <line x1="${centerX - wACT / 2}"   y1="${cotaY}"
-          x2="${centerX - wAvion / 2}" y2="${cotaY}"
+    <!-- Línea izquierda: x = borde izquierdo avión, de acpY a acpY+wACP -->
+    <line x1="${centerX - wAvion / 2}" y1="${acpY}"
+          x2="${centerX - wAvion / 2}" y2="${acpY + wACP}"
           stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
-    <line x1="${centerX - wACT   / 2}" y1="${cotaY - 7}"
-          x2="${centerX - wACT   / 2}" y2="${cotaY + 7}"
+    <!-- tick superior -->
+    <line x1="${centerX - wAvion / 2 - 6}" y1="${acpY}"
+          x2="${centerX - wAvion / 2 + 6}" y2="${acpY}"
           stroke="#38bdf8" stroke-width="1.4"/>
-    <line x1="${centerX - wAvion / 2}" y1="${cotaY - 7}"
-          x2="${centerX - wAvion / 2}" y2="${cotaY + 7}"
+    <!-- tick inferior -->
+    <line x1="${centerX - wAvion / 2 - 6}" y1="${acpY + wACP}"
+          x2="${centerX - wAvion / 2 + 6}" y2="${acpY + wACP}"
           stroke="#38bdf8" stroke-width="1.4"/>
-    <text x="${centerX - wACT / 2 + (wACT - wAvion) / 4}"
-          y="${cotaY - 7}"
-          text-anchor="middle" dominant-baseline="auto"
+    <!-- texto centrado verticalmente, a la izquierda de la línea -->
+    <text x="${centerX - wAvion / 2 - 10}"
+          y="${centerY}"
+          text-anchor="end" dominant-baseline="middle"
           fill="#38bdf8" font-family="DM Mono,monospace"
-          font-size="9.5" font-weight="700">${metrosCota}.0m</text>
+          font-size="10" font-weight="700">${metrosCota}.0m</text>
 
     <!-- ══ ETIQUETAS ══ -->
     <text x="${actX + 4}" y="${actY + 12}"
@@ -2590,8 +2595,6 @@
       var acpX=cx-lAv/2,  acpY=cy-wACP/2;
       var avX =cx-lAv/2,  avY =cy-wAv/2;
 
-      var cotaX1=cx+wAv/2,  cotaX2=cx+wACT/2;
-      var cotaMid=(cotaX1+cotaX2)/2;
 
       function t(n){ return n.toFixed(1); }
 
@@ -2625,21 +2628,21 @@
         +'<line x1="'+t(avX+lAv*0.05)+'" y1="'+cy+'" x2="'+t(avX+lAv*0.95)+'" y2="'+cy+'"'
           +' stroke="#aaa" stroke-width=".7" stroke-dasharray="5,3"/>'
 
-        // COTA derecha — y = cy = 125
-        +'<line x1="'+t(cotaX1)+'" y1="'+cy+'" x2="'+t(cotaX2)+'" y2="'+cy+'"'
+        // COTAS VERTICALES — borde avión ↕ borde ACP (B&N)
+        // Línea derecha: x = borde der avión
+        +'<line x1="'+t(cx+wAv/2)+'" y1="'+t(acpY)+'" x2="'+t(cx+wAv/2)+'" y2="'+t(acpY+wACP)+'"'
           +' stroke="#000" stroke-width="1.8" stroke-dasharray="4,2"/>'
-        +'<line x1="'+t(cotaX1)+'" y1="'+(cy-7)+'" x2="'+t(cotaX1)+'" y2="'+(cy+7)+'" stroke="#000" stroke-width="1.3"/>'
-        +'<line x1="'+t(cotaX2)+'" y1="'+(cy-7)+'" x2="'+t(cotaX2)+'" y2="'+(cy+7)+'" stroke="#000" stroke-width="1.3"/>'
-        +'<text x="'+t(cotaMid)+'" y="'+(cy-9)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="9.5" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
-
-        // COTA izquierda — simétrica
-        +'<line x1="'+t(cx-wACT/2)+'" y1="'+cy+'" x2="'+t(cx-wAv/2)+'" y2="'+cy+'"'
+        +'<line x1="'+t(cx+wAv/2-6)+'" y1="'+t(acpY)+'" x2="'+t(cx+wAv/2+6)+'" y2="'+t(acpY)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<line x1="'+t(cx+wAv/2-6)+'" y1="'+t(acpY+wACP)+'" x2="'+t(cx+wAv/2+6)+'" y2="'+t(acpY+wACP)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<text x="'+t(cx+wAv/2+10)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
+        // Línea izquierda: x = borde izq avión
+        +'<line x1="'+t(cx-wAv/2)+'" y1="'+t(acpY)+'" x2="'+t(cx-wAv/2)+'" y2="'+t(acpY+wACP)+'"'
           +' stroke="#000" stroke-width="1.8" stroke-dasharray="4,2"/>'
-        +'<line x1="'+t(cx-wACT/2)+'" y1="'+(cy-7)+'" x2="'+t(cx-wACT/2)+'" y2="'+(cy+7)+'" stroke="#000" stroke-width="1.3"/>'
-        +'<line x1="'+t(cx-wAv/2)+'" y1="'+(cy-7)+'" x2="'+t(cx-wAv/2)+'" y2="'+(cy+7)+'" stroke="#000" stroke-width="1.3"/>'
-        +'<text x="'+t(cx-wACT/2+(wACT-wAv)/4)+'" y="'+(cy-9)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="9.5" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
+        +'<line x1="'+t(cx-wAv/2-6)+'" y1="'+t(acpY)+'" x2="'+t(cx-wAv/2+6)+'" y2="'+t(acpY)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<line x1="'+t(cx-wAv/2-6)+'" y1="'+t(acpY+wACP)+'" x2="'+t(cx-wAv/2+6)+'" y2="'+t(acpY+wACP)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<text x="'+t(cx-wAv/2-10)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
 
         // Etiquetas
         +'<text x="'+t(actX+4)+'" y="'+t(actY+12)+'"'
