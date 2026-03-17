@@ -2371,39 +2371,34 @@
       const svg = document.getElementById('diag-svg');
       const W = 400, H = 300;
 
-      // ── Factor K por longitud (ya calculado como f, se reconfirma) ──
-      const factorK    = (L >= 28) ? 30 : 12;
-      const distLateral = factorK / 2;   // colchón por lado: 6m o 15m
+      // 1. FACTOR K — lógica binaria por longitud
+      const factorK   = (L >= 28) ? 30 : 12;
+      const metrosCota = factorK / 2;          // exactamente 6 o 15
 
-      // ── Escala: ajustar para que el ACT quepa dejando margen para cotas ──
-      const padH = 52, padV = 32;
-      const scX  = (W - padH * 2) / L;
-      const scY  = (H - padV * 2) / (Wf + factorK);
-      const sc   = Math.min(scX, scY);
+      // 2. ESCALA — ACT debe caber con márgenes para cotas
+      const padH = 54, padV = 34;
+      const sc   = Math.min((W - padH * 2) / L,
+                             (H - padV * 2) / (Wf + factorK));
 
-      // ── Dimensiones escaladas ──
-      // 1. ACT: largo=L, ancho=Wf+factorK
-      const actL = L  * sc;
-      const actA = (Wf + factorK) * sc;
+      // 3. DIMENSIONES en px
+      const actL = L  * sc;                    // largo ACT (= largo avión)
+      const actA = (Wf + factorK) * sc;        // ancho ACT
+      const acpL = actL;                       // largo ACP = 100% del avión
+      const acpA = actA * 0.66;               // ancho ACP = 66% ACT
+      const avL  = actL;                       // largo avión
+      const avA  = Wf * sc;                    // ancho avión
 
-      // 2. ACP: largo=L (100%), ancho=66% del ACT
-      const acpL = actL;
-      const acpA = actA * 0.66;
-
-      // 3. Avión: largo=L, ancho=Wf
-      const avL = actL;
-      const avA = Wf * sc;
-
-      // ── Centro del canvas ──
-      const cx = W / 2, cy = H / 2;
-
-      // ── Posicionamiento centrado (x=largo horizontal, y=ancho vertical) ──
+      // 4. CENTRADO absoluto
+      const cx = W / 2,  cy = H / 2;
       const actX = cx - actL / 2,  actY = cy - actA / 2;
       const acpX = cx - acpL / 2,  acpY = cy - acpA / 2;
       const avX  = cx - avL  / 2,  avY  = cy - avA  / 2;
 
-      // Colchón visual = distLateral * sc (para la cota)
-      const colchon = distLateral * sc;
+      // 5. COTA AZUL — desde piel derecha del avión hasta borde derecho ACT
+      //    distancia real = factorK/2 metros (6 o 15)
+      const cotaX1 = avX  + avL;              // piel derecha del avión
+      const cotaX2 = actX + actL;             // borde derecho ACT
+      const cotaY  = cy;                      // altura: centro del diagrama
 
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = `
@@ -2411,154 +2406,119 @@
       <pattern id="dotg" width="18" height="18" patternUnits="userSpaceOnUse">
         <path d="M18 0L0 0 0 18" fill="none" stroke="#1a2840" stroke-width=".4"/>
       </pattern>
-      <marker id="mO" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#f76707"/></marker>
       <marker id="mOb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
         <polygon points="5 0,0 2.5,5 5" fill="#f76707"/></marker>
-      <marker id="mR" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#e03131"/></marker>
+      <marker id="mO"  markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#f76707"/></marker>
       <marker id="mRb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
         <polygon points="5 0,0 2.5,5 5" fill="#e03131"/></marker>
-      <marker id="mB" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-        <polygon points="0 0,5 2.5,0 5" fill="#339af0"/></marker>
-      <marker id="mBb" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
-        <polygon points="5 0,0 2.5,5 5" fill="#339af0"/></marker>
+      <marker id="mR"  markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+        <polygon points="0 0,5 2.5,0 5" fill="#e03131"/></marker>
     </defs>
 
     <!-- Fondo -->
     <rect width="${W}" height="${H}" fill="#080c12"/>
     <rect width="${W}" height="${H}" fill="url(#dotg)"/>
 
-    <!-- ══ CAPA 1 (fondo): ACT — Área Crítica Teórica — punteado rojo ══ -->
+    <!-- ══ CAPA 1 — ACT: límite teórico, borde punteado rojo ══ -->
     <rect x="${actX}" y="${actY}" width="${actL}" height="${actA}"
-          fill="rgba(224,49,49,.06)" stroke="#e03131" stroke-width="1.5"
-          stroke-dasharray="9 4" rx="3"/>
+          fill="rgba(224,49,49,.05)" stroke="#e03131"
+          stroke-width="1.5" stroke-dasharray="9 4" rx="3"/>
 
-    <!-- ══ CAPA 2 (medio): ACP — Área Crítica Práctica — naranja sólido ══ -->
+    <!-- ══ CAPA 2 — ACP: área práctica, naranja, mismo largo, 66% ancho ══ -->
     <rect x="${acpX}" y="${acpY}" width="${acpL}" height="${acpA}"
-          fill="rgba(247,103,7,.18)" stroke="#f76707" stroke-width="1.8" rx="2"/>
+          fill="rgba(247,103,7,.20)" stroke="#f76707"
+          stroke-width="1.6" rx="2"/>
 
-    <!-- ══ CAPA 3 (frente): Avión — rectángulo blanco centrado ══ -->
+    <!-- ══ CAPA 3 — Avión: blanco centrado exacto ══ -->
     <rect x="${avX}" y="${avY}" width="${avL}" height="${avA}"
-          fill="rgba(220,228,244,.93)" stroke="#94a8cc" stroke-width="1.8"
-          rx="${avA * 0.36}"/>
-    <!-- Eje longitudinal del avión -->
-    <line x1="${avX + avL * 0.04}" y1="${cy}"
-          x2="${avX + avL * 0.96}" y2="${cy}"
-          stroke="#7090b8" stroke-width=".8" stroke-dasharray="5 3" opacity=".7"/>
+          fill="rgba(220,228,244,.94)" stroke="#94a8cc"
+          stroke-width="1.8" rx="${avA * 0.36}"/>
+    <!-- Eje longitudinal del avión (única línea interior) -->
+    <line x1="${avX + avL * 0.05}" y1="${cy}"
+          x2="${avX + avL * 0.95}" y2="${cy}"
+          stroke="#7090b8" stroke-width=".8" stroke-dasharray="5 3" opacity=".6"/>
 
-    <!-- ══ COLCHÓN — líneas punteadas azules (distLateral por lado) ══ -->
-    <!-- Superior: de borde-ACP a borde-ACT, línea central vertical -->
-    <line x1="${cx}" y1="${actY}" x2="${cx}" y2="${acpY}"
-          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
-    <!-- tick tope ACT -->
-    <line x1="${cx - 14}" y1="${actY + 1.5}" x2="${cx + 14}" y2="${actY + 1.5}"
-          stroke="#339af0" stroke-width="1"/>
-    <!-- tick tope ACP -->
-    <line x1="${cx - 14}" y1="${acpY - 1.5}" x2="${cx + 14}" y2="${acpY - 1.5}"
-          stroke="#339af0" stroke-width="1"/>
-    <text x="${cx + 7}" y="${actY + colchon / 2 + 1}" dominant-baseline="middle"
-          fill="#339af0" font-family="DM Mono,monospace" font-size="9" font-weight="600">
-      ${distLateral}m
-    </text>
+    <!-- ══ COTA AZUL — borde avión → borde ACT (factorK/2 metros) ══ -->
+    <!-- Lado derecho -->
+    <line x1="${cotaX1}" y1="${cotaY}"
+          x2="${cotaX2}" y2="${cotaY}"
+          stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
+    <!-- tick piel avión -->
+    <line x1="${cotaX1}" y1="${cotaY - 7}" x2="${cotaX1}" y2="${cotaY + 7}"
+          stroke="#38bdf8" stroke-width="1.4"/>
+    <!-- tick borde ACT -->
+    <line x1="${cotaX2}" y1="${cotaY - 7}" x2="${cotaX2}" y2="${cotaY + 7}"
+          stroke="#38bdf8" stroke-width="1.4"/>
+    <text x="${(cotaX1 + cotaX2) / 2}" y="${cotaY - 9}"
+          text-anchor="middle"
+          fill="#38bdf8" font-family="DM Mono,monospace"
+          font-size="10" font-weight="700">${metrosCota}.0m</text>
 
-    <!-- Inferior: de borde-ACP a borde-ACT -->
-    <line x1="${cx}" y1="${acpY + acpA}" x2="${cx}" y2="${actY + actA}"
-          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4 3"/>
-    <!-- tick inf ACP -->
-    <line x1="${cx - 14}" y1="${acpY + acpA + 1.5}" x2="${cx + 14}" y2="${acpY + acpA + 1.5}"
-          stroke="#339af0" stroke-width="1"/>
-    <!-- tick inf ACT -->
-    <line x1="${cx - 14}" y1="${actY + actA - 1.5}" x2="${cx + 14}" y2="${actY + actA - 1.5}"
-          stroke="#339af0" stroke-width="1"/>
-    <text x="${cx + 7}" y="${acpY + acpA + colchon / 2 + 1}" dominant-baseline="middle"
-          fill="#339af0" font-family="DM Mono,monospace" font-size="9" font-weight="600">
-      ${distLateral}m
-    </text>
+    <!-- Lado izquierdo (simétrico) -->
+    <line x1="${actX}" y1="${cotaY}"
+          x2="${avX}"  y2="${cotaY}"
+          stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
+    <line x1="${actX}" y1="${cotaY - 7}" x2="${actX}" y2="${cotaY + 7}"
+          stroke="#38bdf8" stroke-width="1.4"/>
+    <line x1="${avX}"  y1="${cotaY - 7}" x2="${avX}"  y2="${cotaY + 7}"
+          stroke="#38bdf8" stroke-width="1.4"/>
+    <text x="${actX + (avX - actX) / 2}" y="${cotaY - 9}"
+          text-anchor="middle"
+          fill="#38bdf8" font-family="DM Mono,monospace"
+          font-size="10" font-weight="700">${metrosCota}.0m</text>
 
     <!-- ══ ETIQUETAS de capa ══ -->
-    <text x="${actX + 6}" y="${actY + 13}"
+    <text x="${actX + 5}" y="${actY + 13}"
           fill="#e03131" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACT</text>
-    <text x="${acpX + 6}" y="${acpY + 13}"
+    <text x="${acpX + 5}" y="${acpY + 13}"
           fill="#f76707" font-family="DM Mono,monospace" font-size="9" font-weight="700">ACP</text>
     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
           fill="#1e2d47" font-family="DM Mono,monospace" font-size="8.5" font-weight="700">AVIÓN</text>
 
     <!-- ══ COTA L — horizontal bajo el ACT ══ -->
-    <line x1="${actX}" y1="${actY + actA + 14}" x2="${actX + actL}" y2="${actY + actA + 14}"
-          stroke="#f76707" stroke-width=".9" marker-start="url(#mOb)" marker-end="url(#mO)"/>
+    <line x1="${actX}" y1="${actY + actA + 14}"
+          x2="${actX + actL}" y2="${actY + actA + 14}"
+          stroke="#f76707" stroke-width=".9"
+          marker-start="url(#mOb)" marker-end="url(#mO)"/>
     <text x="${cx}" y="${actY + actA + 24}" text-anchor="middle"
-          fill="#f76707" font-family="DM Mono,monospace" font-size="9.5" font-weight="600">L = ${L} m</text>
+          fill="#f76707" font-family="DM Mono,monospace"
+          font-size="9.5" font-weight="600">L = ${L} m</text>
 
-    <!-- ══ COTA Wf+factorK — vertical derecha ══ -->
+    <!-- ══ COTA ancho ACT — vertical derecha ══ -->
     <line x1="${actX + actL + 14}" y1="${actY}"
           x2="${actX + actL + 14}" y2="${actY + actA}"
-          stroke="#e03131" stroke-width=".9" marker-start="url(#mRb)" marker-end="url(#mR)"/>
+          stroke="#e03131" stroke-width=".9"
+          marker-start="url(#mRb)" marker-end="url(#mR)"/>
     <text x="${actX + actL + 18}" y="${cy}" dominant-baseline="middle"
           fill="#e03131" font-family="DM Mono,monospace" font-size="8.5">
       ${Wf + factorK}m
     </text>
 
-    <!-- ══ Ap valor y Factor K ══ -->
-    <text x="5" y="${H - 15}" fill="#e03131" font-family="DM Mono,monospace"
+    <!-- ══ Ap valor + Factor K ══ -->
+    <text x="5" y="${H - 15}"
+          fill="#e03131" font-family="DM Mono,monospace"
           font-size="11" font-weight="700">Ap = ${Ac.toFixed(2)} m²</text>
-    <text x="5" y="${H - 4}" fill="#339af0" font-family="DM Mono,monospace"
-          font-size="8.5">Factor K = ${factorK}m · ${distLateral}m por lado</text>
+    <text x="5" y="${H - 4}"
+          fill="#38bdf8" font-family="DM Mono,monospace" font-size="8.5">
+      Factor K = ${factorK}m · ${metrosCota}m por lado
+    </text>
 
     <!-- ══ LEYENDA ══ -->
-    <rect x="${W - 136}" y="4" width="130" height="64" rx="3"
+    <rect x="${W - 138}" y="4" width="132" height="52" rx="3"
           fill="rgba(8,12,18,.82)" stroke="#243047" stroke-width=".8"/>
-    <line x1="${W-130}" y1="16" x2="${W-116}" y2="16"
+    <line x1="${W-132}" y1="15" x2="${W-118}" y2="15"
           stroke="#e03131" stroke-width="1.3" stroke-dasharray="7,3"/>
-    <text x="${W-112}" y="19" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACT — Área Teórica</text>
-    <rect x="${W-130}" y="25" width="14" height="7" rx="1"
+    <text x="${W-114}" y="18" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACT — Área Teórica</text>
+    <rect x="${W-132}" y="24" width="14" height="7" rx="1"
           fill="rgba(247,103,7,.28)" stroke="#f76707" stroke-width="1"/>
-    <text x="${W-112}" y="32" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACP — Área Práctica</text>
-    <rect x="${W-130}" y="38" width="14" height="7" rx="1"
+    <text x="${W-114}" y="31" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">ACP — 66% ancho ACT</text>
+    <rect x="${W-132}" y="36" width="14" height="7" rx="1"
           fill="rgba(220,228,244,.75)" stroke="#94a8cc" stroke-width="1"/>
-    <text x="${W-112}" y="45" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Avión (Wf)</text>
-    <line x1="${W-130}" y1="54" x2="${W-116}" y2="54"
-          stroke="#339af0" stroke-width="1.1" stroke-dasharray="4,3"/>
-    <text x="${W-112}" y="57" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Colchón ${distLateral}m c/lado</text>
-
-    <!-- ══ LÍNEA DE PROTECCIÓN LATERAL — piel del avión → borde ACP ══ -->
-    <!-- Derecha: desde borde-der avión hasta borde-der ACP, a altura cy -->
-    <line id="linea-proteccion-r"
-          x1="${avX + avL}" y1="${cy}"
-          x2="${acpX + acpL}" y2="${cy}"
-          stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
-    <!-- tick en piel del avión -->
-    <line x1="${avX + avL}" y1="${cy - 6}" x2="${avX + avL}" y2="${cy + 6}"
-          stroke="#38bdf8" stroke-width="1.2"/>
-    <!-- tick en borde ACP -->
-    <line x1="${acpX + acpL}" y1="${cy - 6}" x2="${acpX + acpL}" y2="${cy + 6}"
-          stroke="#38bdf8" stroke-width="1.2"/>
-    <text id="txt-distancia-r"
-          x="${avX + avL + (acpX + acpL - avX - avL) / 2}"
-          y="${cy - 7}"
-          text-anchor="middle"
-          fill="#38bdf8" font-family="DM Mono,monospace" font-size="9" font-weight="700">
-      ${((acpA - avA) / 2 / sc).toFixed(1)}m
-    </text>
-
-    <!-- Izquierda: desde borde-izq ACP hasta borde-izq avión (simetría) -->
-    <line id="linea-proteccion-l"
-          x1="${acpX}" y1="${cy}"
-          x2="${avX}" y2="${cy}"
-          stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2"/>
-    <!-- tick izq ACP -->
-    <line x1="${acpX}" y1="${cy - 6}" x2="${acpX}" y2="${cy + 6}"
-          stroke="#38bdf8" stroke-width="1.2"/>
-    <!-- tick izq avión -->
-    <line x1="${avX}" y1="${cy - 6}" x2="${avX}" y2="${cy + 6}"
-          stroke="#38bdf8" stroke-width="1.2"/>
-    <text id="txt-distancia-l"
-          x="${acpX + (avX - acpX) / 2}"
-          y="${cy - 7}"
-          text-anchor="middle"
-          fill="#38bdf8" font-family="DM Mono,monospace" font-size="9" font-weight="700">
-      ${((acpA - avA) / 2 / sc).toFixed(1)}m
-    </text>
+    <text x="${W-114}" y="43" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Avión (centrado)</text>
+    <line x1="${W-132}" y1="51" x2="${W-118}" y2="51"
+          stroke="#38bdf8" stroke-width="1.4" stroke-dasharray="4,2"/>
+    <text x="${W-114}" y="54" fill="#d0d8f0" font-family="DM Mono,monospace" font-size="8">Cota ${metrosCota}.0m c/lado</text>
   `;
 
       document.getElementById('diag-placeholder').style.display = 'none';
@@ -2629,32 +2589,34 @@
     /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
     function _svgBN(L, Wf, f, Ac) {
       var W=460, H=300;
-      var factorK     = (L >= 28) ? 30 : 12;
-      var distLateral = factorK / 2;
+      var factorK    = (L >= 28) ? 30 : 12;
+      var metrosCota = factorK / 2;
 
-      var padH=56, padV=34;
-      var scX=(W-padH*2)/L, scY=(H-padV*2)/(Wf+factorK);
-      var sc=Math.min(scX,scY);
+      var sc = Math.min((W - 112) / L, (H - 68) / (Wf + factorK));
 
-      var actL=L*sc,      actA=(Wf+factorK)*sc;
-      var acpL=actL,      acpA=actA*0.66;
-      var avL=actL,       avA=Wf*sc;
-      var cx=W/2,         cy=H/2;
-      var actX=cx-actL/2, actY=cy-actA/2;
-      var acpX=cx-acpL/2, acpY=cy-acpA/2;
-      var avX=cx-avL/2,   avY=cy-avA/2;
-      var colchon=distLateral*sc;
+      var actL = L  * sc,  actA = (Wf + factorK) * sc;
+      var acpL = actL,     acpA = actA * 0.66;
+      var avL  = actL,     avA  = Wf * sc;
 
-      function t(n){ return n.toFixed(1); }
+      var cx = W/2, cy = H/2;
+      var actX = cx - actL/2,  actY = cy - actA/2;
+      var acpX = cx - acpL/2,  acpY = cy - acpA/2;
+      var avX  = cx - avL/2,   avY  = cy - avA/2;
+
+      var cotaX1 = avX  + avL;
+      var cotaX2 = actX + actL;
+      var cotaY  = cy;
+
+      function t(n) { return n.toFixed(1); }
 
       return '<svg xmlns="http://www.w3.org/2000/svg" id="diag-svg"'
         +' viewBox="0 0 '+W+' '+H+'"'
         +' style="display:block;background:#fff;width:100%;height:auto;max-height:280px">'
         +'<defs>'
           +'<pattern id="gbn" width="18" height="18" patternUnits="userSpaceOnUse">'
-            +'<path d="M18 0L0 0 0 18" fill="none" stroke="#efefef" stroke-width=".4"/>'
+            +'<path d="M18 0L0 0 0 18" fill="none" stroke="#f0f0f0" stroke-width=".4"/>'
           +'</pattern>'
-          +'<marker id="ma" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">'
+          +'<marker id="ma"  markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">'
             +'<polygon points="0 0,5 2.5,0 5" fill="#000"/></marker>'
           +'<marker id="mab" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">'
             +'<polygon points="5 0,0 2.5,5 5" fill="#000"/></marker>'
@@ -2662,49 +2624,52 @@
         +'<rect width="'+W+'" height="'+H+'" fill="#fff"/>'
         +'<rect width="'+W+'" height="'+H+'" fill="url(#gbn)"/>'
 
-        // CAPA 1 — ACT exterior punteado
+        // CAPA 1 — ACT
         +'<rect x="'+t(actX)+'" y="'+t(actY)+'" width="'+t(actL)+'" height="'+t(actA)+'"'
           +' fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="9,4" rx="3"/>'
 
-        // CAPA 2 — ACP relleno gris claro
+        // CAPA 2 — ACP
         +'<rect x="'+t(acpX)+'" y="'+t(acpY)+'" width="'+t(acpL)+'" height="'+t(acpA)+'"'
-          +' fill="#e8e8e8" stroke="#333" stroke-width="1.6" rx="2"/>'
+          +' fill="#e8e8e8" stroke="#555" stroke-width="1.5" rx="2"/>'
 
-        // CAPA 3 — Avión blanco centrado
+        // CAPA 3 — Avión
         +'<rect x="'+t(avX)+'" y="'+t(avY)+'" width="'+t(avL)+'" height="'+t(avA)+'"'
           +' fill="#fff" stroke="#000" stroke-width="1.8" rx="'+t(avA*0.36)+'"/>'
+        // Eje longitudinal avión
+        +'<line x1="'+t(avX+avL*0.05)+'" y1="'+t(cy)+'" x2="'+t(avX+avL*0.95)+'" y2="'+t(cy)+'"'
+          +' stroke="#aaa" stroke-width=".7" stroke-dasharray="5,3"/>'
 
-        // Colchón superior — punteado gris
-        +'<line x1="'+t(cx)+'" y1="'+t(actY)+'" x2="'+t(cx)+'" y2="'+t(acpY)+'"'
-          +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
-        +'<line x1="'+t(cx-12)+'" y1="'+t(actY+1.5)+'" x2="'+t(cx+12)+'" y2="'+t(actY+1.5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<line x1="'+t(cx-12)+'" y1="'+t(acpY-1.5)+'" x2="'+t(cx+12)+'" y2="'+t(acpY-1.5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<text x="'+t(cx+5)+'" y="'+t(actY+colchon/2+1)+'" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#333">'+distLateral+'m</text>'
+        // COTA AZUL — lado derecho
+        +'<line x1="'+t(cotaX1)+'" y1="'+t(cotaY)+'" x2="'+t(cotaX2)+'" y2="'+t(cotaY)+'"'
+          +' stroke="#000" stroke-width="1.8" stroke-dasharray="4,2"/>'
+        +'<line x1="'+t(cotaX1)+'" y1="'+t(cotaY-7)+'" x2="'+t(cotaX1)+'" y2="'+t(cotaY+7)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<line x1="'+t(cotaX2)+'" y1="'+t(cotaY-7)+'" x2="'+t(cotaX2)+'" y2="'+t(cotaY+7)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<text x="'+t((cotaX1+cotaX2)/2)+'" y="'+t(cotaY-10)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
 
-        // Colchón inferior — punteado gris
-        +'<line x1="'+t(cx)+'" y1="'+t(acpY+acpA)+'" x2="'+t(cx)+'" y2="'+t(actY+actA)+'"'
-          +' stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>'
-        +'<line x1="'+t(cx-12)+'" y1="'+t(acpY+acpA+1.5)+'" x2="'+t(cx+12)+'" y2="'+t(acpY+acpA+1.5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<line x1="'+t(cx-12)+'" y1="'+t(actY+actA-1.5)+'" x2="'+t(cx+12)+'" y2="'+t(actY+actA-1.5)+'" stroke="#555" stroke-width=".9"/>'
-        +'<text x="'+t(cx+5)+'" y="'+t(acpY+acpA+colchon/2+1)+'" dominant-baseline="middle"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#333">'+distLateral+'m</text>'
+        // COTA AZUL — lado izquierdo (simétrico)
+        +'<line x1="'+t(actX)+'" y1="'+t(cotaY)+'" x2="'+t(avX)+'" y2="'+t(cotaY)+'"'
+          +' stroke="#000" stroke-width="1.8" stroke-dasharray="4,2"/>'
+        +'<line x1="'+t(actX)+'" y1="'+t(cotaY-7)+'" x2="'+t(actX)+'" y2="'+t(cotaY+7)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<line x1="'+t(avX)+'" y1="'+t(cotaY-7)+'" x2="'+t(avX)+'" y2="'+t(cotaY+7)+'" stroke="#000" stroke-width="1.3"/>'
+        +'<text x="'+t(actX+(avX-actX)/2)+'" y="'+t(cotaY-10)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">'+metrosCota+'.0m</text>'
 
         // Etiquetas de capa
-        +'<text x="'+t(actX+6)+'" y="'+t(actY+13)+'"'
+        +'<text x="'+t(actX+5)+'" y="'+t(actY+13)+'"'
           +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACT</text>'
-        +'<text x="'+t(acpX+6)+'" y="'+t(acpY+13)+'"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#000" font-weight="bold">ACP</text>'
+        +'<text x="'+t(acpX+5)+'" y="'+t(acpY+13)+'"'
+          +' font-family="Courier New,monospace" font-size="9" fill="#444" font-weight="bold">ACP</text>'
         +'<text x="'+t(cx)+'" y="'+t(cy)+'" text-anchor="middle" dominant-baseline="middle"'
           +' font-family="Courier New,monospace" font-size="8.5" fill="#222" font-weight="bold">AVIÓN</text>'
 
         // Cota L
         +'<line x1="'+t(actX)+'" y1="'+t(actY+actA+14)+'" x2="'+t(actX+actL)+'" y2="'+t(actY+actA+14)+'"'
           +' stroke="#000" stroke-width=".9" marker-start="url(#mab)" marker-end="url(#ma)"/>'
-        +'<text x="'+t(cx)+'" y="'+t(actY+actA+24)+'" text-anchor="middle"'
+        +'<text x="'+t(cx)+'" y="'+t(actY+actA+25)+'" text-anchor="middle"'
           +' font-family="Courier New,monospace" font-size="9.5" fill="#000" font-weight="bold">L='+L+'m</text>'
 
-        // Cota Wf+factorK
+        // Cota ancho ACT
         +'<line x1="'+t(actX+actL+14)+'" y1="'+t(actY)+'" x2="'+t(actX+actL+14)+'" y2="'+t(actY+actA)+'"'
           +' stroke="#000" stroke-width=".9" marker-start="url(#mab)" marker-end="url(#ma)"/>'
         +'<text x="'+t(actX+actL+18)+'" y="'+t(cy)+'" dominant-baseline="middle"'
@@ -2712,20 +2677,7 @@
 
         // Ap + Factor K
         +'<text x="5" y="'+(H-14)+'" font-family="Courier New,monospace" font-size="10" fill="#000" font-weight="bold">Ap='+Ac.toFixed(2)+' m²</text>'
-        +'<text x="5" y="'+(H-3)+'" font-family="Courier New,monospace" font-size="8" fill="#444">Factor K='+factorK+'m · '+distLateral+'m por lado</text>'
-        // Línea de protección lateral — B&N
-        +'<line x1="'+t(avX+avL)+'" y1="'+t(cy)+'" x2="'+t(acpX+acpL)+'" y2="'+t(cy)+'"'
-          +' stroke="#444" stroke-width="1.8" stroke-dasharray="4,2"/>'
-        +'<line x1="'+t(avX+avL)+'" y1="'+t(cy-6)+'" x2="'+t(avX+avL)+'" y2="'+t(cy+6)+'" stroke="#444" stroke-width="1.1"/>'
-        +'<line x1="'+t(acpX+acpL)+'" y1="'+t(cy-6)+'" x2="'+t(acpX+acpL)+'" y2="'+t(cy+6)+'" stroke="#444" stroke-width="1.1"/>'
-        +'<text x="'+t(avX+avL+(acpX+acpL-avX-avL)/2)+'" y="'+t(cy-9)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#222" font-weight="bold">'+((acpA-avA)/2/sc).toFixed(1)+'m</text>'
-        +'<line x1="'+t(acpX)+'" y1="'+t(cy)+'" x2="'+t(avX)+'" y2="'+t(cy)+'"'
-          +' stroke="#444" stroke-width="1.8" stroke-dasharray="4,2"/>'
-        +'<line x1="'+t(acpX)+'" y1="'+t(cy-6)+'" x2="'+t(acpX)+'" y2="'+t(cy+6)+'" stroke="#444" stroke-width="1.1"/>'
-        +'<line x1="'+t(avX)+'" y1="'+t(cy-6)+'" x2="'+t(avX)+'" y2="'+t(cy+6)+'" stroke="#444" stroke-width="1.1"/>'
-        +'<text x="'+t(acpX+(avX-acpX)/2)+'" y="'+t(cy-9)+'" text-anchor="middle"'
-          +' font-family="Courier New,monospace" font-size="9" fill="#222" font-weight="bold">'+((acpA-avA)/2/sc).toFixed(1)+'m</text>'
+        +'<text x="5" y="'+(H-3)+'" font-family="Courier New,monospace" font-size="8" fill="#444">Factor K='+factorK+'m · '+metrosCota+'.0m por lado</text>'
         +'</svg>';
     }
 
