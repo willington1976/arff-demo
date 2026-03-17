@@ -1546,7 +1546,7 @@
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--blue-bright);border:1px solid #1971c2">f</span>
-          <span class="legend-desc">Factor de derrame: <strong style="color:#339af0">12 m</strong> si Wf &lt; 12 m ·
+          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si Wf &lt; 12 m ·
             <strong style="color:#339af0">30 m</strong> si Wf ≥ 12 m (OACI Doc 9137, Parte 1 §2.3.2)</span>
         </div>
       </div>
@@ -1646,7 +1646,7 @@
             <div class="field">
               <label>
                 <span class="var-badge" style="color:var(--blue-bright);border:1px solid var(--blue)">f</span>
-                Factor de derrame
+                Factor K (constante)
                 <span id="f-rule-badge" style="
                 display:inline-flex;align-items:center;gap:4px;
                 background:rgba(51,154,240,.10);border:1px solid rgba(51,154,240,.3);
@@ -1743,7 +1743,7 @@
         </div>
         <div class="breakdown-item">
           <div class="breakdown-val" style="color:var(--blue-bright)" id="break-f">—</div>
-          <div class="breakdown-lbl">Factor (f) <span id="res-f-rule"
+          <div class="breakdown-lbl">Factor K (f) <span id="res-f-rule"
               style="font-size:9px;display:block;color:var(--text-muted);margin-top:2px"></span></div>
         </div>
       </div>
@@ -2199,10 +2199,10 @@
 
       if (Wf < 12) {
         badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
-        noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor de derrame obligatorio: f = 12 m`;
+        noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
       } else {
         badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
-        noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor de derrame obligatorio: f = 30 m`;
+        noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
       }
       badge.style.color = '#2f9e44';
       badge.style.background = 'rgba(47,158,68,.10)';
@@ -2283,8 +2283,8 @@
       document.getElementById('res-f-rule').textContent = fRule;
 
       const normText = Wf < 12
-        ? `Wf = ${Wf} m (< 12 m) — Factor de derrame asignado: f = 12 m obligatorio.`
-        : `Wf = ${Wf} m (≥ 12 m) — Factor de derrame asignado: f = 30 m obligatorio.`;
+        ? `Wf = ${Wf} m (< 12 m) — Factor K (constante) asignado: f = 12 m obligatorio.`
+        : `Wf = ${Wf} m (≥ 12 m) — Factor K (constante) asignado: f = 30 m obligatorio.`;
       document.getElementById('res-norm-text').textContent = normText;
       document.getElementById('res-norm-note').style.display = 'block';
 
@@ -2409,6 +2409,17 @@
 
         <rect x="${acX}" y="${acY}" width="${acW}" height="${acH}"
               fill="rgba(224,49,49,.08)" stroke="#e03131" stroke-width="2" stroke-dasharray="6 4" rx="2"/>
+
+        <!-- Factor K (f) — línea punteada azul que indica el ancho del factor K en el lado derecho -->
+        <line x1="${acX + pW}" y1="${cy}" x2="${acX + pW + fS}" y2="${cy}"
+              stroke="#339af0" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="${acX + pW + fS/2}" y="${cy - 5}" text-anchor="middle"
+              fill="#339af0" font-family="DM Mono,monospace" font-size="8.5">f=${f}m</text>
+        <!-- tick marks at each end of f line -->
+        <line x1="${acX + pW}" y1="${cy - 5}" x2="${acX + pW}" y2="${cy + 5}"
+              stroke="#339af0" stroke-width="1"/>
+        <line x1="${acX + pW + fS}" y1="${cy - 5}" x2="${acX + pW + fS}" y2="${cy + 5}"
+              stroke="#339af0" stroke-width="1"/>
 
         <g stroke="#f76707" stroke-width="1.5" fill="rgba(247,103,7,.12)" stroke-linejoin="round">
           <polygon points="${x0},${y0 + pL*0.35} ${x0 - pL*0.4},${y0 + pL*0.5} ${x0 - pL*0.4},${y0 + pL*0.55} ${x0},${y0 + pL*0.45}"/>
@@ -2545,6 +2556,13 @@
         +'<rect width="'+W+'" height="'+H+'" fill="url(#gbn)"/>'
         +'<rect x="'+tcaX+'" y="'+tcaY+'" width="'+tcaW+'" height="'+tcaH+'" fill="none" stroke="#000" stroke-width="1.5"/>'
         +'<rect x="'+acX+'" y="'+acY+'" width="'+acW+'" height="'+acH+'" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="6,4"/>'
+        // Factor K line — B&N
+        +'<line x1="'+(acX+pW)+'" y1="'+cy+'" x2="'+(acX+pW+fS)+'" y2="'+cy+'"'
+          +' stroke="#555" stroke-width="1.2" stroke-dasharray="4,3"/>'
+        +'<line x1="'+(acX+pW)+'" y1="'+(cy-5)+'" x2="'+(acX+pW)+'" y2="'+(cy+5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<line x1="'+(acX+pW+fS)+'" y1="'+(cy-5)+'" x2="'+(acX+pW+fS)+'" y2="'+(cy+5)+'" stroke="#555" stroke-width=".9"/>'
+        +'<text x="'+(acX+pW+fS/2)+'" y="'+(cy-7)+'" text-anchor="middle"'
+          +' font-family="Courier New,monospace" font-size="8" fill="#444">f='+f+'m</text>'
         +'<g stroke="#000" stroke-width="1.5" fill="none" stroke-linejoin="round">'
           +'<polygon points="'+x0+','+(y0+pL*0.35)+' '+(x0-pL*0.4)+','+(y0+pL*0.5)+' '+(x0-pL*0.4)+','+(y0+pL*0.55)+' '+x0+','+(y0+pL*0.45)+'"/>'
           +'<polygon points="'+(x0+pW)+','+(y0+pL*0.35)+' '+(x0+pW+pL*0.4)+','+(y0+pL*0.5)+' '+(x0+pW+pL*0.4)+','+(y0+pL*0.55)+' '+(x0+pW)+','+(y0+pL*0.45)+'"/>'
