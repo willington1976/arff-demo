@@ -1161,24 +1161,24 @@
                     <div class="mod-card-strip" style="background:linear-gradient(90deg,#c97b00,#f59f00,#ffe066)"></div>
                     <div class="mod-card-body">
                         <div class="mod-card-icon"
-                            style="background:rgba(245,159,0,.1);border:1px solid rgba(245,159,0,.2)">💧</div>
+                            style="background:rgba(245,159,0,.1);border:1px solid rgba(245,159,0,.2);font-size:22px">🔥💧</div>
                         <div class="mod-card-title">Rata de Descarga de Espuma</div>
-                        <div class="mod-card-desc">Determina la tasa de aplicación de espuma requerida por categoría
-                            OACI, concentración y tipo de agente.</div>
+                        <div class="mod-card-desc">Calcula el caudal mínimo requerido de solución espumante (Q = Ac × R) por categoría OACI, tipo de agente (AFFF/FFFP/AR) y concentración nominal. Resultados en L/min y GPM.</div>
                         <div class="mod-card-links">
                             <a href="arff_rata_descarga_espuma.html" class="mod-link"
-                                style="color:#f59f00;border-color:rgba(245,159,0,.3);background:rgba(245,159,0,.06)">Abrir
-                                módulo →</a>
+                                style="color:#f59f00;border-color:rgba(245,159,0,.3);background:rgba(245,159,0,.06)">
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                Abrir módulo
+                            </a>
+                            <span class="mod-link" style="color:#f59f00;border-color:rgba(245,159,0,.2);background:rgba(245,159,0,.04);cursor:default">Cat. 1–10 OACI</span>
+                            <span class="mod-link" style="color:#ffe066;border-color:rgba(255,224,102,.2);background:rgba(255,224,102,.04);cursor:default">Q = Ac × R</span>
                         </div>
                     </div>
                     <div class="mod-card-footer">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
                         </svg>
-                        OACI Doc 9137 · NFPA 403-2018
+                        OACI Doc 9137 · RAC 14 § 311 · NFPA 403-2018 · MÓDULO 02
                     </div>
                 </div>
 
@@ -1467,17 +1467,4 @@
 
         /* ==================================================
            SIDEBAR MOBILE
-        ================================================== */
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sb-overlay').classList.toggle('show');
-        }
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sb-overlay').classList.remove('show');
-        }
-    </script>
-
-</body>
-
-</html>
+        
