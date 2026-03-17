@@ -2370,13 +2370,22 @@
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
 
-      // ── Centro fijo y escala fija ──
+      // ── Centro fijo ──
       const centerX = 150, centerY = 125;
-      const escala  = 3.5;
 
       // ── Factor K binario por longitud ──
       const factorK    = (L >= 28) ? 30 : 12;
       const metrosCota = factorK / 2;          // exactamente 6 o 15
+
+      // ── Escala DINÁMICA — garantiza que el ACT siempre sea legible ──
+      // El ACT debe ocupar como máximo el 80% del canvas en cada eje
+      // Canvas: 300×250, márgenes: 30px horizontal, 40px vertical
+      const maxW = 300 - 60;   // 240px disponibles para el largo (L)
+      const maxH = 250 - 80;   // 170px disponibles para el ancho (Wf+factorK)
+      const scalaL = maxW / L;
+      const scalaA = maxH / (Wf + factorK);
+      // Tomamos la menor para que quepa todo, con un mínimo de 4px para legibilidad
+      const escala = Math.max(Math.min(scalaL, scalaA), 4);
 
       // ── Dimensiones en px ──
       const lAvion = L   * escala;             // largo avión
@@ -2384,13 +2393,17 @@
       const wACT   = (Wf + factorK) * escala;  // ancho ACT
       const wACP   = wACT * 0.66;             // ancho ACP = 66% ACT
 
+      // ── Garantía de ancho mínimo visible para el avión ──
+      const wAvionMin = Math.max(wAvion, 8);   // al menos 8px de alto visible
+      const avYadj = centerY - wAvionMin / 2;  // ajuste si wAvion era muy pequeño
+
       // ── Posiciones centradas en (centerX, centerY) ──
       // ACT
       const actX = centerX - lAvion / 2,  actY = centerY - wACT / 2;
       // ACP
       const acpX = centerX - lAvion / 2,  acpY = centerY - wACP / 2;
-      // Avión
-      const avX  = centerX - lAvion / 2,  avY  = centerY - wAvion / 2;
+      // Avión (usa wAvionMin para el dibujo, wAvion para las cotas)
+      const avX  = centerX - lAvion / 2,  avY  = centerY - wAvionMin / 2;
 
       // ── Cotas verticales: x fijo en borde avión, y recorre ACP ──
 
@@ -2421,9 +2434,9 @@
           stroke-width="1.6" rx="2"/>
 
     <!-- ══ CAPA 3 — Avión: blanco, centrado exacto ══ -->
-    <rect x="${avX}" y="${avY}" width="${lAvion}" height="${wAvion}"
+    <rect x="${avX}" y="${avY}" width="${lAvion}" height="${wAvionMin}"
           fill="rgba(220,228,244,.94)" stroke="#94a8cc"
-          stroke-width="1.8" rx="${wAvion * 0.36}"/>
+          stroke-width="1.8" rx="${wAvionMin * 0.36}"/>
     <!-- Eje longitudinal — única línea interior del avión -->
     <line x1="${avX + lAvion * 0.05}" y1="${centerY}"
           x2="${avX + lAvion * 0.95}" y2="${centerY}"
@@ -2584,18 +2597,24 @@
 
     /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
     function _svgBN(L, Wf, f, Ac) {
-      var cx=150, cy=125, esc=3.5;
+      var cx=150, cy=125;
       var factorK    = (L >= 28) ? 30 : 12;
       var metrosCota = factorK / 2;
+
+      // Escala dinámica — mismo criterio que drawDiagram
+      var scalaL = 240 / L;
+      var scalaA = 170 / (Wf + factorK);
+      var esc    = Math.max(Math.min(scalaL, scalaA), 4);
 
       var lAv  = L   * esc;
       var wAv  = Wf  * esc;
       var wACT = (Wf + factorK) * esc;
       var wACP = wACT * 0.66;
+      var wAvMin = Math.max(wAv, 8);
 
       var actX=cx-lAv/2,  actY=cy-wACT/2;
       var acpX=cx-lAv/2,  acpY=cy-wACP/2;
-      var avX =cx-lAv/2,  avY =cy-wAv/2;
+      var avX =cx-lAv/2,  avY =cy-wAvMin/2;
 
 
       function t(n){ return n.toFixed(1); }
@@ -2624,8 +2643,8 @@
           +' fill="#e8e8e8" stroke="#555" stroke-width="1.4" rx="2"/>'
 
         // CAPA 3 — Avión blanco
-        +'<rect x="'+t(avX)+'" y="'+t(avY)+'" width="'+t(lAv)+'" height="'+t(wAv)+'"'
-          +' fill="#fff" stroke="#000" stroke-width="1.8" rx="'+t(wAv*0.36)+'"/>'
+        +'<rect x="'+t(avX)+'" y="'+t(avY)+'" width="'+t(lAv)+'" height="'+t(wAvMin)+'"'
+          +' fill="#fff" stroke="#000" stroke-width="1.8" rx="'+t(wAvMin*0.36)+'"/>'
         // Eje longitudinal
         +'<line x1="'+t(avX+lAv*0.05)+'" y1="'+cy+'" x2="'+t(avX+lAv*0.95)+'" y2="'+cy+'"'
           +' stroke="#aaa" stroke-width=".7" stroke-dasharray="5,3"/>'
