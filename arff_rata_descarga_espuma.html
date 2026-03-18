@@ -566,7 +566,7 @@
       line-height: 1.3;
     }
 
-    .rate-pill[data-rate="4.1"] .rp-val {
+    .rate-pill[data-rate="3.75"] .rp-val {
       color: var(--rate-4);
     }
 
@@ -574,7 +574,7 @@
       color: var(--rate-5);
     }
 
-    .rate-pill[data-rate="6.5"] .rp-val {
+    .rate-pill[data-rate="8.2"] .rp-val {
       color: var(--rate-6);
     }
 
@@ -1311,7 +1311,7 @@
         </p>
         <div class="module-meta">
           <div class="meta-chip"><span class="dot" style="background:var(--cyan)"></span>Fórmula Q = Ac × R</div>
-          <div class="meta-chip"><span class="dot" style="background:var(--green)"></span>ICAO Rates: 4.1 / 5.5 / 6.5
+          <div class="meta-chip"><span class="dot" style="background:var(--green)"></span>OACI §2.3.5: Nivel A=8.2 / B=5.5 / C=3.75 L/min/m²
             L/min/m²</div>
           <div class="meta-chip"><span class="dot" style="background:var(--amber)"></span>AFFF / AR-AFFF / FFFP</div>
           <div class="meta-chip"><span class="dot" style="background:var(--blue-bright)"></span>Equivalencias de tanque
@@ -1406,20 +1406,26 @@
                 Tasa de aplicación — seleccione según agente extintor
               </div>
               <div class="rate-pills" style="grid-template-columns: repeat(3, 1fr);">
-                <div class="rate-pill" data-rate="3.7" onclick="selectRate(this)">
-                  <span class="rp-val">3.7</span>
+                <!-- Nivel C = menor eficacia → más agua requerida. Doc 9137 §2.3.5 -->
+                <div class="rate-pill" data-rate="3.75" onclick="selectRate(this)">
+                  <span class="rp-val">3.75</span>
                   <span class="rp-unit">L/min/m²</span>
                   <span class="rp-label">Nivel C</span>
+                  <span class="rp-norm">Cat. 1–5 · Proteínica</span>
                 </div>
+                <!-- Nivel B = eficacia media. Doc 9137 §2.3.5 -->
                 <div class="rate-pill selected" data-rate="5.5" onclick="selectRate(this)">
                   <span class="rp-val">5.5</span>
                   <span class="rp-unit">L/min/m²</span>
                   <span class="rp-label">Nivel B</span>
+                  <span class="rp-norm">Cat. 6–9 · AFFF / AR-AFFF</span>
                 </div>
+                <!-- Nivel A = mayor eficacia → menos agua requerida. Doc 9137 §2.3.5 -->
                 <div class="rate-pill" data-rate="8.2" onclick="selectRate(this)">
                   <span class="rp-val">8.2</span>
                   <span class="rp-unit">L/min/m²</span>
                   <span class="rp-label">Nivel A</span>
+                  <span class="rp-norm">Cat. 10 / H · FFFP / AR</span>
                 </div>
               </div>
               <span class="field-error" id="err-rate">⚠ Seleccione o ingrese una tasa válida</span>
@@ -1429,15 +1435,15 @@
                 <div class="icao-rate-select-label">Selección de Nivel de Eficacia (OACI)</div>
 
                 <select id="icao-rate-select" class="icao-select" onchange="onSelectRate(this)">
-                  <option value="">— Seleccione nivel de espuma OACI —</option>
-                  <option value="3.7">3.7 L/min/m² · Nivel C</option>
-                  <option value="5.5">5.5 L/min/m² · Nivel B</option>
-                  <option value="8.2">8.2 L/min/m² · Nivel A</option>
+                  <option value="">— Seleccione nivel de espuma OACI (Doc 9137 §2.3.5) —</option>
+                  <option value="3.75">3.75 L/min/m² · Nivel C — Espuma proteínica · Cat. 1–5</option>
+                  <option value="5.5">5.5 L/min/m² · Nivel B — AFFF al 3% / AR-AFFF · Cat. 6–9</option>
+                  <option value="8.2">8.2 L/min/m² · Nivel A — FFFP / AR máximo · Cat. 10 / H</option>
                 </select>
 
                 <!-- Validation warning if pills disagree with dropdown -->
                 <div class="icao-select-warn" id="icao-select-warn">
-                  ⚠ Valor fuera del rango normativo OACI Doc 9137 — use 3.7, 5.5 o 8.2
+                  ⚠ Valor fuera del rango normativo OACI Doc 9137 §2.3.5 — use 3.75, 5.5 o 8.2
                 </div>
 
                 <!-- Info card -->
@@ -1718,38 +1724,26 @@
     </div>
 
     <div class="section">
-      <div class="section-title">Marco Normativo — Niveles de Espuma OACI</div>
+      <div class="section-title">Marco Normativo — Niveles de Eficacia de Espuma · OACI Doc 9137 §2.3.5</div>
       <div class="norm-grid">
 
-        <div class="norm-card">
-          <div class="norm-card-head">
-            <div class="panel-icon" style="background:rgba(116,192,252,.12)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#74c0fc" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/>
-              </svg>
-            </div>
-            <span class="panel-title" style="color:#74c0fc">3.7 L/min/m² · Nivel C</span>
-          </div>
-          <div class="norm-card-body">
-            <strong style="color:var(--text)">Mínimo OACI — Cat. 1–5</strong><br>
-            Tasa mínima normativa para aeródromos de categorías bajas con aeronaves ligeras.
-            OACI Doc 9137 §2.3.3 Tabla 2-1. Piso normativo para operaciones de aviación general.
-          </div>
-        </div>
+        <!-- CLAVE: A mayor eficacia de la espuma → MENOS agua requerida (tasa más baja) -->
 
         <div class="norm-card">
           <div class="norm-card-head">
-            <div class="panel-icon" style="background:rgba(47,158,68,.12)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            <div class="panel-icon" style="background:rgba(224,49,49,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                <path d="M12 2c0 0-6 4-6 9a6 6 0 0 0 12 0c0-5-6-9-6-9z" /><path d="M12 17v4M8 21h8" />
               </svg>
             </div>
-            <span class="panel-title" style="color:var(--green)">4.1 L/min/m² · Nivel B</span>
+            <span class="panel-title" style="color:var(--red)">8.2 L/min/m² · Nivel A — Mayor eficacia</span>
           </div>
           <div class="norm-card-body">
-            <strong style="color:var(--text)">AFFF al 3% — Cat. 1–6</strong><br>
-            Tasa estándar para espumas proteínicas fluoradas (AFFF) al 3%.
-            OACI Doc 9137 §2.3.3 Tabla 2-2. Requiere alta presión y certificación ARFF Nivel 3.
+            <strong style="color:var(--text)">FFFP / AR-FFFP — Cat. 10 / H</strong><br>
+            Espumas de <strong>mayor eficacia</strong> (formadoras de película, oleófobas).
+            Por su alto poder extintor se requiere <em>menos agua</em> (8.2 L/min/m²).
+            Extinguen 2.8 m² de keroseno en ≤ 60 s. Q2 = 190% de Q1 (§2.4.10).
+            Ref: OACI Doc 9137 §2.3.5 · Tabla 8-1 · §8.1.1d.
           </div>
         </div>
 
@@ -1760,28 +1754,50 @@
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </div>
-            <span class="panel-title" style="color:var(--amber)">5.5 L/min/m² · Nivel B</span>
+            <span class="panel-title" style="color:var(--amber)">5.5 L/min/m² · Nivel B — Eficacia media</span>
           </div>
           <div class="norm-card-body">
-            <strong style="color:var(--text)">AR-AFFF — Cat. 7–9</strong><br>
-            Tasa estándar para espumas resistentes al alcohol (AR-AFFF).
-            Recomendada para aeronaves de fuselaje ancho. Compatible con Jet A-1 y mezclas alcohólicas.
+            <strong style="color:var(--text)">AFFF al 3% / AR-AFFF — Cat. 6–9</strong><br>
+            Espumas formadoras de película acuosa. Eficacia intermedia.
+            Extinguen 4.5 m² de keroseno en ≤ 60 s.
+            Q2 varía: Cat. 6 = 100%, Cat. 7 = 129%, Cat. 8 = 152%, Cat. 9 = 170% de Q1 (§2.4.10).
+            Ref: OACI Doc 9137 §2.3.5 · Tabla 8-1 · §8.1.1b.
           </div>
         </div>
 
         <div class="norm-card">
           <div class="norm-card-head">
-            <div class="panel-icon" style="background:rgba(224,49,49,.12)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
-                <path d="M12 2c0 0-6 4-6 9a6 6 0 0 0 12 0c0-5-6-9-6-9z" /><path d="M12 17v4M8 21h8" />
+            <div class="panel-icon" style="background:rgba(116,192,252,.12)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#74c0fc" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/>
               </svg>
             </div>
-            <span class="panel-title" style="color:var(--red)">6.5 L/min/m² · Nivel A</span>
+            <span class="panel-title" style="color:#74c0fc">3.75 L/min/m² · Nivel C — Menor eficacia</span>
           </div>
           <div class="norm-card-body">
-            <strong style="color:var(--text)">FFFP / AR máximo — Cat. 10 / H</strong><br>
-            Tasa máxima para formadores de película proteínica (FFFP) y aeronaves super-jumbo
-            o helicópteros. NFPA 403 §5.3.2 tasa de diseño para vehículos ARFF de primera intervención.
+            <strong style="color:var(--text)">Espuma proteínica convencional — Cat. 1–5</strong><br>
+            Espumas de <strong>menor eficacia</strong>: por eso necesitan <em>más agua</em> (3.75 L/min/m²) para controlar el mismo incendio.
+            Extinguen 7.32 m² de keroseno en ≤ 60 s.
+            Q2 varía: Cat. 1 = 0%, Cat. 3 = 30%, Cat. 5 = 75% de Q1 (§2.4.10).
+            Ref: OACI Doc 9137 §2.3.5 · Tabla 8-1 · §8.1.1a.
+          </div>
+        </div>
+
+        <div class="norm-card" style="border-color:rgba(11,197,234,.3);background:rgba(11,197,234,.04)">
+          <div class="norm-card-head">
+            <div class="panel-icon" style="background:rgba(11,197,234,.15)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <span class="panel-title" style="color:var(--cyan)">Q2 variable por categoría — §2.4.10</span>
+          </div>
+          <div class="norm-card-body">
+            <strong style="color:var(--text)">Q2 NO es siempre el 50% de Q1</strong><br>
+            El Doc 9137 §2.4.10 establece Q2 como porcentaje de Q1 según categoría:<br>
+            Cat.1=0% · Cat.2=27% · Cat.3=30% · Cat.4=58% · Cat.5=75%<br>
+            Cat.6=100% · Cat.7=129% · Cat.8=152% · Cat.9=170% · Cat.10=190%<br>
+            <em>Qt real = Q1 × (1 + k₂)</em> según categoría del aeródromo.
           </div>
         </div>
 
@@ -1811,29 +1827,63 @@
 ═══════════════════════════════════════════ -->
   <script>
     /* ─── STATE ─────────────────────────────── */
-    let selectedRate = 5.5;
+    let selectedRate = 5.5;   // Nivel B por defecto (Cat 6-9, más frecuente en Colombia)
     let calcHistory = [];
     let importedAp = null;   // Área Crítica Práctica importada del Módulo 01
 
-    /* ─── ICAO RATE CONFIG ──────────────────── */
-    // Q2 = 50% de Q1 según OACI Doc 9137 §2.3.4 para enfriamiento complementario
+    /* ─── RATE CONFIG (Doc 9137 §2.3.5 + §2.4.10) ────────────────────
+       Tasas de aplicación (L/min/m²):
+         Nivel A = 8.2  (mayor eficacia, espumas FFFP/AR: extinguen 2.8 m²)
+         Nivel B = 5.5  (eficacia media, AFFF/AR-AFFF: extinguen 4.5 m²)
+         Nivel C = 3.75 (menor eficacia, proteínicas: extinguen 7.32 m²)
+       NOTA: A mayor eficacia de la espuma → MENOS agua requerida.
+             Nivel A es el MEJOR agente, no el peor.
+
+       Q2 como % de Q1 por categoría (§2.4.10):
+         Cat 1=0%, Cat 2=27%, Cat 3=30%, Cat 4=58%, Cat 5=75%,
+         Cat 6=100%, Cat 7=129%, Cat 8=152%, Cat 9=170%, Cat 10=190%
+       q2Factor almacena el valor de la categoría actual (se actualiza dinámicamente)
+    ─────────────────────────────────────────────────────────────────── */
+    const Q2_POR_CATEGORIA = {
+      1: 0.00, 2: 0.27, 3: 0.30, 4: 0.58, 5: 0.75,
+      6: 1.00, 7: 1.29, 8: 1.52, 9: 1.70, 10: 1.90
+    };
+
     const RATE_CONFIG = {
-      3.7: {
-        color: '#74c0fc', label: 'Nivel C',
-        agent: 'Espuma Nivel C', cats: 'Eficacia Alta', norm: 'OACI Doc 9137',
-        q2Factor: 0.5
+      3.75: {
+        color: '#74c0fc',
+        label: 'Nivel C — Espuma proteínica',
+        agent: 'Espuma proteínica (Nivel C)',
+        cats: 'Cat. 1–5',
+        norm: 'OACI Doc 9137 §2.3.5 Tabla 2-3',
+        q2Factor: 0.30   // default Cat 3 — se recalcula según categoría
       },
       5.5: {
-        color: '#2f9e44', label: 'Nivel B',
-        agent: 'Espuma Nivel B', cats: 'Eficacia Media', norm: 'OACI Doc 9137',
-        q2Factor: 0.5
+        color: '#f59f00',
+        label: 'Nivel B — AFFF / AR-AFFF',
+        agent: 'AFFF al 3% / AR-AFFF (Nivel B)',
+        cats: 'Cat. 6–9',
+        norm: 'OACI Doc 9137 §2.3.5 Tabla 2-3',
+        q2Factor: 1.29   // default Cat 7 — se recalcula según categoría
       },
       8.2: {
-        color: '#e03131', label: 'Nivel A',
-        agent: 'Espuma Nivel A', cats: 'Eficacia Normal', norm: 'OACI Doc 9137',
-        q2Factor: 0.5
+        color: '#e03131',
+        label: 'Nivel A — FFFP / AR (máxima eficacia)',
+        agent: 'FFFP / AR-FFFP (Nivel A)',
+        cats: 'Cat. 10 / H',
+        norm: 'OACI Doc 9137 §2.3.5 Tabla 2-3',
+        q2Factor: 1.90   // default Cat 10 — se recalcula según categoría
       }
     };
+
+    /* Actualiza el q2Factor del RATE_CONFIG cuando se conoce la categoría */
+    function actualizarQ2Factor(catNum) {
+      const k2 = Q2_POR_CATEGORIA[catNum] !== undefined
+                 ? Q2_POR_CATEGORIA[catNum]
+                 : Q2_POR_CATEGORIA[10];
+      Object.values(RATE_CONFIG).forEach(cfg => { cfg.q2Factor = k2; });
+      return k2;
+    }
 
     /* Tank reference volumes (L) */
     const TANKS = [
@@ -1845,22 +1895,35 @@
       { label: 'NAFFCO 6x6',   vol: 5678,  icon: '🚒' },  // 1500 gal — Godiva/Hale
     ];
 
-    /* ─── ICAO RATE INFO ─────────────────────── */
+    /* ─── RATE INFO (Doc 9137 §2.3.5 + Cap. 8) ────────────────────── */
     const ICAO_RATE_DETAIL = {
-      3.7: {
+      3.75: {
         color: '#74c0fc',
-        norm: 'OACI Doc 9137 · Tasa Operativa',
-        body: '<strong>Nivel C — Eficacia Alta</strong> · Tasa de aplicación operativa para espumas nivel C. Es la espuma de más alto rendimiento, por lo cual demanda menor flujo de agua por metro cuadrado.'
+        norm: 'OACI Doc 9137 §2.3.5 · Tabla 8-1 (Nivel C)',
+        body: '<strong>Nivel C — Espuma proteínica convencional</strong> · ' +
+          'Tasa <em>más alta</em> (3.75 L/min/m²) porque este tipo de espuma es la de <strong>menor eficacia</strong> ' +
+          'extintora. Requiere más agua para compensar su menor poder de película. ' +
+          'Ensayo de referencia: extingue 7.32 m² de keroseno en ≤ 60 s (§8.1.5 Tabla 8-1). ' +
+          'Aplicable en aeródromos Cat. 1–5 con espumas proteínicas o fluoroproteínicas convencionales.'
       },
       5.5: {
-        color: '#2f9e44',
-        norm: 'OACI Doc 9137 · Tasa Operativa',
-        body: '<strong>Nivel B — Eficacia Media</strong> · Tasa de aplicación operativa estándar para espumas formadoras de película acuosa (AFFF / FFFP). Corresponde al uso más masivo y estandarizado en la industria aeronáutica a nivel mundial.'
+        color: '#f59f00',
+        norm: 'OACI Doc 9137 §2.3.5 · Tabla 8-1 (Nivel B)',
+        body: '<strong>Nivel B — AFFF al 3% / AR-AFFF</strong> · ' +
+          'Tasa intermedia (5.5 L/min/m²): espumas formadoras de película acuosa (AFFF) y resistentes al alcohol (AR-AFFF) ' +
+          'con eficacia media. Forman película sobre el combustible que suprime vapores. ' +
+          'Ensayo: extingue 4.5 m² de keroseno en ≤ 60 s (§8.1.5 Tabla 8-1). ' +
+          'Q2 varía entre 100% (Cat. 6) y 170% (Cat. 9) según §2.4.10.'
       },
       8.2: {
         color: '#e03131',
-        norm: 'OACI Doc 9137 · Tasa Operativa',
-        body: '<strong>Nivel A — Eficacia Normal</strong> · Tasa de aplicación operativa exigida para espumas proteínicas convencionales. Al ser el compuesto de menor eficacia, requiere el mayor flujo de agua para garantizar extinción.'
+        norm: 'OACI Doc 9137 §2.3.5 · Tabla 8-1 (Nivel A)',
+        body: '<strong>Nivel A — FFFP / AR-FFFP (mayor eficacia)</strong> · ' +
+          'Tasa <em>más baja</em> (8.2 L/min/m²) porque este es el agente de <strong>mayor eficacia</strong>: ' +
+          'menos agua necesaria para controlar el mismo incendio. Las espumas FFFP forman película ' +
+          'y tienen propiedades oleófobas que se rehacen tras ruptura mecánica (§8.1.1d). ' +
+          'Ensayo: extingue 2.8 m² en ≤ 60 s — el fuego más exigente (§8.1.5 Tabla 8-1). ' +
+          'Aplicable Cat. 10 / H con Q2 = 190% de Q1 según §2.4.10.'
       }
     };
 
@@ -1905,10 +1968,21 @@
         document.getElementById('ap-display-val').textContent = apVal.toFixed(2);
         document.getElementById('inp-ac').value = apVal;
 
-        /* 4. Auto-seleccionar tasa según categoría OACI */
+        /* 4. Auto-seleccionar tasa según categoría OACI (Doc 9137 §2.3.5)
+              y actualizar Q2 según §2.4.10 */
         if (catVal) {
           const catNum = parseInt(catVal);
-          let autoRate = 5.5; // Por defecto asumimos Nivel B (lo más común)
+
+          // Tasa por nivel de eficacia según rango de categorías:
+          // Cat 1–5 → Nivel C (3.75), Cat 6–9 → Nivel B (5.5), Cat 10 / H → Nivel A (8.2)
+          let autoRate;
+          if (catNum <= 5)       autoRate = 3.75;
+          else if (catNum <= 9)  autoRate = 5.5;
+          else                   autoRate = 8.2;
+
+          // Actualizar Q2 factor según categoría (§2.4.10)
+          actualizarQ2Factor(catNum);
+          window.currentCatNum = catNum;
 
           selectedRate = autoRate;
           document.querySelectorAll('.rate-pill').forEach(p => {
@@ -1962,7 +2036,7 @@
 
     function onSelectRate(sel) {
       const v = parseFloat(sel.value);
-      const VALID = [3.7, 5.5, 8.2];
+      const VALID = [3.75, 5.5, 8.2];
 
       sel.classList.remove('error');
       document.getElementById('icao-select-warn').classList.remove('show');
@@ -2319,13 +2393,22 @@
       const tbody = document.getElementById('result-tbody');
       tbody.innerHTML = '';
 
-      const rates = [3.7, 4.1, 5.5, 6.5];
+      // Las 3 tasas exactas del Doc 9137 §2.3.5
+      const rates = [3.75, 5.5, 8.2];
+      // Categoría actual para determinar Q2 correcto (§2.4.10)
+      const catActual = window.currentCatNum || 6;  // Cat 6 como default neutro
+
       rates.forEach(r => {
-        const Q1 = ac * r;
-        const Q2 = Q1 * 0.5;
-        const Qt = Q1 + Q2;
-        const cfg = RATE_CONFIG[r] || { color: '#339af0', agent: `${r}`, cats: '—' };
+        const cfg      = RATE_CONFIG[r] || { color: '#339af0', agent: `${r} L/min/m²`, cats: '—' };
+        const Q1       = ac * r;
+        // Q2 según categoría actual (Doc 9137 §2.4.10) — NO siempre 50%
+        const k2       = Q2_POR_CATEGORIA[catActual] !== undefined
+                         ? Q2_POR_CATEGORIA[catActual]
+                         : 1.00;
+        const Q2       = Q1 * k2;
+        const Qt       = Q1 + Q2;
         const isActive = Math.abs(r - selectedR) < 0.01;
+        const k2pct    = Math.round(k2 * 100);
 
         tbody.insertAdjacentHTML('beforeend', `
       <tr class="${isActive ? 'active-row' : ''}">
@@ -2340,7 +2423,10 @@
           <span style="font-size:9.5px;color:var(--text-muted);margin-left:6px">${cfg.cats}</span>
         </td>
         <td class="${isActive ? 'td-q-hi' : 'td-q'}">${Q1.toFixed(1)}</td>
-        <td class="${isActive ? 'td-q-hi' : 'td-q'}" style="color:var(--blue-bright)">${Q2.toFixed(1)}</td>
+        <td class="${isActive ? 'td-q-hi' : 'td-q'}" style="color:var(--blue-bright)">
+          ${Q2.toFixed(1)}
+          <span style="font-size:8.5px;color:var(--text-muted);display:block">(${k2pct}% de Q₁)</span>
+        </td>
         <td class="${isActive ? 'td-q-hi' : 'td-q'}" style="color:var(--orange)">${Qt.toFixed(1)}</td>
         <td>${(Qt / 1000).toFixed(3)}</td>
         <td>${(Qt / 60).toFixed(2)}</td>
