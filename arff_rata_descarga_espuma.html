@@ -1234,22 +1234,183 @@
     /* ═══════════════════════════════════════════
    MOBILE ADJUSTMENTS
 ═══════════════════════════════════════════ */
-    @media (max-width: 500px) {
-      .result-big {
-        font-size: 40px;
+    /* ════════════════════ @media print ════════════════════
+       Configuración PDF Nativa (Estilo Doc 9137)
+       Mismo estándar gráfico que el Módulo de Área Crítica
+    ════════════════════════════════════════════════════ */
+    @media print {
+      @page { size: A4 landscape; margin: 7mm 8mm; }
+
+      :root {
+        --bg:#fff; --panel:#fff; --panel2:#f6f6f6; --panel3:#f0f0f0;
+        --border:#ccc; --border2:#bbb;
+        --red:#c00; --red-dim:#900; --red-glow:transparent;
+        --orange:#b84d00; --orange-dim:#883500; --orange-glow:transparent;
+        --amber:#8a5200; --green:#175c28; --blue:#0b3e80; --blue-bright:#0b3e80;
+        --cyan:#0b92ea; --cyan-dim:#0b92ea;
+        --text:#000; --text-dim:#222; --text-muted:#555;
+        --radius:3px; --radius-sm:2px;
       }
 
-      .breakdown-grid {
-        grid-template-columns: repeat(3, 1fr);
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
       }
 
-      .module-title {
-        font-size: 20px;
+      html, body {
+        background: #fff !important;
+        background-image: none !important;
+        color: #000 !important;
+        font-size: 8.5pt !important;
+        line-height: 1.35 !important;
+        margin: 0 !important; padding: 0 !important;
+        width: 100% !important;
       }
 
-      .formula-main {
-        font-size: 20px;
+      /* 1. Ocultar UI que no va en el PDF */
+      nav, .fab, .fab-btn, .fab-tooltip,
+      .btn-calc, .toast, .ac-dropdown,
+      #icao-select-warn { display: none !important; }
+
+      /* Elementos no necesarios */
+      .panel-icon { display: none !important; }
+
+      /* 2. Contenedor general */
+      .page { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+      /* ── Encabezado ── */
+      .module-header {
+        background: #fff !important;
+        border: 1px solid #999 !important;
+        border-radius: 3px !important;
+        margin-bottom: 5pt !important;
+        page-break-inside: avoid !important;
       }
+      .module-strip { height: 3px !important; background: #000 !important; }
+      .module-head-inner { padding: 4pt 7pt 3pt !important; }
+      .module-eyebrow { font-size: 6.5pt !important; color: #555 !important; margin-bottom: 1pt !important; }
+      .module-title { font-size: 13pt !important; color: #000 !important; margin-bottom: 1pt !important; }
+      .module-subtitle { font-size: 7pt !important; color: #444 !important; }
+      
+      .meta-chip {
+        background: #f0f0f0 !important; border: 1px solid #aaa !important;
+        color: #333 !important; font-size: 6.5pt !important;
+        padding: 1pt 4pt !important; border-radius: 2px !important;
+      }
+      .meta-chip .dot { width: 5px !important; height: 5px !important; }
+
+      /* ── Barra de Fórmula ── */
+      .formula-bar {
+        background: #fff !important;
+        border: 1pt solid #000 !important; border-left: 3pt solid #000 !important;
+        border-radius: 2px !important;
+        padding: 4pt 8pt !important; margin-bottom: 5pt !important;
+        gap: 10pt !important; flex-wrap: nowrap !important;
+        page-break-inside: avoid !important;
+      }
+      .formula-main { font-size: 13pt !important; color: #000 !important; white-space: nowrap !important; }
+      .formula-main span { text-shadow: none !important; }
+      
+      .fdef { gap: 3pt !important; min-width: 80pt !important; }
+      .fdef-var { font-size: 7pt !important; background: #eee !important; color: #000 !important; border-color: #999 !important; padding: 0 3pt !important; }
+      .fdef-desc { font-size: 6.5pt !important; color: #333 !important; }
+
+      /* ── Grilla ── */
+      .main-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 5pt !important; margin-bottom: 5pt !important;
+        page-break-inside: avoid !important;
+      }
+
+      /* ── Paneles ── */
+      .panel {
+        background: #fff !important; border: 1pt solid #999 !important;
+        border-radius: 2px !important; overflow: hidden !important;
+        page-break-inside: avoid !important;
+      }
+      .panel-head {
+        background: #efefef !important; border-bottom: 1pt solid #ccc !important;
+        padding: 2.5pt 6pt !important; color: #000 !important;
+      }
+      .panel-title { font-size: 7pt !important; font-weight: 700 !important; }
+      .panel-body { padding: 5pt 7pt !important; }
+
+      /* ── Formulario ── */
+      .field > label { font-size: 6.5pt !important; color: #555 !important; margin-bottom: 1pt !important; }
+      .var-pill { border: none !important; font-size: 6.5pt !important; background: #eee !important; color: #000 !important; border-color: #999 !important; padding: 0 2pt !important; }
+      .input-wrap { display: flex !important; background: #fafafa !important; border: 1pt solid #ccc !important; }
+      input, select { background: transparent !important; border: none !important; color: #000 !important; font-size: 10pt !important; font-family: 'DM Mono',monospace !important; padding: 2pt 5pt !important; }
+      .input-unit { background: #ebebeb !important; color: #444 !important; border-left: 1pt solid #ccc !important; padding: 2pt 4pt !important; font-size: 7pt !important; }
+
+      /* Selector Tasa */
+      .rate-pills { grid-template-columns: repeat(3, 1fr) !important; gap: 3pt !important; }
+      .rate-pill { border: 1pt solid #ccc !important; background: #fff !important; padding: 3pt !important; }
+      .rate-pill.selected { border: 1.5pt solid #000 !important; background: #f0f0f0 !important; }
+      .rp-val { font-size: 11pt !important; color: #000 !important; }
+      .rp-unit { font-size: 6pt !important; }
+      .rp-label { font-size: 6.5pt !important; color: #333 !important; }
+      .rp-norm { font-size: 6pt !important; color: #666 !important; }
+
+      /* ── Resultados (Derecha) ── */
+      .result-hero { background: #f6f6f6 !important; border: 1pt solid #ddd !important; padding: 6pt !important; }
+      .result-lbl { font-size: 7.5pt !important; color: #555 !important; }
+      .result-big { font-size: 26pt !important; color: #000 !important; text-shadow: none !important; }
+      .result-sub { font-size: 8pt !important; color: #333 !important; }
+
+      /* ── Q1 Q2 Qt Cards ── */
+      .result-panel > div[style*="border-top"] > div { /* Las tarjetas Q1, Q2, Qt */
+        background: #fff !important; border: 1pt solid #999 !important;
+        border-left: 3pt solid #000 !important; padding: 4pt 6pt !important; gap: 4pt !important;
+      }
+      .result-panel > div[style*="border-top"] > div > div:last-child > div { font-size: 14pt !important; color: #000 !important; text-shadow: none !important; }
+
+      /* ── Semáforo SEI ── */
+      #sei-compliance-panel { border-color: #555 !important; background: #fafafa !important; margin: 4pt 6pt !important; }
+      #sei-compliance-panel > div:first-child { border-bottom: 1pt solid #ccc !important; }
+      #sei-message, #sei-message * { color: #000 !important; }
+      #sei-badge { border: 1pt solid #ccc !important; background: #eee !important; color: #000 !important; }
+
+      /* ── Tabla Resumen (Página 2) ── */
+      .section-title { font-size: 7.5pt !important; color: #000 !important; font-weight: 700 !important; background: #eee !important; padding: 2pt 4pt !important; border: 1pt solid #ccc !important; }
+      .table-container { background: transparent !important; padding: 0 !important; text-shadow: none !important; border: none !important; }
+      table { border-collapse: collapse !important; border: 1pt solid #000 !important; }
+      thead { background: #eee !important; }
+      th { color: #000 !important; border: 1pt solid #000 !important; padding: 2pt 3pt !important; font-size: 6.5pt !important; }
+      td { color: #000 !important; border: 1pt solid #999 !important; padding: 2pt 3pt !important; font-size: 7.5pt !important; }
+      tr.active-row td { background: #f0f0f0 !important; font-weight: bold !important; border: 1pt solid #000 !important; }
+      
+      /* ── Normativa Grid (Página 2) ── */
+      .norm-grid { grid-template-columns: 1fr 1fr 1fr 1fr !important; gap: 4pt !important; }
+      .norm-card { border: 1pt solid #aaa !important; background: #fff !important; }
+      .norm-card-head { background: #eee !important; border-bottom: 1pt solid #ccc !important; padding: 3pt 4pt !important; }
+      .norm-card-head span.panel-title { color: #000 !important; font-size: 6.5pt !important; }
+      .norm-card-body { font-size: 6.5pt !important; padding: 4pt !important; color: #333 !important; }
+      .norm-card-body strong { color: #000 !important; }
+
+      /* Footer SEI para impresión */
+      .sei-footer {
+        display: block !important;
+        text-align: center !important;
+        border-top: 1pt solid #ccc !important;
+        padding: 6pt 8pt !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        margin-top: 6pt !important;
+      }
+      .sei-footer-strip {
+        background: #000 !important;
+        width: 24px !important; height: 2px !important;
+        margin: 0 auto 5pt !important;
+      }
+      .sei-footer-name { font-family: var(--font-title) !important; font-weight: 800 !important; letter-spacing: .04em !important; font-size: 8pt !important; color: #000 !important; margin-bottom: 2pt !important; }
+      .sei-footer-cargo { font-family: var(--font-mono) !important; letter-spacing: .08em !important; font-size: 7pt !important; color: #555 !important; margin-bottom: 3pt !important; }
+      .sei-footer-norm { font-family: var(--font-mono) !important; font-size: 6.5pt !important; color: #666 !important; }
+      .sei-footer-norm span { color: #000 !important; font-weight: bold !important; }
     }
   </style>
 <link rel="stylesheet" href="css/sei-pdf-style.css">
@@ -1802,6 +1963,14 @@
         </div>
 
       </div>
+    </div>
+
+    <!-- ── FOOTER SEI (Visible nativamente en @media print) ── -->
+    <div class="sei-footer" style="display:none;">
+      <div class="sei-footer-strip"></div>
+      <div class="sei-footer-name">AERONÁUTICA CIVIL · SERVICIOS DE EXTINCIÓN DE INCENDIOS</div>
+      <div class="sei-footer-cargo">SISTEMA INTEGRAL DE CÁLCULOS CRÍTICOS ARFF</div>
+      <div class="sei-footer-norm">Generado OACI Doc 9137 — Módulo 02 Rata de Descarga · Cat. <span id="pdf-cat">XX</span> · <span id="pdf-date">--</span></div>
     </div>
 
   </main>
@@ -2521,10 +2690,8 @@
       _toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
     }
 
-    /* ─── PDF EXPORT (mismo estilo que Área Crítica) ──────── */
+    /* ─── PDF EXPORT (nativo como Área Crítica) ──────── */
     function exportPDF() {
-      showToast('⏳ Generando PDF...');
-
       const ac  = importedAp !== null ? importedAp : parseFloat(document.getElementById('inp-ac').value);
       const rate = selectedRate;
       if (isNaN(ac) || ac <= 0 || !rate) {
@@ -2532,225 +2699,25 @@
         return;
       }
 
-      const cfg  = RATE_CONFIG[rate] || {};
-      const Q1   = ac * rate;
-      const Q2   = Q1 * (cfg.q2Factor || 0.5);
-      const Qt   = Q1 + Q2;
-      const cat  = window.currentCat || 'XX';
+      showToast('⏳ Preparando impresión...');
+      
+      const cat  = window.currentCatNum || 'XX';
       const now  = new Date();
       const fecha = now.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' });
       const hora  = now.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+      
+      // Actualizamos footer para el PDF
+      const pdfCat = document.getElementById('pdf-cat');
+      const pdfDate = document.getElementById('pdf-date');
+      if (pdfCat) pdfCat.textContent = cat;
+      if (pdfDate) pdfDate.textContent = fecha + ' ' + hora;
 
-      const pdfWin = window.open('', '_blank');
-      pdfWin.document.write(`<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8">
-<title>ARFF-Colombia — Rata de Descarga — Cat ${cat}</title>
-<style>
-  @page { size: A4 landscape; margin: 14mm 16mm; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Arial', sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
-  /* ── HEADER STRIP ── */
-  .hdr { border-bottom: 3px solid #e03131; padding-bottom: 10px; margin-bottom: 14px;
-         display: flex; justify-content: space-between; align-items: flex-end; }
-  .hdr-left .org { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #666; margin-bottom: 2px; }
-  .hdr-left .title { font-size: 18px; font-weight: 800; color: #1a1a2e; line-height: 1.1; }
-  .hdr-left .subtitle { font-size: 10px; color: #555; margin-top: 3px; }
-  .hdr-right { text-align: right; font-size: 9px; color: #777; line-height: 1.6; }
-  .hdr-right strong { color: #1a1a2e; }
-  /* ── BADGE BAR ── */
-  .badge-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .badge { border-radius: 4px; padding: 4px 10px; font-size: 9px; font-weight: 700;
-           letter-spacing: .06em; text-transform: uppercase; border: 1px solid; }
-  /* ── MAIN GRID ── */
-  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-  /* ── SECTION BOX ── */
-  .box { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
-  .box-head { background: #f4f4f8; padding: 7px 12px; font-size: 10px; font-weight: 700;
-              text-transform: uppercase; letter-spacing: .08em; color: #444;
-              border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 6px; }
-  .box-head .accent { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-  .box-body { padding: 12px; }
-  /* ── INPUT GRID ── */
-  .inp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .inp-item { background: #f9f9fc; border: 1px solid #e5e5f0; border-radius: 4px; padding: 8px 10px; }
-  .inp-label { font-size: 8.5px; color: #888; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; }
-  .inp-val { font-size: 16px; font-weight: 700; color: #1a1a2e; font-family: 'Courier New', monospace; }
-  .inp-unit { font-size: 9px; color: #999; margin-left: 3px; }
-  /* ── FLOW RESULTS ── */
-  .q-grid { display: flex; flex-direction: column; gap: 8px; }
-  .q-card { border-radius: 4px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
-  .q-card.q1 { background: #e6f9ff; border: 1px solid #a5d8f7; border-left: 4px solid #339af0; }
-  .q-card.q2 { background: #eef3ff; border: 1px solid #bac8ff; border-left: 4px solid #5c7cfa; }
-  .q-card.qt { background: #fff4e6; border: 1px solid #ffc078; border-left: 4px solid #f76707; }
-  .q-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
-  .q-desc { font-size: 9px; color: #666; }
-  .q-val { font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700; text-align: right; }
-  .q-val-unit { font-size: 10px; font-weight: 400; color: #888; display: block; }
-  .q-val.q1c { color: #1971c2; }
-  .q-val.q2c { color: #3b5bdb; }
-  .q-val.qtc { color: #d9480f; }
-  /* ── TABLE ── */
-  table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
-  th { background: #f0f2f8; padding: 5px 8px; font-size: 8.5px; text-transform: uppercase;
-       letter-spacing: .07em; color: #555; border-bottom: 1.5px solid #ddd; text-align: right; }
-  th:first-child, th:nth-child(2) { text-align: left; }
-  td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; text-align: right; color: #444;
-       font-family: 'Courier New', monospace; }
-  td:first-child { text-align: center; }
-  td:nth-child(2) { text-align: left; font-family: Arial, sans-serif; }
-  tr.active td { background: #fff9f0; font-weight: 700; }
-  /* ── FORMULA BOX ── */
-  .formula-box { background: #f8f9ff; border: 1px solid #d0d8f0; border-radius: 6px;
-                 padding: 10px 14px; margin-bottom: 12px; font-family: 'Courier New', monospace;
-                 font-size: 12px; color: #1a1a2e; text-align: center; }
-  /* ── FOOTER ── */
-  .footer { border-top: 1px solid #ddd; padding-top: 8px; margin-top: 12px;
-            display: flex; justify-content: space-between; font-size: 8px; color: #aaa; }
-  .footer strong { color: #666; }
-</style></head><body>
-
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="org">República de Colombia · Aeronáutica Civil · Servicios de Extinción de Incendios</div>
-    <div class="title">Rata de Descarga de Espuma ARFF</div>
-    <div class="subtitle">Módulo 02 · Caudal Q₁, Q₂ y Q<sub>t</sub> — OACI Doc 9137 §2.3.3 · RAC 14 · NFPA 403</div>
-  </div>
-  <div class="hdr-right">
-    <div>Categoría ARFF: <strong>${cat}</strong></div>
-    <div>Fecha: <strong>${fecha}</strong> · <strong>${hora}</strong></div>
-    <div>Tasa R: <strong>${rate} L/min/m²</strong></div>
-    <div>Agente: <strong>${cfg.agent || '—'}</strong></div>
-  </div>
-</div>
-
-<div class="badge-bar">
-  <span class="badge" style="color:#1971c2;border-color:#a5d8f7;background:#e6f9ff">OACI Doc 9137 §2.3.3</span>
-  <span class="badge" style="color:#2f9e44;border-color:#b2f2bb;background:#ebfbee">RAC 14 Colombia</span>
-  <span class="badge" style="color:#e03131;border-color:#ffa8a8;background:#fff5f5">NFPA 403 §5.3</span>
-  <span class="badge" style="color:#f76707;border-color:#ffc078;background:#fff4e6">Módulo 02 / ESPUMA</span>
-</div>
-
-<div class="formula-box">
-  Q₁ = Ap × R &nbsp;=&nbsp; ${ac} m² × ${rate} L/min/m² &nbsp;&nbsp;|&nbsp;&nbsp;
-  Q₂ = Q₁ × 0.5 &nbsp;&nbsp;|&nbsp;&nbsp; Q<sub>t</sub> = Q₁ + Q₂
-</div>
-
-<div class="main-grid">
-  <div>
-    <div class="box" style="margin-bottom:10px">
-      <div class="box-head"><span class="accent" style="background:#f76707"></span>Parámetros de Entrada</div>
-      <div class="box-body">
-        <div class="inp-grid">
-          <div class="inp-item">
-            <div class="inp-label">Área Crítica Práctica (Ap)</div>
-            <div class="inp-val">${ac}<span class="inp-unit">m²</span></div>
-          </div>
-          <div class="inp-item">
-            <div class="inp-label">Tasa de Aplicación (R)</div>
-            <div class="inp-val">${rate}<span class="inp-unit">L/min/m²</span></div>
-          </div>
-          <div class="inp-item">
-            <div class="inp-label">Nivel de Espuma</div>
-            <div class="inp-val" style="font-size:13px">${cfg.label || '—'}</div>
-          </div>
-          <div class="inp-item">
-            <div class="inp-label">Norma aplicable</div>
-            <div class="inp-val" style="font-size:10px;font-family:Arial">${cfg.norm || '—'}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="box-head"><span class="accent" style="background:#1971c2"></span>Resultados de Caudal</div>
-    <div class="box-body">
-      <div class="q-grid">
-        <div class="q-card q1">
-          <div>
-            <div class="q-label" style="color:#1971c2">Q₁ · Caudal de Control</div>
-            <div class="q-desc">Producción de espuma · control en área crítica en 1 minuto</div>
-          </div>
-          <div>
-            <div class="q-val q1c">${Q1.toFixed(1)}</div>
-            <span class="q-val-unit">L/min</span>
-          </div>
-        </div>
-        <div class="q-card q2">
-          <div>
-            <div class="q-label" style="color:#3b5bdb">Q₂ · Caudal de Enfriamiento</div>
-            <div class="q-desc">Mantenimiento / extinción total · enfriamiento fuselaje</div>
-          </div>
-          <div>
-            <div class="q-val q2c">${Q2.toFixed(1)}</div>
-            <span class="q-val-unit">L/min</span>
-          </div>
-        </div>
-        <div class="q-card qt">
-          <div>
-            <div class="q-label" style="color:#d9480f">Qt · Capacidad Total de Bomba</div>
-            <div class="q-desc">Q₁ + Q₂ · dimensiona el vehículo ARFF (Rosenbauer Panther)</div>
-          </div>
-          <div>
-            <div class="q-val qtc">${Qt.toFixed(1)}</div>
-            <span class="q-val-unit">L/min</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="box">
-  <div class="box-head"><span class="accent" style="background:#339af0"></span>Comparativa — Todas las Tasas OACI para Ap = ${ac} m²</div>
-  <div class="box-body" style="padding:0">
-    <table>
-      <thead>
-        <tr>
-          <th>Tasa R</th>
-          <th>Agente / Nivel</th>
-          <th>Categorías</th>
-          <th>Q₁ — Control (L/min)</th>
-          <th>Q₂ — Enfriamiento (L/min)</th>
-          <th>Qt — Total Bomba (L/min)</th>
-          <th>Qt (m³/min)</th>
-          <th>Qt (L/s)</th>
-          <th>Vol. 1 min (L)</th>
-          <th>Vol. 3 min (L)</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${[3.7, 4.1, 5.5, 6.5].map(r => {
-          const c = RATE_CONFIG[r] || {};
-          const q1r = (ac * r).toFixed(1);
-          const q2r = (ac * r * 0.5).toFixed(1);
-          const qtr = (ac * r * 1.5).toFixed(1);
-          const qtFull = ac * r * 1.5;
-          const isAct = Math.abs(r - rate) < 0.01;
-          return `<tr class="${isAct ? 'active' : ''}">
-            <td style="font-weight:700;color:${c.color || '#333'}">${r}</td>
-            <td>${c.agent || r}</td>
-            <td>${c.cats || '—'}</td>
-            <td>${q1r}</td>
-            <td>${q2r}</td>
-            <td style="font-weight:700">${qtr}</td>
-            <td>${(qtFull/1000).toFixed(3)}</td>
-            <td>${(qtFull/60).toFixed(2)}</td>
-            <td>${Math.round(qtFull).toLocaleString()}</td>
-            <td>${Math.round(qtFull*3).toLocaleString()}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="footer">
-  <div>Generado por <strong>ARFF Colombia — Sistema de Cálculos Críticos</strong> · OACI Doc 9137 / RAC 14 / NFPA 403</div>
-  <div><strong>Módulo 02</strong> · Rata de Descarga de Espuma · Cat. ${cat} · ${fecha}</div>
-</div>
-
-</body></html>`);
+      // El navegador aplicará automáticamente el bloque @media print
+      setTimeout(() => { window.print(); }, 200);
+    }
+  </script>
+</body>
+</html>`);
       pdfWin.document.close();
       setTimeout(() => { pdfWin.focus(); pdfWin.print(); }, 600);
     }
