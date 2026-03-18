@@ -118,19 +118,18 @@ body::after{
 
 /* ─── ADMIN SEARCH ────────────────────────────────────────────── */
 .admin-panel{
-  display:none;
+  display:flex;
   background:rgba(0,229,255,.04);border:1px dashed var(--border2);
   border-radius:var(--radius);padding:14px 20px;margin-bottom:24px;
   align-items:center;gap:12px;flex-wrap:wrap;
 }
-.admin-panel.visible{display:flex;}
 .admin-panel label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;}
 .admin-panel input[type=text]{
   background:var(--panel2);border:1px solid var(--border2);border-radius:6px;
   color:#fff;font-family:'DM Mono',monospace;font-size:13px;
-  padding:6px 12px;width:180px;outline:none;
+  padding:8px 14px;width:100%;outline:none;
 }
-.admin-panel input:focus{border-color:var(--accent2);}
+.admin-panel input:focus{border-color:var(--accent);}
 .btn-search{
   padding:7px 16px;background:rgba(0,229,255,.12);border:1px solid var(--accent2);
   border-radius:6px;color:var(--accent);font-size:12px;cursor:pointer;transition:.2s;
@@ -381,7 +380,7 @@ body::after{
 .toast.err{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
 
 /* ─── BUSCADOR DINÁMICO ──────────────────────────────────────────── */
-.search-wrap{position:relative;flex:1;min-width:220px;}
+.search-wrap{position:relative;flex:1;min-width:240px;max-width:420px;}
 .search-wrap input[type=text]{
   width:100%;background:var(--panel2);border:1px solid var(--border2);
   border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:13px;
@@ -564,6 +563,7 @@ footer{
              placeholder="Escribe ciudad o código OACI…"
              autocomplete="off"
              oninput="buscarEstaciones(this.value)"
+             onfocus="if(this.value.length>0) buscarEstaciones(this.value)"
              onblur="setTimeout(()=>cerrarResultados(),200)"/>
       <div class="search-results" id="searchResults"></div>
     </div>
@@ -764,19 +764,22 @@ window.onSEIReady = async function(session) {
 
   document.getElementById('badgeRol').textContent = currentRol?.toUpperCase() || 'USUARIO';
 
-  if (currentRol === 'admin' || currentRol === 'jefe_nacional') {
-    document.getElementById('adminPanel').classList.add('visible');
-    document.getElementById('adminBase').textContent = currentOaci || '—';
-    currentOaci = currentOaci || null;
-  }
+  // Buscador visible siempre — admin puede buscar cualquier estación,
+  // otros roles ven su estación por defecto y pueden filtrar
+  document.getElementById('adminBase').textContent = currentOaci || '—';
 
+  // Si hay OACI desde la sesión, pre-rellenar el buscador y cargar
   if (currentOaci) {
+    document.getElementById('searchInput').value = currentOaci;
     actualizarEstacionBar(currentOaci);
     await cargarFlota(currentOaci);
+    document.getElementById('semaforoSEI').classList.add('visible');
+    validarCapacidadSEI(currentOaci);
     suscribirRealtime();
-  } else if (currentRol === 'admin') {
+  } else {
+    // Sin estación asignada: mostrar estado vacío y buscador activo
     document.getElementById('cardsGrid').innerHTML = emptyAdminHTML();
-    document.getElementById('estOaci').textContent  = 'ADMIN';
+    document.getElementById('estOaci').textContent   = '—';
     document.getElementById('estNombre').textContent = 'Busca una estación arriba';
   }
 };
