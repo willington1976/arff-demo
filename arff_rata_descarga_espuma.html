@@ -2664,4 +2664,43 @@
           <th>Vol. 1 min (L)</th>
           <th>Vol. 3 min (L)</th>
         </tr>
-      </
+      </thead>
+      <tbody>
+        ${[3.7, 4.1, 5.5, 6.5].map(r => {
+          const c = RATE_CONFIG[r] || {};
+          const q1r = (ac * r).toFixed(1);
+          const q2r = (ac * r * 0.5).toFixed(1);
+          const qtr = (ac * r * 1.5).toFixed(1);
+          const qtFull = ac * r * 1.5;
+          const isAct = Math.abs(r - rate) < 0.01;
+          return `<tr class="${isAct ? 'active' : ''}">
+            <td style="font-weight:700;color:${c.color || '#333'}">${r}</td>
+            <td>${c.agent || r}</td>
+            <td>${c.cats || '—'}</td>
+            <td>${q1r}</td>
+            <td>${q2r}</td>
+            <td style="font-weight:700">${qtr}</td>
+            <td>${(qtFull/1000).toFixed(3)}</td>
+            <td>${(qtFull/60).toFixed(2)}</td>
+            <td>${Math.round(qtFull).toLocaleString()}</td>
+            <td>${Math.round(qtFull*3).toLocaleString()}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  <div>Generado por <strong>ARFF Colombia — Sistema de Cálculos Críticos</strong> · OACI Doc 9137 / RAC 14 / NFPA 403</div>
+  <div><strong>Módulo 02</strong> · Rata de Descarga de Espuma · Cat. ${cat} · ${fecha}</div>
+</div>
+
+</body></html>`);
+      pdfWin.document.close();
+      setTimeout(() => { pdfWin.focus(); pdfWin.print(); }, 600);
+    }
+  </script>
+</body>
+
+</html>
