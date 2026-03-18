@@ -519,6 +519,18 @@ footer{
   </div>
   <div class="topbar-right">
     <span class="badge-rol" id="badgeRol">— ROL —</span>
+    <!-- Botón → Área Crítica -->
+    <a href="arff_area_critica.html" class="btn-back"
+       style="border-color:rgba(247,103,7,.35);color:#f59f00;gap:7px"
+       onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
+       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'">
+      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="12 2 2 22 22 22"/>
+        <line x1="12" y1="9" x2="12" y2="14"/>
+        <circle cx="12" cy="18" r=".5" fill="currentColor"/>
+      </svg>
+      Área Crítica
+    </a>
     <a href="dashboard_principal.html" class="btn-back">
       <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Dashboard
@@ -762,6 +774,12 @@ window.onSEIReady = async function(session) {
   currentEstId = session.estacion_id;
   currentOaci  = session.oaci || window.seiUuidToOaci(session.estacion_id);
 
+  /* ══ Persistir OACI en localStorage para comunicación entre módulos ══ */
+  if (currentOaci) {
+    localStorage.setItem('currentOaci', currentOaci);
+    localStorage.setItem('sei_estacion', currentOaci);
+  }
+
   document.getElementById('badgeRol').textContent = currentRol?.toUpperCase() || 'USUARIO';
 
   // Buscador visible siempre — admin puede buscar cualquier estación,
@@ -848,6 +866,11 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
   // 1. Asignar variable global
   currentOaci  = oaci.toUpperCase();
   currentEstId = estId || null;
+
+  /* ══ Persistir OACI en localStorage — comunica a Rata de Descarga y otros módulos ══ */
+  localStorage.setItem('currentOaci',   currentOaci);
+  localStorage.setItem('sei_estacion',  currentOaci);
+  sessionStorage.setItem('sei_estacion', currentOaci);
 
   // 2. Actualizar inputs y UI
   document.getElementById('searchInput').value    = oaci;
