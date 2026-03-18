@@ -893,14 +893,13 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 }
 
 /* ─── SEMÁFORO — VALIDACIÓN CAPACIDAD SEI ────────────────────── */
-const REQUERIMIENTO_LITROS = 7844; // Qt de referencia OACI
-
 async function validarCapacidadSEI(oaci) {
   const panel   = document.getElementById('semaforoSEI');
   const icon    = document.getElementById('sf-icon');
   const badge   = document.getElementById('sf-badge');
   const msg     = document.getElementById('sf-msg');
   const dispEl  = document.getElementById('sf-disponible');
+  const reqEl   = document.getElementById('sf-requerido');
   const maqEl   = document.getElementById('sf-maquinas');
 
   if (!panel) return;
@@ -914,6 +913,7 @@ async function validarCapacidadSEI(oaci) {
     badge.style.color      = 'var(--text2)';
     msg.textContent = 'Esperando selección de aeropuerto…';
     dispEl.textContent = '—';
+    if (reqEl) reqEl.textContent = '—';
     maqEl.textContent  = '—';
     return;
   }
@@ -923,58 +923,51 @@ async function validarCapacidadSEI(oaci) {
   badge.textContent = 'Consultando...';
   badge.style.background = 'rgba(0,229,255,.1)';
   badge.style.color      = 'var(--accent)';
-  msg.textContent = 'Consultando capacidad operativa de la flota SEI...';
+  msg.textContent = 'Consultando capacidad operativa desde la vista SEI...';
 
   try {
-    // Primero intentar vista_capacidad_operativa_sei
-    let disponible = null, maquinas_activas = null;
+    let requerimiento = 0;
+    let disponible = 0;
+    let maquinas_activas = 0;
 
+    // ÚNICA CONSULTA A LA VISTA OFICIAL
+    // Los datos "agua_requerida_oaci" y "agua_disponible_real" ya vienen convertidos en litros desde la BD
     const { data: vData, error: vErr } = await supabaseClient
       .from('vista_capacidad_operativa_sei')
-      .select('total_agua_litros, maquinas_activas, oaci')
+      .select('agua_requerida_oaci, agua_disponible_real, maquinas_activas')
       .eq('oaci', oaci)
-      .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (!vErr && vData) {
-      disponible       = parseFloat(vData.total_agua_litros) || 0;
-      maquinas_activas = parseInt(vData.maquinas_activas)    || 0;
-    } else {
-      // Fallback: calcular desde maquinas_sei + novedades_maquinas en tiempo real
-      // Máquinas del aeropuerto con campo agua_galones
-      const { data: maqData } = await supabaseClient
-        .from('maquinas_sei')
-        .select('id, agua_galones, estado')
-        .eq('aeropuerto_id', oaci);
+    if (vErr) throw vErr;
 
-      const ids = (maqData || []).map(m => m.id);
-      let novsRep = {};
-
-      if (ids.length > 0) {
-        const { data: novData } = await supabaseClient
-          .from('novedades_maquinas')
-          .select('maquina_id, reparado')
-          .in('maquina_id', ids)
-          .eq('reparado', false);
-
-        (novData || []).forEach(n => { novsRep[n.maquina_id] = true; });
-      }
-
-      // Máquinas activas = OPERATIVA Y sin novedades pendientes
-      const activas = (maqData || []).filter(m =>
-        (m.estado || 'OPERATIVA') === 'OPERATIVA' && !novsRep[m.id]
-      );
-
-      disponible       = activas.reduce((sum, m) => sum + ((parseFloat(m.agua_galones) || 0) * 3.78541), 0);
-      maquinas_activas = activas.length;
+    if (vData) {
+      requerimiento    = parseFloat(vData.agua_requerida_oaci) || 0;
+      disponible       = parseFloat(vData.agua_disponible_real) || 0;
+      maquinas_activas = parseInt(vData.maquinas_activas) || 0;
     }
 
-    // Actualizar métricas
+    // ── Actualizar Métricas DOM ──
     dispEl.textContent = disponible > 0 ? disponible.toLocaleString('es-CO', {maximumFractionDigits: 0}) : '0';
+    if (reqEl) reqEl.textContent = requerimiento > 0 ? requerimiento.toLocaleString('es-CO', {maximumFractionDigits: 0}) : '0';
+    
     maqEl.textContent  = maquinas_activas;
     maqEl.style.color  = maquinas_activas > 0 ? 'var(--green)' : 'var(--red)';
 
-    const esSEGURO = disponible >= REQUERIMIENTO_LITROS;
+    // Evitar falsos negativos si el aeropuerto aún no tiene categoría paramétrica cargada en la vista
+    if (requerimiento === 0) {
+      panel.className = 'semaforo-sei visible';
+      panel.style.borderColor = 'var(--border2)';
+      panel.style.background  = 'var(--panel2)';
+      icon.textContent        = 'ℹ️';
+      badge.textContent       = 'SIN NORMA';
+      badge.style.background  = 'var(--panel3)';
+      badge.style.color       = 'var(--text3)';
+      dispEl.style.color      = 'var(--text)';
+      msg.innerHTML = `No hay un requerimiento normativo (Categoría OACI) registrado para <strong>${oaci}</strong>.`;
+      return;
+    }
+
+    const esSEGURO = disponible >= requerimiento;
 
     if (esSEGURO) {
       // ── SEGURO ──
@@ -986,7 +979,7 @@ async function validarCapacidadSEI(oaci) {
       badge.style.background  = 'rgba(0,230,118,.18)';
       badge.style.color       = 'var(--green)';
       dispEl.style.color      = 'var(--green)';
-      const excedente = disponible - REQUERIMIENTO_LITROS;
+      const excedente = disponible - requerimiento;
       msg.innerHTML = `<strong style="color:var(--green)">CAPACIDAD GARANTIZADA:</strong>
         Flota operativa suficiente para esta aeronave.
         Excedente: <strong style="color:var(--green)">+${excedente.toLocaleString('es-CO',{maximumFractionDigits:0})} L</strong>`;
@@ -1000,10 +993,10 @@ async function validarCapacidadSEI(oaci) {
       badge.style.background  = 'rgba(255,82,82,.22)';
       badge.style.color       = 'var(--red)';
       dispEl.style.color      = 'var(--red)';
-      const faltante = REQUERIMIENTO_LITROS - disponible;
+      const faltante = requerimiento - disponible;
       msg.innerHTML = `<strong style="color:var(--red)">CAPACIDAD INSUFICIENTE:</strong>
         Faltan <strong style="color:var(--red)">${faltante.toLocaleString('es-CO',{maximumFractionDigits:0})} litros</strong>
-        para cubrir el requerimiento OACI de ${REQUERIMIENTO_LITROS.toLocaleString('es-CO')} L.`;
+        para cubrir el requerimiento OACI de ${requerimiento.toLocaleString('es-CO')} L.`;
     }
 
   } catch (err) {
@@ -1012,7 +1005,7 @@ async function validarCapacidadSEI(oaci) {
     badge.textContent = 'Error';
     badge.style.background = 'rgba(255,82,82,.15)';
     badge.style.color      = 'var(--red)';
-    msg.textContent = 'Error al consultar la base de datos.';
+    msg.textContent = 'Error al consultar la vista de capacidad operativa en base de datos.';
   }
 }
 
