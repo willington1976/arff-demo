@@ -1405,49 +1405,39 @@
                 <span class="var-pill" style="color:var(--amber);border:1px solid rgba(245,159,0,.3)">R</span>
                 Tasa de aplicación — seleccione según agente extintor
               </div>
-              <div class="rate-pills">
+              <div class="rate-pills" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="rate-pill" data-rate="3.7" onclick="selectRate(this)">
                   <span class="rp-val">3.7</span>
                   <span class="rp-unit">L/min/m²</span>
-                  <span class="rp-label">Nivel C<br>Mínimo OACI</span>
-                  <span class="rp-norm">Cat. 1–5</span>
-                </div>
-                <div class="rate-pill" data-rate="4.1" onclick="selectRate(this)">
-                  <span class="rp-val">4.1</span>
-                  <span class="rp-unit">L/min/m²</span>
-                  <span class="rp-label">Nivel B<br>AFFF 3%</span>
-                  <span class="rp-norm">Cat. 1–6</span>
+                  <span class="rp-label">Nivel C</span>
                 </div>
                 <div class="rate-pill selected" data-rate="5.5" onclick="selectRate(this)">
                   <span class="rp-val">5.5</span>
                   <span class="rp-unit">L/min/m²</span>
-                  <span class="rp-label">Nivel B<br>AR-AFFF</span>
-                  <span class="rp-norm">Cat. 7–9</span>
+                  <span class="rp-label">Nivel B</span>
                 </div>
-                <div class="rate-pill" data-rate="6.5" onclick="selectRate(this)">
-                  <span class="rp-val">6.5</span>
+                <div class="rate-pill" data-rate="8.2" onclick="selectRate(this)">
+                  <span class="rp-val">8.2</span>
                   <span class="rp-unit">L/min/m²</span>
-                  <span class="rp-label">Nivel A<br>FFFP/AR</span>
-                  <span class="rp-norm">Cat. 10 / H</span>
+                  <span class="rp-label">Nivel A</span>
                 </div>
               </div>
               <span class="field-error" id="err-rate">⚠ Seleccione o ingrese una tasa válida</span>
 
               <!-- ICAO Rate Dropdown -->
               <div class="icao-rate-select-wrap">
-                <div class="icao-rate-select-label">Selección directa por normativa OACI</div>
+                <div class="icao-rate-select-label">Selección de Nivel de Eficacia (OACI)</div>
 
                 <select id="icao-rate-select" class="icao-select" onchange="onSelectRate(this)">
                   <option value="">— Seleccione nivel de espuma OACI —</option>
-                  <option value="3.7">3.7 L/min/m² · Nivel C — Mínimo OACI (Cat. 1–5)</option>
-                  <option value="4.1">4.1 L/min/m² · Nivel B — AFFF 3% (Cat. 1–6)</option>
-                  <option value="5.5">5.5 L/min/m² · Nivel B — AR-AFFF (Cat. 7–9)</option>
-                  <option value="6.5">6.5 L/min/m² · Nivel A — FFFP / Helicópteros (Cat. 10 / H)</option>
+                  <option value="3.7">3.7 L/min/m² · Nivel C</option>
+                  <option value="5.5">5.5 L/min/m² · Nivel B</option>
+                  <option value="8.2">8.2 L/min/m² · Nivel A</option>
                 </select>
 
                 <!-- Validation warning if pills disagree with dropdown -->
                 <div class="icao-select-warn" id="icao-select-warn">
-                  ⚠ Valor fuera del rango normativo OACI Doc 9137 §2.3.3 — use 4.1, 5.5 o 6.5
+                  ⚠ Valor fuera del rango normativo OACI Doc 9137 — use 3.7, 5.5 o 8.2
                 </div>
 
                 <!-- Info card -->
@@ -1829,23 +1819,18 @@
     // Q2 = 50% de Q1 según OACI Doc 9137 §2.3.4 para enfriamiento complementario
     const RATE_CONFIG = {
       3.7: {
-        color: '#74c0fc', label: 'Nivel C — Mínimo OACI',
-        agent: 'Espuma Nivel C', cats: 'Cat. 1–5', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-1',
-        q2Factor: 0.5
-      },
-      4.1: {
-        color: '#2f9e44', label: 'Nivel B — AFFF al 3%',
-        agent: 'AFFF al 3%', cats: 'Cat. 1–6', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-2',
+        color: '#74c0fc', label: 'Nivel C',
+        agent: 'Espuma Nivel C', cats: 'Eficacia Alta', norm: 'OACI Doc 9137',
         q2Factor: 0.5
       },
       5.5: {
-        color: '#f59f00', label: 'Nivel B — AR-AFFF Estándar',
-        agent: 'AR-AFFF', cats: 'Cat. 7–9', norm: 'OACI Doc 9137 §2.3.3 Tabla 2-3',
+        color: '#2f9e44', label: 'Nivel B',
+        agent: 'Espuma Nivel B', cats: 'Eficacia Media', norm: 'OACI Doc 9137',
         q2Factor: 0.5
       },
-      6.5: {
-        color: '#e03131', label: 'Nivel A — FFFP / Tasa máxima',
-        agent: 'FFFP / AR', cats: 'Cat. 10 / H', norm: 'OACI Doc 9137 §2.3.3 / NFPA 403 §5.3.2',
+      8.2: {
+        color: '#e03131', label: 'Nivel A',
+        agent: 'Espuma Nivel A', cats: 'Eficacia Normal', norm: 'OACI Doc 9137',
         q2Factor: 0.5
       }
     };
@@ -1864,31 +1849,18 @@
     const ICAO_RATE_DETAIL = {
       3.7: {
         color: '#74c0fc',
-        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-1',
-        body: '<strong>Nivel C — Espuma mínima OACI</strong> · Tasa mínima normativa para aeródromos con categorías 1–5. ' +
-          'Aplicable con espuma proteínica fluorada en concentraciones reducidas. ' +
-          'Es el piso normativo mínimo aceptado para operaciones con aeronaves ligeras.'
-      },
-      4.1: {
-        color: '#2f9e44',
-        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-2',
-        body: '<strong>Nivel B — AFFF al 3%</strong> · Tasa mínima para espumas proteínicas fluoradas (AFFF) al 3%. ' +
-          'Aplicable en categorías ARFF 1–6 (aeronaves de fuselaje estrecho y aviación general). ' +
-          'Requiere equipo de alta presión y agente concentrado al 3%.'
+        norm: 'OACI Doc 9137 · Tasa Operativa',
+        body: '<strong>Nivel C — Eficacia Alta</strong> · Tasa de aplicación operativa para espumas nivel C. Es la espuma de más alto rendimiento, por lo cual demanda menor flujo de agua por metro cuadrado.'
       },
       5.5: {
-        color: '#f59f00',
-        norm: 'OACI Doc 9137 §2.3.3 · Tabla 2-3',
-        body: '<strong>Nivel B — AR-AFFF</strong> · Tasa estándar para espumas resistentes al alcohol. ' +
-          'Recomendada en categorías 7–9 (fuselaje ancho: B767, A330, B777). ' +
-          'Compatible con Jet A-1 y combustibles con componentes alcohólicos (SAF blends).'
+        color: '#2f9e44',
+        norm: 'OACI Doc 9137 · Tasa Operativa',
+        body: '<strong>Nivel B — Eficacia Media</strong> · Tasa de aplicación operativa estándar para espumas formadoras de película acuosa (AFFF / FFFP). Corresponde al uso más masivo y estandarizado en la industria aeronáutica a nivel mundial.'
       },
-      6.5: {
+      8.2: {
         color: '#e03131',
-        norm: 'OACI Doc 9137 §2.3.3 · NFPA 403 §5.3.2',
-        body: '<strong>Nivel A — FFFP / AR</strong> · Tasa máxima requerida para formadores de película ' +
-          'proteínica (FFFP) y operaciones de categoría 10 (B747, A380) o helicópteros ARFF-H. ' +
-          'NFPA 403 §5.3.2 la establece como tasa de diseño para vehículos de primera intervención.'
+        norm: 'OACI Doc 9137 · Tasa Operativa',
+        body: '<strong>Nivel A — Eficacia Normal</strong> · Tasa de aplicación operativa exigida para espumas proteínicas convencionales. Al ser el compuesto de menor eficacia, requiere el mayor flujo de agua para garantizar extinción.'
       }
     };
 
@@ -1936,11 +1908,7 @@
         /* 4. Auto-seleccionar tasa según categoría OACI */
         if (catVal) {
           const catNum = parseInt(catVal);
-          let autoRate = 5.5;
-          if (catNum <= 5)      autoRate = 3.7;
-          else if (catNum <= 6) autoRate = 4.1;
-          else if (catNum <= 9) autoRate = 5.5;
-          else                  autoRate = 6.5;
+          let autoRate = 5.5; // Por defecto asumimos Nivel B (lo más común)
 
           selectedRate = autoRate;
           document.querySelectorAll('.rate-pill').forEach(p => {
@@ -1994,7 +1962,7 @@
 
     function onSelectRate(sel) {
       const v = parseFloat(sel.value);
-      const VALID = [3.7, 4.1, 5.5, 6.5];
+      const VALID = [3.7, 5.5, 8.2];
 
       sel.classList.remove('error');
       document.getElementById('icao-select-warn').classList.remove('show');
