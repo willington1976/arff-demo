@@ -380,6 +380,70 @@ body::after{
 .toast.ok {background:#1b3a2a;border:1px solid var(--green);color:var(--green);}
 .toast.err{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
 
+/* ─── BUSCADOR DINÁMICO ──────────────────────────────────────────── */
+.search-wrap{position:relative;flex:1;min-width:220px;}
+.search-wrap input[type=text]{
+  width:100%;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:13px;
+  padding:8px 14px;outline:none;transition:.2s;
+}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-results{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:150;
+  background:var(--panel);border:1px solid var(--border2);border-radius:8px;
+  max-height:220px;overflow-y:auto;display:none;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+}
+.search-results.open{display:block;}
+.search-item{
+  padding:10px 14px;cursor:pointer;transition:.15s;
+  border-bottom:1px solid var(--border);
+}
+.search-item:last-child{border-bottom:none;}
+.search-item:hover{background:rgba(0,229,255,.07);}
+.search-item .si-oaci{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent);}
+.search-item .si-nombre{font-size:11px;color:var(--text2);margin-top:2px;}
+.search-empty{padding:14px;text-align:center;font-size:12px;color:var(--text3);}
+
+/* ─── SEMÁFORO SEI ────────────────────────────────────────────── */
+.semaforo-sei{
+  margin:0 32px 20px;border-radius:10px;border:2px solid var(--border2);
+  overflow:hidden;transition:border-color .3s,background .3s;display:none;
+}
+.semaforo-sei.visible{display:block;}
+.semaforo-header{
+  padding:10px 18px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.semaforo-header .sf-icon{font-size:16px;}
+.semaforo-header .sf-title{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:11px;
+  letter-spacing:.10em;text-transform:uppercase;color:#fff;
+}
+.semaforo-header .sf-badge{
+  margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;
+  font-weight:700;letter-spacing:.10em;padding:2px 9px;
+  border-radius:4px;text-transform:uppercase;
+}
+.semaforo-body{padding:12px 18px 14px;}
+.semaforo-msg{font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:10px;}
+.semaforo-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.sm-cell{
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:6px;padding:8px 10px;text-align:center;
+}
+.sm-val{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--accent);}
+.sm-lbl{font-size:9px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;}
+.semaforo-audit{
+  font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
+  border-top:1px solid var(--border);padding-top:7px;letter-spacing:.04em;line-height:1.5;
+}
+@keyframes sei-glow-red{
+  0%,100%{box-shadow:0 0 0 rgba(255,82,82,0);border-color:var(--red);}
+  50%     {box-shadow:0 0 20px rgba(255,82,82,.5);border-color:#ff8a80;}
+}
+.semaforo-sei.critico{animation:sei-glow-red 1.6s ease-in-out infinite;}
+
 /* ─── MODAL EDITAR ─────────────────────────────────────────────── */
 #editModal .modal{width:560px;}
 
@@ -492,12 +556,52 @@ footer{
 <!-- MAIN -->
 <main class="main">
 
-  <!-- PANEL ADMIN -->
+  <!-- PANEL ADMIN — BUSCADOR DINÁMICO -->
   <div class="admin-panel" id="adminPanel">
-    <label>Estación (admin):</label>
-    <input type="text" id="adminOaci" placeholder="Escribe ciudad o código OACI" maxlength="20"/>
-    <button class="btn-search" onclick="adminBuscar()">Buscar</button>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">BASE: <span id="adminBase">…</span></span>
+    <label>Estación:</label>
+    <div class="search-wrap">
+      <input type="text" id="searchInput"
+             placeholder="Escribe ciudad o código OACI…"
+             autocomplete="off"
+             oninput="buscarEstaciones(this.value)"
+             onblur="setTimeout(()=>cerrarResultados(),200)"/>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">
+      OACI: <strong id="adminBase" style="color:var(--accent)">—</strong>
+    </span>
+  </div>
+
+  <!-- SEMÁFORO DE CAPACIDAD SEI -->
+  <div class="semaforo-sei" id="semaforoSEI">
+    <div class="semaforo-header">
+      <span class="sf-icon" id="sf-icon">⏳</span>
+      <span class="sf-title">Capacidad Operativa SEI</span>
+      <span class="sf-badge" id="sf-badge">—</span>
+    </div>
+    <div class="semaforo-body">
+      <div class="semaforo-msg" id="sf-msg">Esperando selección de aeropuerto…</div>
+      <div class="semaforo-metrics">
+        <div class="sm-cell">
+          <div class="sm-val" id="sf-disponible">—</div>
+          <div class="sm-lbl">Disponible (L)</div>
+        </div>
+        <div class="sm-cell">
+          <div class="sm-val" id="sf-requerido" style="color:var(--amber)">7,844</div>
+          <div class="sm-lbl">Requerido (L)</div>
+        </div>
+        <div class="sm-cell">
+          <div class="sm-val" id="sf-maquinas" style="color:var(--green)">—</div>
+          <div class="sm-lbl">Máquinas activas</div>
+        </div>
+      </div>
+      <div class="semaforo-audit">
+        🔍 Validación basada en máquinas con
+        <code style="color:var(--accent2)">reparado=true</code> en
+        <code style="color:var(--accent2)">novedades_maquinas</code> ·
+        Vista: <code style="color:var(--accent2)">vista_capacidad_operativa_sei</code>
+      </div>
+    </div>
   </div>
 
   <!-- TOOLBAR -->
@@ -677,26 +781,213 @@ window.onSEIReady = async function(session) {
   }
 };
 
-/* ─── ADMIN BUSCAR ────────────────────────────────────────── */
-async function adminBuscar() {
-  const val = document.getElementById('adminOaci').value.trim().toUpperCase();
-  if (!val) { toast('Escribe un código OACI o nombre', 'err'); return; }
+/* ─── BUSCADOR DINÁMICO ──────────────────────────────────────── */
+async function buscarEstaciones(val) {
+  const dd = document.getElementById('searchResults');
+  val = (val || '').trim();
 
-  // Buscar en estaciones_sei
-  const { data, error } = await supabaseClient
-    .from('estaciones_sei')
-    .select('id, nombre_aeropuerto, ciudad, oaci')
-    .or(`oaci.ilike.%${val}%,nombre_aeropuerto.ilike.%${val}%,ciudad.ilike.%${val}%`)
-    .limit(1)
-    .single();
+  if (val.length < 1) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
 
-  if (error || !data) { toast('Estación no encontrada', 'err'); return; }
+  // Buscar en maquinas_sei por aeropuerto_id (OACI) directamente
+  // y en estaciones_sei por nombre/ciudad
+  const [r1, r2] = await Promise.all([
+    supabaseClient
+      .from('maquinas_sei')
+      .select('aeropuerto_id')
+      .ilike('aeropuerto_id', `%${val.toUpperCase()}%`)
+      .limit(8),
+    supabaseClient
+      .from('estaciones_sei')
+      .select('id, oaci, nombre_aeropuerto, ciudad')
+      .or(`oaci.ilike.%${val}%,nombre_aeropuerto.ilike.%${val}%,ciudad.ilike.%${val}%`)
+      .limit(8)
+  ]);
 
-  currentOaci  = (data.oaci || val).toUpperCase();
-  currentEstId = data.id;
-  document.getElementById('adminBase').textContent = currentOaci;
-  actualizarEstacionBar(currentOaci, data.nombre_aeropuerto, data.ciudad);
-  await cargarFlota(currentOaci);
+  // Construir lista unificada de candidatos (deduplicada)
+  const seen  = new Set();
+  const items = [];
+
+  // Resultados de estaciones_sei (tienen nombre)
+  (r2.data || []).forEach(e => {
+    const oaci = (e.oaci || '').toUpperCase();
+    if (oaci && !seen.has(oaci)) {
+      seen.add(oaci);
+      items.push({ oaci, nombre: e.nombre_aeropuerto || '', ciudad: e.ciudad || '', estId: e.id });
+    }
+  });
+
+  // Resultados de maquinas_sei (solo tienen aeropuerto_id)
+  (r1.data || []).forEach(m => {
+    const oaci = (m.aeropuerto_id || '').toUpperCase();
+    if (oaci && !seen.has(oaci)) {
+      seen.add(oaci);
+      items.push({ oaci, nombre: '', ciudad: '', estId: null });
+    }
+  });
+
+  if (!items.length) {
+    dd.innerHTML = '<div class="search-empty">Sin resultados para "' + val + '"</div>';
+  } else {
+    dd.innerHTML = items.map(it => `
+      <div class="search-item" onmousedown="seleccionarEstacion('${it.oaci}','${it.nombre}','${it.ciudad}','${it.estId||''}')">
+        <div class="si-oaci">${it.oaci}</div>
+        ${it.nombre ? `<div class="si-nombre">${it.nombre}${it.ciudad ? ' · ' + it.ciudad : ''}</div>` : ''}
+      </div>`).join('');
+  }
+  dd.classList.add('open');
+}
+
+function cerrarResultados() {
+  document.getElementById('searchResults')?.classList.remove('open');
+}
+
+async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
+  // 1. Asignar variable global
+  currentOaci  = oaci.toUpperCase();
+  currentEstId = estId || null;
+
+  // 2. Actualizar inputs y UI
+  document.getElementById('searchInput').value    = oaci;
+  document.getElementById('adminBase').textContent = oaci;
+  cerrarResultados();
+
+  // 3. Limpiar mensaje de error "No se ha seleccionado estación"
+  const errEl = document.getElementById('sel-error');
+  if (errEl) errEl.style.display = 'none';
+
+  // 4. Actualizar barra de estación
+  actualizarEstacionBar(oaci, nombre || null, ciudad || null);
+
+  // 5. Cargar flota
+  await cargarFlota(oaci);
+
+  // 6. Mostrar semáforo y validar capacidad
+  document.getElementById('semaforoSEI').classList.add('visible');
+  await validarCapacidadSEI(oaci);
+}
+
+/* ─── SEMÁFORO — VALIDACIÓN CAPACIDAD SEI ────────────────────── */
+const REQUERIMIENTO_LITROS = 7844; // Qt de referencia OACI
+
+async function validarCapacidadSEI(oaci) {
+  const panel   = document.getElementById('semaforoSEI');
+  const icon    = document.getElementById('sf-icon');
+  const badge   = document.getElementById('sf-badge');
+  const msg     = document.getElementById('sf-msg');
+  const dispEl  = document.getElementById('sf-disponible');
+  const maqEl   = document.getElementById('sf-maquinas');
+
+  if (!panel) return;
+
+  // Sin OACI: estado inicial
+  if (!oaci) {
+    panel.className = 'semaforo-sei';
+    icon.textContent  = '⏳';
+    badge.textContent = '—';
+    badge.style.background = 'var(--panel2)';
+    badge.style.color      = 'var(--text2)';
+    msg.textContent = 'Esperando selección de aeropuerto…';
+    dispEl.textContent = '—';
+    maqEl.textContent  = '—';
+    return;
+  }
+
+  // Estado "consultando"
+  icon.textContent  = '⏳';
+  badge.textContent = 'Consultando...';
+  badge.style.background = 'rgba(0,229,255,.1)';
+  badge.style.color      = 'var(--accent)';
+  msg.textContent = 'Consultando capacidad operativa de la flota SEI...';
+
+  try {
+    // Primero intentar vista_capacidad_operativa_sei
+    let disponible = null, maquinas_activas = null;
+
+    const { data: vData, error: vErr } = await supabaseClient
+      .from('vista_capacidad_operativa_sei')
+      .select('total_agua_litros, maquinas_activas, oaci')
+      .eq('oaci', oaci)
+      .limit(1)
+      .single();
+
+    if (!vErr && vData) {
+      disponible       = parseFloat(vData.total_agua_litros) || 0;
+      maquinas_activas = parseInt(vData.maquinas_activas)    || 0;
+    } else {
+      // Fallback: calcular desde maquinas_sei + novedades_maquinas en tiempo real
+      // Máquinas del aeropuerto con campo agua_galones
+      const { data: maqData } = await supabaseClient
+        .from('maquinas_sei')
+        .select('id, agua_galones, estado')
+        .eq('aeropuerto_id', oaci);
+
+      const ids = (maqData || []).map(m => m.id);
+      let novsRep = {};
+
+      if (ids.length > 0) {
+        const { data: novData } = await supabaseClient
+          .from('novedades_maquinas')
+          .select('maquina_id, reparado')
+          .in('maquina_id', ids)
+          .eq('reparado', false);
+
+        (novData || []).forEach(n => { novsRep[n.maquina_id] = true; });
+      }
+
+      // Máquinas activas = OPERATIVA Y sin novedades pendientes
+      const activas = (maqData || []).filter(m =>
+        (m.estado || 'OPERATIVA') === 'OPERATIVA' && !novsRep[m.id]
+      );
+
+      disponible       = activas.reduce((sum, m) => sum + ((parseFloat(m.agua_galones) || 0) * 3.78541), 0);
+      maquinas_activas = activas.length;
+    }
+
+    // Actualizar métricas
+    dispEl.textContent = disponible > 0 ? disponible.toLocaleString('es-CO', {maximumFractionDigits: 0}) : '0';
+    maqEl.textContent  = maquinas_activas;
+    maqEl.style.color  = maquinas_activas > 0 ? 'var(--green)' : 'var(--red)';
+
+    const esSEGURO = disponible >= REQUERIMIENTO_LITROS;
+
+    if (esSEGURO) {
+      // ── SEGURO ──
+      panel.className = 'semaforo-sei visible';
+      panel.style.borderColor = 'var(--green)';
+      panel.style.background  = 'rgba(0,230,118,.05)';
+      icon.textContent        = '✅';
+      badge.textContent       = 'SEGURO';
+      badge.style.background  = 'rgba(0,230,118,.18)';
+      badge.style.color       = 'var(--green)';
+      dispEl.style.color      = 'var(--green)';
+      const excedente = disponible - REQUERIMIENTO_LITROS;
+      msg.innerHTML = `<strong style="color:var(--green)">CAPACIDAD GARANTIZADA:</strong>
+        Flota operativa suficiente para esta aeronave.
+        Excedente: <strong style="color:var(--green)">+${excedente.toLocaleString('es-CO',{maximumFractionDigits:0})} L</strong>`;
+    } else {
+      // ── CRÍTICO ──
+      panel.className = 'semaforo-sei visible critico';
+      panel.style.borderColor = 'var(--red)';
+      panel.style.background  = 'rgba(255,82,82,.06)';
+      icon.textContent        = '⚠️';
+      badge.textContent       = 'CRÍTICO';
+      badge.style.background  = 'rgba(255,82,82,.22)';
+      badge.style.color       = 'var(--red)';
+      dispEl.style.color      = 'var(--red)';
+      const faltante = REQUERIMIENTO_LITROS - disponible;
+      msg.innerHTML = `<strong style="color:var(--red)">CAPACIDAD INSUFICIENTE:</strong>
+        Faltan <strong style="color:var(--red)">${faltante.toLocaleString('es-CO',{maximumFractionDigits:0})} litros</strong>
+        para cubrir el requerimiento OACI de ${REQUERIMIENTO_LITROS.toLocaleString('es-CO')} L.`;
+    }
+
+  } catch (err) {
+    console.error('validarCapacidadSEI:', err);
+    icon.textContent  = '⚠️';
+    badge.textContent = 'Error';
+    badge.style.background = 'rgba(255,82,82,.15)';
+    badge.style.color      = 'var(--red)';
+    msg.textContent = 'Error al consultar la base de datos.';
+  }
 }
 
 /* ─── BARRA ESTACION ──────────────────────────────────────── */
@@ -741,6 +1032,8 @@ async function cargarFlota(oaci) {
 
   renderFlota();
   actualizarResumen();
+  // Refrescar semáforo con datos actualizados
+  if (currentOaci) validarCapacidadSEI(currentOaci);
 }
 
 /* ─── RESUMEN ─────────────────────────────────────────────── */
@@ -784,7 +1077,7 @@ function buildCard(m) {
     ? `<span style="font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;background:var(--red-dim);border:1px solid var(--red);color:var(--red);">⚠ ${novPend} NOV</span>`
     : '';
 
-  const agua    = m.capacidad_agua_gal   ?? m.agua_gal    ?? 0;
+  const agua    = m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? 0;
   const espuma  = m.capacidad_espuma_gal ?? m.espuma_gal  ?? 0;
   const pqs     = m.capacidad_pqs_lb     ?? m.pqs_lb      ?? 0;
   const torreta = m.q_torreta_lpm        ?? 0;
@@ -1045,6 +1338,22 @@ async function confirmarEstado(nuevoEstado) {
 
   if (error) { toast('Error: ' + error.message, 'err'); cerrarEstadoModal(); return; }
 
+  // Si la máquina entra a taller, registrar novedad automática con reparado:false
+  if (nuevoEstado === 'MANTENIMIENTO' || nuevoEstado === 'FUERA') {
+    const tipoNov = nuevoEstado === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Fuera de servicio';
+    await supabaseClient.from('novedades_maquinas').insert({
+      maquina_id:  maqId,
+      descripcion: `Vehículo marcado como ${nuevoEstado} por cambio de estado operativo.`,
+      tipo:        tipoNov,
+      severidad:   nuevoEstado === 'FUERA' ? 'alta' : 'media',
+      reparado:    false,
+    });
+    // Recargar novedades del mapa local
+    if (!novedadesMap[maqId]) novedadesMap[maqId] = [];
+    // Re-validar semáforo con el oaci actual
+    if (currentOaci) validarCapacidadSEI(currentOaci);
+  }
+
   // Actualizar local
   const m = maquinas.find(x => x.id === maqId);
   if (m) {
@@ -1092,7 +1401,7 @@ function abrirEditar(maqId) {
   document.getElementById('f_modelo').value = m.modelo || '';
   document.getElementById('f_anio').value   = m.anio_fabricacion || '';
   document.getElementById('f_placa').value  = m.placa || '';
-  document.getElementById('f_agua').value   = m.capacidad_agua_gal ?? m.agua_gal ?? '';
+  document.getElementById('f_agua').value   = m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? '';
   document.getElementById('f_espuma').value = m.capacidad_espuma_gal ?? m.espuma_gal ?? '';
   document.getElementById('f_pqs').value    = m.capacidad_pqs_lb ?? m.pqs_lb ?? '';
   document.getElementById('f_co2').value    = m.capacidad_co2_lb ?? 0;
@@ -1125,7 +1434,7 @@ async function guardarMaquina() {
     modelo,
     anio_fabricacion:    parseInt(document.getElementById('f_anio').value) || null,
     placa:               document.getElementById('f_placa').value.trim() || null,
-    capacidad_agua_gal:  parseFloat(document.getElementById('f_agua').value) || 0,
+    agua_galones:         parseFloat(document.getElementById('f_agua').value) || 0,
     capacidad_espuma_gal:parseFloat(document.getElementById('f_espuma').value) || 0,
     capacidad_pqs_lb:    parseFloat(document.getElementById('f_pqs').value) || 0,
     capacidad_co2_lb:    parseFloat(document.getElementById('f_co2').value) || 0,
