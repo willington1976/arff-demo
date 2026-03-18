@@ -1913,13 +1913,13 @@
         }
       }
 
-      /* 2. Leer OACI desde sessionStorage/localStorage */
+      /* 2. Leer OACI desde sessionStorage/localStorage — NUNCA de params.get('from')
+         porque Area Critica envia ?from=nacional que NO es un codigo OACI */
       window.currentOaci = window.currentOaci
         || sessionStorage.getItem('sei_estacion')
         || localStorage.getItem('sei_estacion')
         || localStorage.getItem('currentOaci')
-        || params.get('oaci')
-        || params.get('from')
+        || params.get('oaci')    /* solo ?oaci= es un codigo real de aeropuerto */
         || null;
 
       /* 3. Si hay Ap válido, auto-cargar y calcular */
@@ -2128,14 +2128,14 @@
 
       if (!panel) return;
 
-      /* Resolver OACI: window > sessionStorage > localStorage > URL param */
+      /* Resolver OACI: window > sessionStorage > localStorage > URL param ?oaci=
+         IMPORTANTE: params.get('from') NO es OACI (Area Critica envia from=nacional) */
       const params  = new URLSearchParams(window.location.search);
       const oaciId  = window.currentOaci
                     || sessionStorage.getItem('sei_estacion')
                     || localStorage.getItem('sei_estacion')
                     || localStorage.getItem('currentOaci')
-                    || params.get('oaci')
-                    || params.get('from')
+                    || params.get('oaci')   /* solo ?oaci= es codigo real de aeropuerto */
                     || null;
 
       /* ── Estado inicial: Consultando ── */
@@ -2664,10 +2664,4 @@
           <th>Vol. 1 min (L)</th>
           <th>Vol. 3 min (L)</th>
         </tr>
-      </thead>
-      <tbody>
-        ${[3.7, 4.1, 5.5, 6.5].map(r => {
-          const c = RATE_CONFIG[r] || {};
-          const q1r = (ac * r).toFixed(1);
-          const q2r = (ac * r * 0.5).toFixed(1);
-          const qtr = (ac * r *
+      </
