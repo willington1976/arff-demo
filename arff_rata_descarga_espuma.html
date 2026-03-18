@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>ARFF Colombia — Rata de Descarga de Espuma</title>
   <meta name="description"
-    content="Calculadora de caudal requerido de espuma para incendios aeronáuticos ARFF — ICAO Doc 9137">
+    content="Calculadora de caudal requerido de espuma para incendios aeronáuticos ARFF — OACI Doc 9137">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
@@ -19,6 +19,21 @@
   <!-- SEI PDF Generator -->
   <link rel="stylesheet" href="css/sei-pdf-style.css">
   <script src="js/sei-pdf-generator.js"></script>
+
+  <!-- ══ Supabase SDK ══ -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* ─── Supabase client — Módulo 02: Rata de Descarga ─── */
+    const SUPA_URL = 'https://mctrdchacgwtqimsdpvn.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jdHJkY2hhY2d3dHFpbXNkcHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjY4MDYsImV4cCI6MjA4ODU0MjgwNn0.RypOxjmrjrGXMM2ujRAwxanAkOKLzH4qZEKE4IQTFsQ';
+    const supabaseClient = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+    /* OACI del aeropuerto activo — se lee de sessionStorage o localStorage */
+    window.currentOaci = sessionStorage.getItem('sei_estacion')
+                      || localStorage.getItem('sei_estacion')
+                      || localStorage.getItem('currentOaci')
+                      || null;
+  </script>
 
   <style>
     /* ═══════════════════════════════════════════
@@ -1877,33 +1892,55 @@
       }
     };
 
-    /* ─── URL PARAM IMPORT ──────────────────── */
+    /* ─── DOM READY — Carga automatica desde localStorage (Módulo 01) ─── */
     window.addEventListener('DOMContentLoaded', function() {
-      const params = new URLSearchParams(window.location.search);
-      const apVal = parseFloat(params.get('ac'));
-      const catVal = params.get('cat');
+      const params  = new URLSearchParams(window.location.search);
 
+      /* 1. Obtener Ap: primero URL param, luego localStorage del Módulo 01 */
+      let apVal  = parseFloat(params.get('ac'));
+      let catVal = params.get('cat');
+
+      if (isNaN(apVal) || apVal <= 0) {
+        /* Leer desde localStorage guardado por arff_area_critica (Módulo 01) */
+        const lsAp  = localStorage.getItem('arff_area_practica')
+                   || localStorage.getItem('sei_area_practica')
+                   || localStorage.getItem('ap_m2');
+        const lsCat = localStorage.getItem('arff_categoria')
+                   || localStorage.getItem('sei_categoria');
+        if (lsAp && !isNaN(parseFloat(lsAp))) {
+          apVal  = parseFloat(lsAp);
+          catVal = catVal || lsCat;
+        }
+      }
+
+      /* 2. Leer OACI desde sessionStorage/localStorage */
+      window.currentOaci = window.currentOaci
+        || sessionStorage.getItem('sei_estacion')
+        || localStorage.getItem('sei_estacion')
+        || localStorage.getItem('currentOaci')
+        || params.get('oaci')
+        || params.get('from')
+        || null;
+
+      /* 3. Si hay Ap válido, auto-cargar y calcular */
       if (!isNaN(apVal) && apVal > 0) {
         importedAp = apVal;
 
-        // Show imported banner, hide manual input
-        const banner = document.getElementById('ap-imported-banner');
+        const banner    = document.getElementById('ap-imported-banner');
         const manualWrap = document.getElementById('ap-manual-wrap');
         banner.style.display = 'flex';
         if (manualWrap) manualWrap.style.display = 'none';
         document.getElementById('ap-display-val').textContent = apVal.toFixed(2);
-
-        // Also set hidden input value for validation
         document.getElementById('inp-ac').value = apVal;
 
-        // Auto-select rate based on category if available
+        /* 4. Auto-seleccionar tasa según categoría OACI */
         if (catVal) {
           const catNum = parseInt(catVal);
           let autoRate = 5.5;
-          if (catNum <= 5) autoRate = 3.7;
+          if (catNum <= 5)      autoRate = 3.7;
           else if (catNum <= 6) autoRate = 4.1;
           else if (catNum <= 9) autoRate = 5.5;
-          else autoRate = 6.5;
+          else                  autoRate = 6.5;
 
           selectedRate = autoRate;
           document.querySelectorAll('.rate-pill').forEach(p => {
@@ -1916,10 +1953,11 @@
 
         window.currentCat = catVal || 'XX';
 
-        // Auto-calculate immediately
-        setTimeout(function() { calcularLive(); }, 100);
-
-        showToast(`✓ Ap = ${apVal.toFixed(2)} m² importado del Módulo 01`);
+        /* 5. Calcular y lanzar validación contra Supabase */
+        setTimeout(function() {
+          calcularLive();
+          showToast(`✓ Ap = ${apVal.toFixed(2)} m² cargado del Módulo 01`);
+        }, 150);
       }
     });
 
@@ -2060,125 +2098,190 @@
     }
 
     /* ─── SHOW RESULT ───────────────────────── */
-    /* ─── VALIDACIÓN FLOTA SEI ─────────────────────────────────── */
-    async function validarFlotaSEI(QtRequerido) {
-      const panel   = document.getElementById('sei-compliance-panel');
-      const badge   = document.getElementById('sei-badge');
-      const icon    = document.getElementById('sei-icon');
-      const msg     = document.getElementById('sei-message');
-      const dispEl  = document.getElementById('sei-disponible');
-      const reqEl   = document.getElementById('sei-requerido');
-      const maqEl   = document.getElementById('sei-maquinas');
+    /* ════════════════════════════════════════════════════════════════
+       VALIDACIÓN FLOTA SEI — Módulo 02
+       Consulta directa a: maquinas_sei + novedades_maquinas
+    ════════════════════════════════════════════════════════════════ */
+    async function validarCumplimientoFlota(QtRequerido) {
+      const panel  = document.getElementById('sei-compliance-panel');
+      const badge  = document.getElementById('sei-badge');
+      const icon   = document.getElementById('sei-icon');
+      const msg    = document.getElementById('sei-message');
+      const dispEl = document.getElementById('sei-disponible');
+      const reqEl  = document.getElementById('sei-requerido');
+      const maqEl  = document.getElementById('sei-maquinas');
 
       if (!panel) return;
 
-      // Obtener el identificador OACI del aeropuerto actual
-      // Viene del parámetro URL 'from' o de window.currentOaci
-      const params   = new URLSearchParams(window.location.search);
-      const oaciId   = window.currentOaci
-                     || params.get('from')
-                     || params.get('oaci')
-                     || null;
+      /* Resolver OACI: window > sessionStorage > localStorage > URL param */
+      const params  = new URLSearchParams(window.location.search);
+      const oaciId  = window.currentOaci
+                    || sessionStorage.getItem('sei_estacion')
+                    || localStorage.getItem('sei_estacion')
+                    || localStorage.getItem('currentOaci')
+                    || params.get('oaci')
+                    || params.get('from')
+                    || null;
 
-      // Mostrar panel en estado "consultando"
+      /* ── Estado inicial: Consultando ── */
       panel.style.display = 'block';
-      panel.className = '';
+      panel.className     = '';
       panel.style.borderColor = 'var(--border2)';
       panel.style.background  = 'rgba(255,255,255,.03)';
-      badge.textContent = 'Consultando...';
-      badge.style.background  = 'var(--panel2)';
-      badge.style.color       = 'var(--text-dim)';
-      icon.textContent  = '⏳';
-      msg.textContent   = 'Consultando capacidad operativa de la flota SEI...';
-      dispEl.textContent = '—';
-      reqEl.textContent  = QtRequerido.toFixed(0);
-      maqEl.textContent  = '—';
+      badge.textContent        = 'Consultando...';
+      badge.style.background   = 'var(--panel2)';
+      badge.style.color        = 'var(--text-dim)';
+      badge.style.border       = '1px solid var(--border2)';
+      icon.textContent         = '⏳';
+      msg.textContent          = 'Cruzando Qt calculado con capacidad real de la flota OACI...';
+      dispEl.textContent       = '—';
+      reqEl.textContent        = QtRequerido.toFixed(0) + ' L/min';
+      maqEl.textContent        = '—';
 
-      // Si no hay cliente Supabase disponible, mostrar advertencia
+      /* ── Sin cliente Supabase ── */
       if (typeof supabaseClient === 'undefined') {
-        icon.textContent  = '⚠️';
-        badge.textContent = 'Sin conexión';
-        badge.style.background = 'rgba(245,159,0,.15)';
-        badge.style.color      = 'var(--amber)';
-        panel.style.borderColor = 'var(--amber)';
-        panel.style.background  = 'rgba(245,159,0,.05)';
-        msg.textContent = 'No se pudo conectar con la base de datos Supabase. Verifique la conexión.';
+        _setPanel(panel, badge, icon, msg, dispEl, 'warn',
+          '⚠️', 'Sin conexión BD',
+          'No hay cliente Supabase disponible. Incluya supabase-config.js o verifique la conexión.');
+        return;
+      }
+
+      /* ── Sin OACI identificado ── */
+      if (!oaciId) {
+        _setPanel(panel, badge, icon, msg, dispEl, 'warn',
+          'ℹ️', 'OACI no detectado',
+          'El código OACI del aeródromo no está disponible. ' +
+          'Acceda desde el dashboard autenticado para obtener validación automática.');
         return;
       }
 
       try {
-        let query = supabaseClient
-          .from('vista_capacidad_operativa_sei')
-          .select('total_agua_litros, maquinas_activas, oaci');
+        /* ── 1. Obtener máquinas OPERATIVAS del aeródromo ── */
+        const { data: maquinas, error: errMaq } = await supabaseClient
+          .from('maquinas_sei')
+          .select('id, numero_interno, modelo, agua_galones, estado')
+          .eq('aeropuerto_id', oaciId)
+          .ilike('estado', 'OPERATIV%');   // captura OPERATIVA / OPERATIVO
 
-        if (oaciId) {
-          query = query.eq('oaci', oaciId);
-        }
+        if (errMaq) throw errMaq;
 
-        const { data, error } = await query.limit(1).single();
-
-        if (error || !data) {
-          // Vista vacía o sin datos para este aeropuerto
-          icon.textContent  = '⚠️';
-          badge.textContent = 'Sin datos';
-          badge.style.background = 'rgba(245,159,0,.15)';
-          badge.style.color      = 'var(--amber)';
-          panel.style.borderColor = 'var(--amber)';
-          panel.style.background  = 'rgba(245,159,0,.04)';
-          msg.innerHTML = oaciId
-            ? `No se encontraron datos para el aeropuerto <strong style="color:var(--amber)">${oaciId}</strong> en la vista de capacidad operativa.`
-            : 'No se identificó el aeropuerto. Navegue desde el dashboard para obtener validación automática.';
+        if (!maquinas || maquinas.length === 0) {
+          _setPanel(panel, badge, icon, msg, dispEl, 'warn',
+            '⚠️', 'Sin datos de flota',
+            `No se encontraron vehículos OPERATIVOS para el aeródromo <strong>${oaciId}</strong>. ` +
+            'Registre la flota en el módulo Gestión de Flota SEI.');
+          maqEl.textContent = '0';
           return;
         }
 
-        const disponible  = parseFloat(data.total_agua_litros) || 0;
-        const maquinas    = parseInt(data.maquinas_activas)     || 0;
-        const diferencia  = disponible - QtRequerido;
-        const esSEGURO    = disponible >= QtRequerido;
+        /* ── 2. Verificar novedades que afecten capacidad de descarga ── */
+        const idsAList = maquinas.map(m => m.id);
+        const { data: novedades } = await supabaseClient
+          .from('novedades_maquinas')
+          .select('maquina_id, descripcion, reparado')
+          .in('maquina_id', idsAList)
+          .eq('reparado', false);
 
-        // Actualizar métricas
-        dispEl.textContent = disponible.toLocaleString('es-CO');
-        reqEl.textContent  = QtRequerido.toFixed(0);
-        maqEl.textContent  = maquinas;
-        maqEl.style.color  = maquinas > 0 ? 'var(--green)' : 'var(--red)';
+        /* IDs de máquinas con novedad activa (reparado=false) */
+        const idsConNovedad = new Set((novedades || []).map(n => n.maquina_id));
 
-        if (esSEGURO) {
-          // ── ESTADO SEGURO ──
-          panel.className         = '';
+        /* ── 3. Sumar agua_galones → litros SOLO de máquinas sin novedad activa ── */
+        const GAL_A_LITROS = 3.78541;
+        let totalLitros   = 0;
+        let maqConNovedad = 0;
+        let detalleMaq    = [];
+
+        maquinas.forEach(m => {
+          const aguaL = (parseFloat(m.agua_galones) || 0) * GAL_A_LITROS;
+          if (idsConNovedad.has(m.id)) {
+            maqConNovedad++;
+            detalleMaq.push(`${m.numero_interno || m.id} ⚠ (Novedad)`);
+          } else {
+            totalLitros += aguaL;
+            detalleMaq.push(`${m.numero_interno || m.id} ✓`);
+          }
+        });
+
+        const diferencia = totalLitros - QtRequerido;
+        const cumple     = totalLitros >= QtRequerido;
+
+        /* ── 4. Actualizar métricas ── */
+        dispEl.textContent = totalLitros.toLocaleString('es-CO', {maximumFractionDigits:0}) + ' L';
+        reqEl.textContent  = QtRequerido.toFixed(0) + ' L/min';
+        maqEl.textContent  = maquinas.length;
+        maqEl.style.color  = maquinas.length > 0 ? 'var(--green)' : 'var(--red)';
+
+        /* Mensaje de novedad si aplica */
+        const novMsg = maqConNovedad > 0
+          ? ` <span style="color:var(--amber);font-size:11px">(${maqConNovedad} máq. excluidas por novedades activas — reparado=false)</span>`
+          : '';
+
+        if (cumple) {
+          /* ── 🟢 CUMPLIMIENTO ── */
           panel.style.borderColor = 'var(--green)';
           panel.style.background  = 'rgba(47,158,68,.07)';
-          badge.textContent       = 'SEGURO';
-          badge.style.background  = 'rgba(47,158,68,.20)';
+          badge.textContent       = '🟢 CUMPLIMIENTO';
+          badge.style.background  = 'rgba(47,158,68,.18)';
           badge.style.color       = 'var(--green)';
+          badge.style.border      = '1px solid rgba(47,158,68,.4)';
           icon.textContent        = '✅';
           dispEl.style.color      = 'var(--green)';
-          msg.innerHTML = `<strong style="color:var(--green)">CAPACIDAD GARANTIZADA:</strong>
-            Flota operativa suficiente para esta aeronave.
-            Excedente disponible: <strong style="color:var(--green)">+${diferencia.toLocaleString('es-CO')} L</strong>`;
+          msg.innerHTML =
+            `<strong style="color:var(--green)">🟢 CUMPLIMIENTO:</strong> ` +
+            `El aeródromo <strong>${oaciId}</strong> cuenta con capacidad suficiente.` +
+            `<br><span style="font-size:11.5px;color:var(--text-dim)">` +
+            `Disponible: <strong>${totalLitros.toLocaleString('es-CO',{maximumFractionDigits:0})} L</strong> · ` +
+            `Requerido: <strong>${QtRequerido.toFixed(0)} L/min</strong> · ` +
+            `Excedente: <strong style="color:var(--green)">+${diferencia.toLocaleString('es-CO',{maximumFractionDigits:0})} L</strong>` +
+            `${novMsg}</span>`;
         } else {
-          // ── ESTADO CRÍTICO ──
+          /* ── 🔴 INCUMPLIMIENTO ── */
           panel.className         = 'sei-critico';
           panel.style.borderColor = 'var(--red)';
-          panel.style.background  = 'rgba(224,49,49,.08)';
-          badge.textContent       = 'CRÍTICO';
-          badge.style.background  = 'rgba(224,49,49,.25)';
+          panel.style.background  = 'rgba(224,49,49,.09)';
+          badge.textContent       = '🔴 INCUMPLIMIENTO';
+          badge.style.background  = 'rgba(224,49,49,.22)';
           badge.style.color       = '#ff8787';
+          badge.style.border      = '1px solid rgba(224,49,49,.5)';
           icon.textContent        = '⚠️';
           dispEl.style.color      = 'var(--red)';
-          msg.innerHTML = `<strong style="color:#ff6b6b">CAPACIDAD INSUFICIENTE:</strong>
-            Faltan <strong style="color:#ff6b6b">${Math.abs(diferencia).toLocaleString('es-CO')} litros</strong>
-            para cubrir el requerimiento OACI de ${QtRequerido.toFixed(0)} L/min.`;
+          msg.innerHTML =
+            `<strong style="color:#ff6b6b">🔴 INCUMPLIMIENTO:</strong> ` +
+            `Capacidad actual <strong style="color:#ff8787">${totalLitros.toLocaleString('es-CO',{maximumFractionDigits:0})} L/min</strong> ` +
+            `&lt; Requerido <strong style="color:#ff8787">${QtRequerido.toFixed(0)} L/min</strong>.` +
+            `<br><span style="font-size:11.5px;color:var(--text-dim)">` +
+            `Déficit: <strong style="color:var(--red)">${Math.abs(diferencia).toLocaleString('es-CO',{maximumFractionDigits:0})} litros</strong> ` +
+            `— Se requiere reforzar la flota ARFF en <strong>${oaciId}</strong>.` +
+            `${novMsg}</span>`;
         }
 
       } catch (err) {
-        console.error('Error validarFlotaSEI:', err);
-        icon.textContent  = '⚠️';
-        badge.textContent = 'Error';
-        badge.style.background = 'rgba(224,49,49,.15)';
-        badge.style.color      = 'var(--red)';
-        panel.style.borderColor = 'var(--red)';
-        msg.textContent = 'Error al consultar la base de datos. Revise la consola para más detalles.';
+        console.error('[Módulo 02] Error validarCumplimientoFlota:', err);
+        _setPanel(panel, badge, icon, msg, dispEl, 'error',
+          '⚠️', 'Error BD',
+          'Error al consultar la base de datos. Revise la consola para más detalles.');
       }
+    }
+
+    /* alias para compatibilidad con código existente */
+    const validarFlotaSEI = validarCumplimientoFlota;
+
+    /* Helper interno para estados de panel */
+    function _setPanel(panel, badge, icon, msg, dispEl, tipo, ic, badgeTxt, msgTxt) {
+      const map = {
+        warn:  { bc:'var(--amber)', bg:'rgba(245,159,0,.05)',  ba:'rgba(245,159,0,.15)',  bc2:'rgba(245,159,0,.35)',  dc:'var(--amber)' },
+        error: { bc:'var(--red)',   bg:'rgba(224,49,49,.06)',  ba:'rgba(224,49,49,.15)',  bc2:'rgba(224,49,49,.4)',   dc:'var(--red)'   },
+      };
+      const s = map[tipo] || map.warn;
+      panel.style.borderColor = s.bc;
+      panel.style.background  = s.bg;
+      badge.textContent       = badgeTxt;
+      badge.style.background  = s.ba;
+      badge.style.color       = s.dc;
+      badge.style.border      = `1px solid ${s.bc2}`;
+      icon.textContent        = ic;
+      dispEl.style.color      = s.dc;
+      msg.innerHTML           = msgTxt;
     }
 
     function showResult(ac, rate, Q1, Q2, Qt) {
@@ -2224,8 +2327,8 @@
       });
       document.getElementById('tank-chips').innerHTML = chips;
 
-      // Validar flota SEI en tiempo real
-      validarFlotaSEI(Qt);
+      // Validar cumplimiento flota SEI contra Supabase
+      validarCumplimientoFlota(Qt);
     }
 
     /* ─── COMPARISON TABLE ──────────────────── */
