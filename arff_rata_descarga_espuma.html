@@ -1193,6 +1193,15 @@
       }
     }
 
+    /* ── Panel SEI — glow parpadeante estado CRÍTICO ── */
+    @keyframes sei-pulse-red {
+      0%, 100% { box-shadow: 0 0 0 rgba(224,49,49,0);   border-color: var(--red); }
+      50%       { box-shadow: 0 0 18px rgba(224,49,49,.55); border-color: #ff6b6b; }
+    }
+    .sei-critico {
+      animation: sei-pulse-red 1.6s ease-in-out infinite !important;
+    }
+
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -1572,6 +1581,70 @@
             <span class="tank-label">Equivale a:</span>
             <div class="tank-chips" id="tank-chips"></div>
           </div>
+
+          <!-- ══ PANEL ESTADO DE CUMPLIMIENTO SEI ══ -->
+          <div id="sei-compliance-panel" style="display:none;
+               margin:12px 18px 16px;
+               border-radius:8px;
+               border:2px solid var(--green);
+               background:rgba(47,158,68,.07);
+               overflow:hidden;
+               transition:border-color .3s,background .3s">
+            <!-- Header -->
+            <div style="padding:10px 16px;
+                        border-bottom:1px solid rgba(255,255,255,.08);
+                        display:flex;align-items:center;gap:10px">
+              <span id="sei-icon" style="font-size:16px">✅</span>
+              <span style="font-family:var(--font-title);font-weight:800;font-size:11px;
+                           letter-spacing:.10em;text-transform:uppercase;color:var(--text)">
+                Estado de Cumplimiento SEI
+              </span>
+              <span id="sei-badge" style="margin-left:auto;font-family:var(--font-mono);
+                    font-size:9px;font-weight:700;letter-spacing:.10em;
+                    padding:2px 9px;border-radius:4px;text-transform:uppercase">
+                —
+              </span>
+            </div>
+            <!-- Body -->
+            <div style="padding:12px 16px 10px">
+              <div id="sei-message" style="font-size:12.5px;color:var(--text);
+                   line-height:1.6;margin-bottom:10px">—</div>
+              <!-- Métricas -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+                <div style="background:var(--panel);border:1px solid var(--border);
+                            border-radius:6px;padding:8px 10px;text-align:center">
+                  <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;
+                              color:var(--cyan)" id="sei-disponible">—</div>
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:.05em;
+                              text-transform:uppercase;margin-top:2px">Disponible (L)</div>
+                </div>
+                <div style="background:var(--panel);border:1px solid var(--border);
+                            border-radius:6px;padding:8px 10px;text-align:center">
+                  <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;
+                              color:var(--orange)" id="sei-requerido">—</div>
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:.05em;
+                              text-transform:uppercase;margin-top:2px">Requerido (L/min)</div>
+                </div>
+                <div style="background:var(--panel);border:1px solid var(--border);
+                            border-radius:6px;padding:8px 10px;text-align:center">
+                  <div style="font-family:var(--font-mono);font-size:15px;font-weight:600"
+                       id="sei-maquinas">—</div>
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:.05em;
+                              text-transform:uppercase;margin-top:2px">Máquinas activas</div>
+                </div>
+              </div>
+              <!-- Auditoría -->
+              <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);
+                          border-top:1px solid var(--border);padding-top:7px;
+                          letter-spacing:.04em;line-height:1.5">
+                🔍 Validación basada en máquinas con estado <code style="color:var(--text-dim)">reparado=true</code>
+                en <code style="color:var(--text-dim)">novedades_maquinas</code> ·
+                Vista: <code style="color:var(--text-dim)">vista_capacidad_operativa_sei</code>
+              </div>
+            </div>
+          </div>
+          <!-- ══ FIN PANEL SEI ══ -->
+
         </div>
       </div>
 
@@ -1987,6 +2060,127 @@
     }
 
     /* ─── SHOW RESULT ───────────────────────── */
+    /* ─── VALIDACIÓN FLOTA SEI ─────────────────────────────────── */
+    async function validarFlotaSEI(QtRequerido) {
+      const panel   = document.getElementById('sei-compliance-panel');
+      const badge   = document.getElementById('sei-badge');
+      const icon    = document.getElementById('sei-icon');
+      const msg     = document.getElementById('sei-message');
+      const dispEl  = document.getElementById('sei-disponible');
+      const reqEl   = document.getElementById('sei-requerido');
+      const maqEl   = document.getElementById('sei-maquinas');
+
+      if (!panel) return;
+
+      // Obtener el identificador OACI del aeropuerto actual
+      // Viene del parámetro URL 'from' o de window.currentOaci
+      const params   = new URLSearchParams(window.location.search);
+      const oaciId   = window.currentOaci
+                     || params.get('from')
+                     || params.get('oaci')
+                     || null;
+
+      // Mostrar panel en estado "consultando"
+      panel.style.display = 'block';
+      panel.className = '';
+      panel.style.borderColor = 'var(--border2)';
+      panel.style.background  = 'rgba(255,255,255,.03)';
+      badge.textContent = 'Consultando...';
+      badge.style.background  = 'var(--panel2)';
+      badge.style.color       = 'var(--text-dim)';
+      icon.textContent  = '⏳';
+      msg.textContent   = 'Consultando capacidad operativa de la flota SEI...';
+      dispEl.textContent = '—';
+      reqEl.textContent  = QtRequerido.toFixed(0);
+      maqEl.textContent  = '—';
+
+      // Si no hay cliente Supabase disponible, mostrar advertencia
+      if (typeof supabaseClient === 'undefined') {
+        icon.textContent  = '⚠️';
+        badge.textContent = 'Sin conexión';
+        badge.style.background = 'rgba(245,159,0,.15)';
+        badge.style.color      = 'var(--amber)';
+        panel.style.borderColor = 'var(--amber)';
+        panel.style.background  = 'rgba(245,159,0,.05)';
+        msg.textContent = 'No se pudo conectar con la base de datos Supabase. Verifique la conexión.';
+        return;
+      }
+
+      try {
+        let query = supabaseClient
+          .from('vista_capacidad_operativa_sei')
+          .select('total_agua_litros, maquinas_activas, oaci');
+
+        if (oaciId) {
+          query = query.eq('oaci', oaciId);
+        }
+
+        const { data, error } = await query.limit(1).single();
+
+        if (error || !data) {
+          // Vista vacía o sin datos para este aeropuerto
+          icon.textContent  = '⚠️';
+          badge.textContent = 'Sin datos';
+          badge.style.background = 'rgba(245,159,0,.15)';
+          badge.style.color      = 'var(--amber)';
+          panel.style.borderColor = 'var(--amber)';
+          panel.style.background  = 'rgba(245,159,0,.04)';
+          msg.innerHTML = oaciId
+            ? `No se encontraron datos para el aeropuerto <strong style="color:var(--amber)">${oaciId}</strong> en la vista de capacidad operativa.`
+            : 'No se identificó el aeropuerto. Navegue desde el dashboard para obtener validación automática.';
+          return;
+        }
+
+        const disponible  = parseFloat(data.total_agua_litros) || 0;
+        const maquinas    = parseInt(data.maquinas_activas)     || 0;
+        const diferencia  = disponible - QtRequerido;
+        const esSEGURO    = disponible >= QtRequerido;
+
+        // Actualizar métricas
+        dispEl.textContent = disponible.toLocaleString('es-CO');
+        reqEl.textContent  = QtRequerido.toFixed(0);
+        maqEl.textContent  = maquinas;
+        maqEl.style.color  = maquinas > 0 ? 'var(--green)' : 'var(--red)';
+
+        if (esSEGURO) {
+          // ── ESTADO SEGURO ──
+          panel.className         = '';
+          panel.style.borderColor = 'var(--green)';
+          panel.style.background  = 'rgba(47,158,68,.07)';
+          badge.textContent       = 'SEGURO';
+          badge.style.background  = 'rgba(47,158,68,.20)';
+          badge.style.color       = 'var(--green)';
+          icon.textContent        = '✅';
+          dispEl.style.color      = 'var(--green)';
+          msg.innerHTML = `<strong style="color:var(--green)">CAPACIDAD GARANTIZADA:</strong>
+            Flota operativa suficiente para esta aeronave.
+            Excedente disponible: <strong style="color:var(--green)">+${diferencia.toLocaleString('es-CO')} L</strong>`;
+        } else {
+          // ── ESTADO CRÍTICO ──
+          panel.className         = 'sei-critico';
+          panel.style.borderColor = 'var(--red)';
+          panel.style.background  = 'rgba(224,49,49,.08)';
+          badge.textContent       = 'CRÍTICO';
+          badge.style.background  = 'rgba(224,49,49,.25)';
+          badge.style.color       = '#ff8787';
+          icon.textContent        = '⚠️';
+          dispEl.style.color      = 'var(--red)';
+          msg.innerHTML = `<strong style="color:#ff6b6b">CAPACIDAD INSUFICIENTE:</strong>
+            Faltan <strong style="color:#ff6b6b">${Math.abs(diferencia).toLocaleString('es-CO')} litros</strong>
+            para cubrir el requerimiento OACI de ${QtRequerido.toFixed(0)} L/min.`;
+        }
+
+      } catch (err) {
+        console.error('Error validarFlotaSEI:', err);
+        icon.textContent  = '⚠️';
+        badge.textContent = 'Error';
+        badge.style.background = 'rgba(224,49,49,.15)';
+        badge.style.color      = 'var(--red)';
+        panel.style.borderColor = 'var(--red)';
+        msg.textContent = 'Error al consultar la base de datos. Revise la consola para más detalles.';
+      }
+    }
+
     function showResult(ac, rate, Q1, Q2, Qt) {
       const cfg = RATE_CONFIG[rate] || { color: '#339af0', label: `Tasa ${rate} L/min/m²`, agent: 'Personalizada', cats: '—', norm: '—' };
 
@@ -2029,6 +2223,9 @@
     </div>`;
       });
       document.getElementById('tank-chips').innerHTML = chips;
+
+      // Validar flota SEI en tiempo real
+      validarFlotaSEI(Qt);
     }
 
     /* ─── COMPARISON TABLE ──────────────────── */
