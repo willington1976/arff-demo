@@ -1287,57 +1287,59 @@
         background: #fff !important;
         border: 1px solid #999 !important;
         border-radius: 3px !important;
-        margin-bottom: 5pt !important;
+        margin-bottom: 2pt !important;
         page-break-inside: avoid !important;
       }
-      .module-strip { height: 3px !important; background: #000 !important; }
-      .module-head-inner { padding: 4pt 7pt 3pt !important; }
-      .module-eyebrow { font-size: 6.5pt !important; color: #555 !important; margin-bottom: 1pt !important; }
-      .module-title { font-size: 13pt !important; color: #000 !important; margin-bottom: 1pt !important; }
-      .module-subtitle { font-size: 7pt !important; color: #444 !important; }
+      .module-strip { height: 2px !important; background: #000 !important; }
+      .module-head-inner { padding: 3pt 6pt 2pt !important; }
+      .module-eyebrow { font-size: 6pt !important; color: #555 !important; margin-bottom: 0 !important; }
+      .module-title { font-size: 11pt !important; color: #000 !important; margin-bottom: 0 !important; }
+      .module-subtitle { font-size: 6.5pt !important; color: #444 !important; }
       
       .meta-chip {
         background: #f0f0f0 !important; border: 1px solid #aaa !important;
-        color: #333 !important; font-size: 6.5pt !important;
-        padding: 1pt 4pt !important; border-radius: 2px !important;
+        color: #333 !important; font-size: 6pt !important;
+        padding: 0.5pt 3pt !important; border-radius: 2px !important;
       }
-      .meta-chip .dot { width: 5px !important; height: 5px !important; }
+      .meta-chip .dot { width: 4px !important; height: 4px !important; }
 
       /* ── Barra de Fórmula ── */
       .formula-bar {
         background: #fff !important;
         border: 1pt solid #000 !important; border-left: 3pt solid #000 !important;
         border-radius: 2px !important;
-        padding: 4pt 8pt !important; margin-bottom: 5pt !important;
-        gap: 10pt !important; flex-wrap: nowrap !important;
+        padding: 3pt 6pt !important; margin-bottom: 0 !important;
+        gap: 6pt !important; flex-wrap: nowrap !important;
         page-break-inside: avoid !important;
       }
-      .formula-main { font-size: 13pt !important; color: #000 !important; white-space: nowrap !important; }
+      .formula-main { font-size: 11pt !important; color: #000 !important; white-space: nowrap !important; }
       .formula-main span { text-shadow: none !important; }
       
-      .fdef { gap: 3pt !important; min-width: 80pt !important; }
-      .fdef-var { font-size: 7pt !important; background: #eee !important; color: #000 !important; border-color: #999 !important; padding: 0 3pt !important; }
-      .fdef-desc { font-size: 6.5pt !important; color: #333 !important; }
+      .fdef { gap: 2pt !important; min-width: 70pt !important; }
+      .fdef-var { font-size: 6.5pt !important; background: #eee !important; color: #000 !important; border-color: #999 !important; padding: 0 2pt !important; }
+      .fdef-desc { font-size: 6pt !important; color: #333 !important; }
 
       /* ── Grilla ── */
       .main-grid {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
-        gap: 5pt !important; margin-bottom: 5pt !important;
-        page-break-inside: avoid !important;
+        gap: 4pt !important; margin-bottom: 4pt !important;
+        /* Quitamos avoid para que no empuje todo a la siguiente página */
+        page-break-inside: auto !important;
       }
 
       /* ── Paneles ── */
       .panel {
         background: #fff !important; border: 1pt solid #999 !important;
         border-radius: 2px !important; overflow: hidden !important;
-        page-break-inside: avoid !important;
+        /* Permitir quiebre en paneles si es necesario para juntar el contenido arriba */
+        page-break-inside: auto !important;
       }
       .panel-head {
         background: #efefef !important; border-bottom: 1pt solid #ccc !important;
-        padding: 2.5pt 6pt !important; color: #000 !important;
+        padding: 2pt 5pt !important; color: #000 !important;
       }
-      .panel-title { font-size: 7pt !important; font-weight: 700 !important; }
+      .panel-title { font-size: 6.5pt !important; font-weight: 700 !important; }
       .panel-body { padding: 5pt 7pt !important; }
 
       /* ── Formulario ── */
