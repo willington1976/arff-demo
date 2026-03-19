@@ -937,7 +937,22 @@ async function cargarCapacidadOperativa(oaci) {
     if (vResults && vResults.length > 0) {
       const vData = vResults[0];
       requerimiento = parseFloat(vData.agua_requerida_oaci) || 0;
-      disponible    = parseFloat(vData.agua_disponible_real) || 0;
+      // En vista de que la vista SQL devuelve 0 en algunos casos por duplicidad de OACI en estaciones_sei,
+      // usaremos el cálculo local garantizado basado en el arreglo de máquinas que vemos en pantalla.
+    }
+
+    // CÁLCULO LOCAL DE DISPONIBILIDAD (Suma de las tarjetas en pantalla)
+    // Usamos el factor 3.78541 porque las tarjetas muestran Galones y el semáforo exige Litros.
+    if (typeof maquinas !== 'undefined' && maquinas.length > 0) {
+       disponible = maquinas.reduce((sum, m) => {
+          const novPendientes = (novedadesMap[m.id] || []).some(n => !n.reparado);
+          const esOp = (m.estado || 'OPERATIVA') === 'OPERATIVA' && !novPendientes;
+          if (esOp) {
+             const ag = parseFloat(m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? 0);
+             return sum + (ag * 3.78541);
+          }
+          return sum;
+       }, 0);
     }
 
     // ── Actualizar Métricas DOM ──
