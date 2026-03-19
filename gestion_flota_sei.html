@@ -585,21 +585,21 @@ footer{
   </div>
 
   <!-- SEMÁFORO DE CAPACIDAD SEI -->
-  <div class="semaforo-sei" id="semaforoSEI">
+  <div class="semaforo-sei" id="card-capacidad">
     <div class="semaforo-header">
       <span class="sf-icon" id="sf-icon">⏳</span>
       <span class="sf-title">Capacidad Operativa SEI</span>
-      <span class="sf-badge" id="sf-badge">—</span>
+      <span class="sf-badge" id="estado-capacidad">—</span>
     </div>
     <div class="semaforo-body">
-      <div class="semaforo-msg" id="sf-msg">Esperando selección de aeropuerto…</div>
+      <div class="semaforo-msg" id="faltante-litros">Esperando selección de aeropuerto…</div>
       <div class="semaforo-metrics">
         <div class="sm-cell">
-          <div class="sm-val" id="sf-disponible">—</div>
+          <div class="sm-val" id="disponible-litros">—</div>
           <div class="sm-lbl">Disponible (L)</div>
         </div>
         <div class="sm-cell">
-          <div class="sm-val" id="sf-requerido" style="color:var(--amber)">7,844</div>
+          <div class="sm-val" id="requerido-litros" style="color:var(--amber)">—</div>
           <div class="sm-lbl">Requerido (L)</div>
         </div>
         <div class="sm-cell">
@@ -608,10 +608,8 @@ footer{
         </div>
       </div>
       <div class="semaforo-audit">
-        🔍 Validación basada en máquinas con
-        <code style="color:var(--accent2)">reparado=true</code> en
-        <code style="color:var(--accent2)">novedades_maquinas</code> ·
-        Vista: <code style="color:var(--accent2)">vista_capacidad_operativa_sei</code>
+        🔍 Validación basada en máquinas con <code>reparado=true</code> ·
+        Vista SQL: <code style="color:var(--accent2)">vista_capacidad_operativa_sei</code>
       </div>
     </div>
   </div>
@@ -791,8 +789,8 @@ window.onSEIReady = async function(session) {
     document.getElementById('searchInput').value = currentOaci;
     actualizarEstacionBar(currentOaci);
     await cargarFlota(currentOaci);
-    document.getElementById('semaforoSEI').classList.add('visible');
-    validarCapacidadSEI(currentOaci);
+    document.getElementById('card-capacidad').classList.add('visible');
+    cargarCapacidadOperativa(currentOaci);
     suscribirRealtime();
   } else {
     // Sin estación asignada: mostrar estado vacío y buscador activo
@@ -888,42 +886,31 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
   await cargarFlota(oaci);
 
   // 6. Mostrar semáforo y validar capacidad
-  document.getElementById('semaforoSEI').classList.add('visible');
-  await validarCapacidadSEI(oaci);
+  document.getElementById('card-capacidad').classList.add('visible');
+  await cargarCapacidadOperativa(oaci);
 }
 
 /* ─── SEMÁFORO — VALIDACIÓN CAPACIDAD SEI ────────────────────── */
-async function validarCapacidadSEI(oaci) {
-  const panel   = document.getElementById('semaforoSEI');
+async function cargarCapacidadOperativa(oaci) {
+  const panel   = document.getElementById('card-capacidad');
   const icon    = document.getElementById('sf-icon');
-  const badge   = document.getElementById('sf-badge');
-  const msg     = document.getElementById('sf-msg');
-  const dispEl  = document.getElementById('sf-disponible');
-  const reqEl   = document.getElementById('sf-requerido');
+  const badge   = document.getElementById('estado-capacidad');
+  const msg     = document.getElementById('faltante-litros');
+  const dispEl  = document.getElementById('disponible-litros');
+  const reqEl   = document.getElementById('requerido-litros');
   const maqEl   = document.getElementById('sf-maquinas');
 
   if (!panel) return;
 
   // Sin OACI: estado inicial
   if (!oaci) {
-    panel.className = 'semaforo-sei';
-    icon.textContent  = '⏳';
     badge.textContent = '—';
-    badge.style.background = 'var(--panel2)';
-    badge.style.color      = 'var(--text2)';
     msg.textContent = 'Esperando selección de aeropuerto…';
     dispEl.textContent = '—';
-    if (reqEl) reqEl.textContent = '—';
+    reqEl.textContent = '—';
     maqEl.textContent  = '—';
     return;
   }
-
-  // Estado "consultando"
-  icon.textContent  = '⏳';
-  badge.textContent = 'Consultando...';
-  badge.style.background = 'rgba(0,229,255,.1)';
-  badge.style.color      = 'var(--accent)';
-  msg.textContent = 'Consultando capacidad operativa desde la vista SEI...';
 
   try {
     let requerimiento = 0;
@@ -938,8 +925,8 @@ async function validarCapacidadSEI(oaci) {
        }).length;
     }
 
-    // ÚNICA CONSULTA A LA VISTA OFICIAL (Ya no invocamos maquinas_activas porque fue retirada de tu DB)
-    const { data: vData, error: vErr } = await supabaseClient
+    // ÚNICA CONSULTA A LA VISTA OFICIAL (Alias supabase ya disponible)
+    const { data: vData, error: vErr } = await supabase
       .from('vista_capacidad_operativa_sei')
       .select('agua_requerida_oaci, agua_disponible_real')
       .eq('oaci', oaci)
@@ -953,64 +940,44 @@ async function validarCapacidadSEI(oaci) {
     }
 
     // ── Actualizar Métricas DOM ──
-    dispEl.textContent = disponible > 0 ? disponible.toLocaleString('es-CO', {maximumFractionDigits: 0}) : '0';
-    if (reqEl) reqEl.textContent = requerimiento > 0 ? requerimiento.toLocaleString('es-CO', {maximumFractionDigits: 0}) : '0';
+    dispEl.textContent = Math.round(disponible).toLocaleString('es-CO');
+    reqEl.textContent  = Math.round(requerimiento).toLocaleString('es-CO');
     
     maqEl.textContent  = maquinas_activas;
     maqEl.style.color  = maquinas_activas > 0 ? 'var(--green)' : 'var(--red)';
 
-    // Evitar falsos negativos si el aeropuerto aún no tiene categoría paramétrica cargada en la vista
-    if (requerimiento === 0) {
-      panel.className = 'semaforo-sei visible';
-      panel.style.borderColor = 'var(--border2)';
-      panel.style.background  = 'var(--panel2)';
-      icon.textContent        = 'ℹ️';
-      badge.textContent       = 'SIN NORMA';
-      badge.style.background  = 'var(--panel3)';
-      badge.style.color       = 'var(--text3)';
-      dispEl.style.color      = 'var(--text)';
-      msg.innerHTML = `No hay un requerimiento normativo (Categoría OACI) registrado para <strong>${oaci}</strong>.`;
-      return;
-    }
+    const faltaLitros = requerimiento - disponible;
 
-    const esSEGURO = disponible >= requerimiento;
-
-    if (esSEGURO) {
+    if (faltaLitros <= 0 && requerimiento > 0) {
       // ── SEGURO ──
-      panel.className = 'semaforo-sei visible';
-      panel.style.borderColor = 'var(--green)';
-      panel.style.background  = 'rgba(0,230,118,.05)';
+      panel.classList.remove('critico');
       icon.textContent        = '✅';
-      badge.textContent       = 'SEGURO';
-      badge.style.background  = 'rgba(0,230,118,.18)';
-      badge.style.color       = 'var(--green)';
+      badge.textContent       = 'SUFICIENTE';
+      badge.style.background  = 'var(--green)';
+      badge.style.color       = '#fff';
       dispEl.style.color      = 'var(--green)';
-      const excedente = disponible - requerimiento;
-      msg.innerHTML = `<strong style="color:var(--green)">CAPACIDAD GARANTIZADA:</strong>
-        Flota operativa suficiente para esta aeronave.
-        Excedente: <strong style="color:var(--green)">+${excedente.toLocaleString('es-CO',{maximumFractionDigits:0})} L</strong>`;
-    } else {
+      msg.innerHTML = `<span style="color:var(--green)">CAPACIDAD SUFICIENTE:</span> Se cumple con el requerimiento OACI.`;
+    } else if (requerimiento > 0) {
       // ── CRÍTICO ──
-      panel.className = 'semaforo-sei visible critico';
-      panel.style.borderColor = 'var(--red)';
-      panel.style.background  = 'rgba(255,82,82,.06)';
+      panel.classList.add('critico');
       icon.textContent        = '⚠️';
       badge.textContent       = 'CRÍTICO';
-      badge.style.background  = 'rgba(255,82,82,.22)';
-      badge.style.color       = 'var(--red)';
+      badge.style.background  = 'var(--red)';
+      badge.style.color       = '#fff';
       dispEl.style.color      = 'var(--red)';
-      const faltante = requerimiento - disponible;
-      msg.innerHTML = `<strong style="color:var(--red)">CAPACIDAD INSUFICIENTE:</strong>
-        Faltan <strong style="color:var(--red)">${faltante.toLocaleString('es-CO',{maximumFractionDigits:0})} litros</strong>
-        para cubrir el requerimiento OACI de ${requerimiento.toLocaleString('es-CO')} L.`;
+      msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(faltaLitros).toLocaleString('es-CO')} litros</strong>
+        para cubrir el requerimiento OACI de ${Math.round(requerimiento).toLocaleString('es-CO')} L.`;
+    } else {
+      // SIN CATEGORÍA
+      badge.textContent = 'SIN NORMA';
+      badge.style.background = 'var(--panel3)';
+      msg.textContent = 'No hay un requerimiento normativo registrado para esta estación.';
     }
 
   } catch (err) {
-    console.error('validarCapacidadSEI:', err);
+    console.error('Error al cargar capacidad operativa:', err);
     icon.textContent  = '⚠️';
     badge.textContent = 'Error';
-    badge.style.background = 'rgba(255,82,82,.15)';
-    badge.style.color      = 'var(--red)';
     msg.textContent = 'Error al consultar la vista de capacidad operativa en base de datos.';
   }
 }
@@ -1058,7 +1025,7 @@ async function cargarFlota(oaci) {
   renderFlota();
   actualizarResumen();
   // Refrescar semáforo con datos actualizados
-  if (currentOaci) validarCapacidadSEI(currentOaci);
+  if (currentOaci) cargarCapacidadOperativa(currentOaci);
 }
 
 /* ─── RESUMEN ─────────────────────────────────────────────── */
@@ -1376,7 +1343,7 @@ async function confirmarEstado(nuevoEstado) {
     // Recargar novedades del mapa local
     if (!novedadesMap[maqId]) novedadesMap[maqId] = [];
     // Re-validar semáforo con el oaci actual
-    if (currentOaci) validarCapacidadSEI(currentOaci);
+    if (currentOaci) cargarCapacidadOperativa(currentOaci);
   }
 
   // Actualizar local
