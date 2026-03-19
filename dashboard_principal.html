@@ -868,36 +868,7 @@
             border-radius: 3px;
         }
 
-        /* ==================================================
-           AJUSTES PARA LA DEMO (MOSTRAR SOLO ÁREA CRÍTICA)
-        ================================================== */
-        /* 1. Ocultar tarjetas de estadísticas superiores */
-        .stats-bar {
-            display: none !important;
-        }
 
-        /* 2. Ocultar todos los enlaces y títulos del menú lateral después de "Área Crítica" */
-        .sb-nav > *:nth-child(n+5) {
-            display: none !important;
-        }
-
-        /* 3. Ocultar todas las tarjetas operativas en el centro excepto la primera (Área Crítica) */
-        .modules-grid .mod-card:nth-child(n+2) {
-            display: none !important;
-        }
-
-        /* 4. Ocultar las otras secciones y grids contenidas debajo de los Módulos de Cálculo */
-        .page-body > *:nth-child(n+5) {
-            display: none !important;
-        }
-
-        /* 5. Centrar la tarjeta restante */
-        .modules-grid {
-            display: flex !important;
-            justify-content: center !important;
-            gap: 30px !important;
-            flex-wrap: wrap !important;
-        }
     </style>
 <link rel="stylesheet" href="css/sei-pdf-style.css">
 </head>
@@ -1108,8 +1079,8 @@
             <!-- Quick stats -->
             <div class="stats-bar">
                 <div class="stat-item">
-                    <div class="stat-val" style="color:var(--red)">6</div>
-                    <div class="stat-lbl">Módulos Operativos</div>
+                    <div class="stat-val" style="color:var(--red)">3</div>
+                    <div class="stat-lbl">Módulos Activos</div>
                 </div>
                 <div class="stat-item admin-link" id="stat-estaciones" style="cursor:pointer;"
                     onclick="if(document.getElementById('section-supervision').style.display==='block') { window.location='sei_dashboard_nacional.html'; }">
@@ -1127,10 +1098,37 @@
             </div>
 
             <!-- Módulos ARFF -->
-            <div class="section-title">Módulos de Cálculo ARFF</div>
+            <div class="section-title">Módulos Activos</div>
             <div class="modules-grid">
 
-                <!-- Área Crítica -->
+                <!-- ① Gestión de Flota SEI — PRIMER LUGAR -->
+                <div class="mod-card" data-color="teal" onclick="window.location='gestion_flota_sei.html'">
+                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#087f5b,#0bc5a0,#5ef0d5)"></div>
+                    <div class="mod-card-body">
+                        <div class="mod-card-icon"
+                            style="background:rgba(11,197,160,.1);border:1px solid rgba(11,197,160,.2);font-size:22px">🚒</div>
+                        <div class="mod-card-title">Gestión de Flota SEI</div>
+                        <div class="mod-card-desc">Control de vehículos ARFF, capacidades de agentes extintores (agua/espuma/PQS), estado FUSER y novedades operativas de cada máquina.</div>
+                        <div class="mod-card-links">
+                            <a href="gestion_flota_sei.html" class="mod-link"
+                                style="color:#0bc5a0;border-color:rgba(11,197,160,.3);background:rgba(11,197,160,.06)">
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                Abrir gestión
+                            </a>
+                            <span class="mod-link" style="color:#0bc5a0;border-color:rgba(11,197,160,.2);background:rgba(11,197,160,.04);cursor:default">Flota · FUSER</span>
+                            <span class="mod-link" style="color:#5ef0d5;border-color:rgba(94,240,213,.2);background:rgba(94,240,213,.04);cursor:default">RAC 14 Mod. 03</span>
+                        </div>
+                    </div>
+                    <div class="mod-card-footer">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0bc5a0" stroke-width="2">
+                            <path d="M10 17h4V5H2v12h3m5 0h4m5 0h3v-4h-3m-4 4h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-4"/>
+                            <circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
+                        </svg>
+                        Vehículos · Novedades · RLS · MÓDULO 03
+                    </div>
+                </div>
+
+                <!-- ② Área Crítica -->
                 <div class="mod-card" data-color="red" onclick="window.location='arff_area_critica.html'">
                     <div class="mod-card-strip" style="background:linear-gradient(90deg,#b52525,#f03e3e,#ff8787)"></div>
                     <div class="mod-card-body">
@@ -1156,108 +1154,36 @@
                     </div>
                 </div>
 
-                <!-- Rata de Descarga -->
+                <!-- ③ Rata de Descarga -->
                 <div class="mod-card" data-color="amber" onclick="window.location='arff_rata_descarga_espuma.html'">
                     <div class="mod-card-strip" style="background:linear-gradient(90deg,#c97b00,#f59f00,#ffe066)"></div>
                     <div class="mod-card-body">
                         <div class="mod-card-icon"
-                            style="background:rgba(245,159,0,.1);border:1px solid rgba(245,159,0,.2)">💧</div>
+                            style="background:rgba(245,159,0,.1);border:1px solid rgba(245,159,0,.2);font-size:22px">🔥💧</div>
                         <div class="mod-card-title">Rata de Descarga de Espuma</div>
-                        <div class="mod-card-desc">Determina la tasa de aplicación de espuma requerida por categoría
-                            OACI, concentración y tipo de agente.</div>
+                        <div class="mod-card-desc">Calcula el caudal mínimo requerido de solución espumante (Q = Ac × R) por categoría OACI, tipo de agente (AFFF/FFFP/AR) y concentración nominal. Resultados en L/min y GPM.</div>
                         <div class="mod-card-links">
                             <a href="arff_rata_descarga_espuma.html" class="mod-link"
-                                style="color:#f59f00;border-color:rgba(245,159,0,.3);background:rgba(245,159,0,.06)">Abrir
-                                módulo →</a>
+                                style="color:#f59f00;border-color:rgba(245,159,0,.3);background:rgba(245,159,0,.06)">
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                Abrir módulo
+                            </a>
+                            <span class="mod-link" style="color:#f59f00;border-color:rgba(245,159,0,.2);background:rgba(245,159,0,.04);cursor:default">Cat. 1–10 OACI</span>
+                            <span class="mod-link" style="color:#ffe066;border-color:rgba(255,224,102,.2);background:rgba(255,224,102,.04);cursor:default">Q = Ac × R</span>
                         </div>
                     </div>
                     <div class="mod-card-footer">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
                         </svg>
-                        OACI Doc 9137 · NFPA 403-2018
-                    </div>
-                </div>
-
-                <!-- Gestión de Flota SEI -->
-                <div class="mod-card" data-color="teal" onclick="window.location='gestion_flota_sei.html'">
-                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#087f5b,#0bc5a0,#5ef0d5)"></div>
-                    <div class="mod-card-body">
-                        <div class="mod-card-icon"
-                            style="background:rgba(11,197,160,.1);border:1px solid rgba(11,197,160,.2)">🚒</div>
-                        <div class="mod-card-title">Gestión de Flota SEI</div>
-                        <div class="mod-card-desc">Control de vehículos, capacidades de agentes extintores y estado
-                            FUSER de las máquinas operativas.</div>
-                        <div class="mod-card-links">
-                            <a href="gestion_flota_sei.html" class="mod-link"
-                                style="color:#0bc5a0;border-color:rgba(11,197,160,.3);background:rgba(11,197,160,.06)">Abrir
-                                gestión →</a>
-                        </div>
-                    </div>
-                    <div class="mod-card-footer">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                        </svg>
-                        Vehículos · Novedades · RLS
-                    </div>
-                </div>
-
-                <!-- Volumen de Espuma -->
-                <div class="mod-card" data-color="sky" onclick="window.location='arff_volumen_espuma.html'">
-                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#0369a1,#38bdf8,#7dd3fc)"></div>
-                    <div class="mod-card-body">
-                        <div class="mod-card-icon"
-                            style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2)">🌊</div>
-                        <div class="mod-card-title">Volumen de Espuma</div>
-                        <div class="mod-card-desc">Calcula el volumen total de solución espumante y el inventario de
-                            concentrado necesario para la categoría del aeródromo.</div>
-                        <div class="mod-card-links">
-                            <a href="arff_volumen_espuma.html" class="mod-link"
-                                style="color:#38bdf8;border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.06)">Abrir
-                                módulo →</a>
-                        </div>
-                    </div>
-                    <div class="mod-card-footer">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                        OACI Doc 9137 · RAC 14 Subparte C
-                    </div>
-                </div>
-                
-                <!-- Hidráulica de Mangueras -->
-                <div class="mod-card" data-color="blue" onclick="window.location='hidraulica_mangueras.html'">
-                    <div class="mod-card-strip" style="background:linear-gradient(90deg,#0e7490,#0ea5e9,#7dd3fc)"></div>
-                    <div class="mod-card-body">
-                        <div class="mod-card-icon"
-                            style="background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2)">🌊</div>
-                        <div class="mod-card-title">Hidráulica de Mangueras</div>
-                        <div class="mod-card-desc">Cálculo hidráulico profesional de pérdida por fricción (PDP) basado en Darcy-Weisbach adaptado con modo Aeronáutico.</div>
-                        <div class="mod-card-links">
-                            <a href="hidraulica_mangueras.html" class="mod-link"
-                                style="color:#0ea5e9;border-color:rgba(14,165,233,.3);background:rgba(14,165,233,.06)">Abrir
-                                simulador →</a>
-                        </div>
-                    </div>
-                    <div class="mod-card-footer">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                        </svg>
-                        NFPA 1963 · Módulo 10
+                        OACI Doc 9137 · RAC 14 § 311 · NFPA 403-2018 · MÓDULO 02
                     </div>
                 </div>
 
             </div><!-- /modules-grid -->
 
-            <!-- Módulos de Cumplimiento Normativo -->
+            <!-- Módulos de Cumplimiento Normativo — ocultos temporalmente -->
+            <div style="display:none"><!-- SECCIÓN NORMATIVA OCULTA -->
             <div class="section-title" style="margin-top:8px">Módulos de Cumplimiento Normativo — RAC 14</div>
             <div class="modules-grid">
 
@@ -1362,6 +1288,7 @@
                 </div>
 
             </div><!-- /modules-grid normativo -->
+            </div><!-- /sección normativa oculta -->
 
             <!-- Supervisión Nacional — solo visible admin/jefe -->
             <div id="section-supervision" style="display:none">
@@ -1415,9 +1342,10 @@
            LABELS DE ROL (dashboard unificado)
         ================================================== */
         const ROL_LABELS_LOCAL = {
-            admin:         { label: 'JEFE NACIONAL — SEI COLOMBIA', color: '#f59f00', bg: 'linear-gradient(90deg, #b52525, #f59f00)', border: '#f59f00', emoji: '🛡️' },
-            jefe_nacional: { label: 'Jefe Nacional',                color: '#f59f00', bg: 'rgba(245,159,0,.1)',                       border: 'rgba(245,159,0,.3)', emoji: '🎖️' },
-            comandante:    { label: 'Comandante',                   color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                      border: 'rgba(11,197,160,.3)', emoji: '🚒' },
+            admin:            { label: 'JEFE NACIONAL — SEI COLOMBIA', color: '#f59f00', bg: 'linear-gradient(90deg, #b52525, #f59f00)', border: '#f59f00', emoji: '🛡️' },
+            jefe_nacional:    { label: 'Jefe Nacional',                color: '#f59f00', bg: 'rgba(245,159,0,.1)',                       border: 'rgba(245,159,0,.3)', emoji: '🎖️' },
+            comandante:       { label: 'Comandante',                   color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                      border: 'rgba(11,197,160,.3)', emoji: '🚒' },
+            'instructor-cea': { label: 'INSTRUCTOR CEA',               color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',                      border: 'rgba(139,92,246,.3)', emoji: '👨‍🏫' }
         };
 
         /* ==================================================
