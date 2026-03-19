@@ -901,6 +901,8 @@ async function cargarCapacidadOperativa(oaci) {
   const maqEl   = document.getElementById('sf-maquinas');
 
   if (!panel) return;
+  // Asegurar visibilidad
+  panel.style.display = 'block';
 
   // Sin OACI: estado inicial
   if (!oaci) {
@@ -1356,28 +1358,15 @@ async function confirmarEstado(nuevoEstado) {
       severidad:   nuevoEstado === 'FUERA' ? 'alta' : 'media',
       reparado:    false,
     });
-    // Recargar novedades del mapa local
-    if (!novedadesMap[maqId]) novedadesMap[maqId] = [];
-    // Re-validar semáforo con el oaci actual
-    if (currentOaci) cargarCapacidadOperativa(currentOaci);
   }
 
-  // Actualizar local
-  const m = maquinas.find(x => x.id === maqId);
-  if (m) {
-    m.estado = nuevoEstado;
-    // Re-render card
-    const cardEl = document.getElementById(`card-${maqId}`);
-    if (cardEl) {
-      const bodyOpen = document.getElementById(`body-${maqId}`)?.classList.contains('open');
-      cardEl.outerHTML = buildCard(m);
-      if (bodyOpen) {
-        document.getElementById(`hdr-${maqId}`)?.click();
-      }
-    }
+  // Refrescar datos antes de cerrar / notificar
+  if (currentOaci) {
+    await cargarFlota(currentOaci);
+    await cargarCapacidadOperativa(currentOaci);
+    actualizarEstacionBar(currentOaci);
   }
 
-  actualizarResumen();
   cerrarEstadoModal();
   toast(`Estado → ${nuevoEstado}`, 'ok');
 }
@@ -1468,8 +1457,13 @@ async function guardarMaquina() {
 
   if (error) { toast('Error: ' + error.message, 'err'); return; }
 
-  renderFlota();
-  actualizarResumen();
+  // Refrescar todo tras guardar
+  if (currentOaci) {
+    await cargarFlota(currentOaci);
+    await cargarCapacidadOperativa(currentOaci);
+    actualizarEstacionBar(currentOaci);
+  }
+
   cerrarModalAgregar();
   toast(editandoId ? 'Vehículo actualizado ✅' : 'Vehículo agregado ✅', 'ok');
 }
@@ -1484,21 +1478,34 @@ async function eliminarMaquina(maqId, num) {
 
   if (error) { toast('Error: ' + error.message, 'err'); return; }
 
-  maquinas = maquinas.filter(m => m.id !== maqId);
-  delete novedadesMap[maqId];
-  renderFlota();
-  actualizarResumen();
+  if (currentOaci) {
+    await cargarFlota(currentOaci);
+    await cargarCapacidadOperativa(currentOaci);
+    actualizarEstacionBar(currentOaci);
+  }
   toast(`Vehículo ${num} eliminado`, 'ok');
 }
 
 /* ─── REALTIME ────────────────────────────────────────────── */
 function suscribirRealtime() {
-  supabaseClient.channel('flota-sei-live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'maquinas_sei' }, () => {
-      if (currentOaci) cargarFlota(currentOaci);
+  const canal = supabaseClient.channel('flota-sei-live');
+
+  canal
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'maquinas_sei' }, async (payload) => {
+      console.log('Realtime change [maquinas]:', payload.eventType);
+      if (currentOaci) {
+        await cargarFlota(currentOaci);
+        await cargarCapacidadOperativa(currentOaci);
+        actualizarEstacionBar(currentOaci);
+      }
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'novedades_maquinas' }, () => {
-      if (currentOaci) cargarFlota(currentOaci);
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'novedades_maquinas' }, async (payload) => {
+      console.log('Realtime change [novedades]:', payload.eventType);
+      if (currentOaci) {
+        await cargarFlota(currentOaci);
+        await cargarCapacidadOperativa(currentOaci);
+        actualizarEstacionBar(currentOaci);
+      }
     })
     .subscribe();
 }
