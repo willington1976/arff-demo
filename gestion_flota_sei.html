@@ -925,16 +925,17 @@ async function cargarCapacidadOperativa(oaci) {
        }).length;
     }
 
-    // ÚNICA CONSULTA A LA VISTA OFICIAL (Regresamos a supabaseClient por seguridad)
-    const { data: vData, error: vErr } = await supabaseClient
+    // ÚNICA CONSULTA A LA VISTA OFICIAL
+    // No usamos .maybeSingle() para evitar el error "multiple rows returned" si hay duplicados en la BD
+    const { data: vResults, error: vErr } = await supabaseClient
       .from('vista_capacidad_operativa_sei')
       .select('agua_requerida_oaci, agua_disponible_real')
-      .eq('oaci', oaci)
-      .maybeSingle();
+      .eq('oaci', oaci);
 
     if (vErr) throw vErr;
 
-    if (vData) {
+    if (vResults && vResults.length > 0) {
+      const vData = vResults[0];
       requerimiento = parseFloat(vData.agua_requerida_oaci) || 0;
       disponible    = parseFloat(vData.agua_disponible_real) || 0;
     }
