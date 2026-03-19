@@ -930,20 +930,26 @@ async function validarCapacidadSEI(oaci) {
     let disponible = 0;
     let maquinas_activas = 0;
 
-    // ÚNICA CONSULTA A LA VISTA OFICIAL
-    // Los datos "agua_requerida_oaci" y "agua_disponible_real" ya vienen convertidos en litros desde la BD
+    // Calculamos máquinas activas usando el arreglo global ya cargado
+    if (typeof maquinas !== 'undefined') {
+       maquinas_activas = maquinas.filter(m => {
+          const novPendientes = (novedadesMap[m.id] || []).some(n => !n.reparado);
+          return (m.estado || 'OPERATIVA') === 'OPERATIVA' && !novPendientes;
+       }).length;
+    }
+
+    // ÚNICA CONSULTA A LA VISTA OFICIAL (Ya no invocamos maquinas_activas porque fue retirada de tu DB)
     const { data: vData, error: vErr } = await supabaseClient
       .from('vista_capacidad_operativa_sei')
-      .select('agua_requerida_oaci, agua_disponible_real, maquinas_activas')
+      .select('agua_requerida_oaci, agua_disponible_real')
       .eq('oaci', oaci)
       .maybeSingle();
 
     if (vErr) throw vErr;
 
     if (vData) {
-      requerimiento    = parseFloat(vData.agua_requerida_oaci) || 0;
-      disponible       = parseFloat(vData.agua_disponible_real) || 0;
-      maquinas_activas = parseInt(vData.maquinas_activas) || 0;
+      requerimiento = parseFloat(vData.agua_requerida_oaci) || 0;
+      disponible    = parseFloat(vData.agua_disponible_real) || 0;
     }
 
     // ── Actualizar Métricas DOM ──
