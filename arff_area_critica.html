@@ -1480,6 +1480,15 @@
       </div>
     </a>
     <div class="nav-sep"></div>
+    <a href="gestion_flota_sei.html" class="btn-return"
+       style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
+       onmouseover="this.style.background='rgba(0,229,255,.08)'"
+       onmouseout="this.style.background='transparent'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+      </svg>
+      ← Inventario Flota
+    </a>
     <a href="dashboard_principal.html" class="btn-return">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="19" y1="12" x2="5" y2="12" />
@@ -2281,6 +2290,14 @@
       // Store globals for next calculator
       window.lastAc = AcRound;
 
+      // ── Exportar a localStorage para Módulo 03 ───────────────
+      try {
+        localStorage.setItem('arff_ap',           String(AcRound));
+        localStorage.setItem('areaCritica',        String(AcRound));
+        localStorage.setItem('ap_m2',              String(AcRound));
+        // categoria se escribe después de catRef
+      } catch(e) {}
+
       // Show result
       const valAc = document.getElementById('val-ac');
       if (valAc) valAc.innerHTML = `${AcRound.toFixed(2)}<span class="unit"> m²</span>`;
@@ -2306,6 +2323,12 @@
       // Category badge
       const catRef = cat || detectCat(L);
       window.lastCat = catRef; // Store global
+      // ── Exportar categoría a localStorage ───────────────────
+      try {
+        localStorage.setItem('arff_cat',         String(catRef));
+        localStorage.setItem('catOaci',           String(catRef));
+        localStorage.setItem('categoria_oaci',    String(catRef));
+      } catch(e) {}
       const color = CAT_COLORS[catRef] || '#8a9bba';
       document.getElementById('res-cat-badge').innerHTML =
         `<span class="cat-badge" style="font-size:16px;width:40px;height:40px;background:${color}22;color:${color};border:1px solid ${color}44">
@@ -2356,6 +2379,20 @@
         showToast('⚠ Debe calcular primero el Área Crítica');
         return;
       }
+      // Reforzar localStorage antes de navegar — garantiza que
+      // el Módulo 03 lea los datos aunque llegue por URL directa
+      try {
+        localStorage.setItem('arff_ap',        String(window.lastAc));
+        localStorage.setItem('areaCritica',     String(window.lastAc));
+        localStorage.setItem('ap_m2',           String(window.lastAc));
+        localStorage.setItem('arff_cat',        String(window.lastCat));
+        localStorage.setItem('catOaci',         String(window.lastCat));
+        localStorage.setItem('categoria_oaci',  String(window.lastCat));
+        // También preservar OACI si viene de sesión
+        const oaciSes = sessionStorage.getItem('sei_estacion') || localStorage.getItem('sei_estacion') || '';
+        if (oaciSes) localStorage.setItem('arff_oaci_codigo', oaciSes);
+        console.log('[AC→LS] Exportado ap:', window.lastAc, 'cat:', window.lastCat, 'oaci:', oaciSes);
+      } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
       let targetUrl = `arff_rata_descarga_espuma.html?cat=${window.lastCat}&ac=${window.lastAc}`;
       if (urlParams.get('from')) {
