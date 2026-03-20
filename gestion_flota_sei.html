@@ -416,31 +416,30 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
 <!-- TOP BAR -->
 <header class="topbar">
   <div class="topbar-left">
-    <div class="topbar-icon">🚒</div>
+    <div class="topbar-icon">🛡️</div>
     <div>
       <div class="topbar-title">INVENTARIO TÁCTICO SEI</div>
-      <div class="topbar-sub">Paso 1 / 3 · Flota · Agentes · Capacidad Operativa</div>
+      <div class="topbar-sub">Estatus de Agentes · Flota · Capacidad Operativa</div>
     </div>
   </div>
   <div class="topbar-right">
-    <span class="badge-rol" id="badgeRol" style="min-width:90px;text-align:center">— —</span>
-    <a href="arff_area_critica.html" class="btn-back"
-       style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(247,103,7,.35);color:#f59f00;"
-       onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
-       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'">
-      <svg viewBox="0 0 24 24" width="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polygon points="12 2 2 22 22 22"/></svg>
-      2 Área Crítica →
-    </a>
-    <a href="arff_rata_descarga_espuma.html" class="btn-back"
-       style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(64,192,87,.35);color:#40c057;"
+    <span class="badge-rol" id="badgeRol">— ROL —</span>
+    <a href="arff_motor_decision_operativa.html" class="btn-back"
+       style="border-color:rgba(64,192,87,.35);color:#40c057;"
        onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
        onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'">
-      <svg viewBox="0 0 24 24" width="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      3 Rata de Descarga →
+      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Motor Decisión
     </a>
-    <a href="dashboard_principal.html" class="btn-back"
-       style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;">
-      <svg viewBox="0 0 24 24" width="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    <a href="arff_area_critica.html" class="btn-back"
+       style="border-color:rgba(247,103,7,.35);color:#f59f00;"
+       onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
+       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'">
+      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="18" r=".5" fill="currentColor"/></svg>
+      Área Crítica
+    </a>
+    <a href="dashboard_principal.html" class="btn-back">
+      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Dashboard
     </a>
   </div>
@@ -698,9 +697,13 @@ window.onSEIReady = async function(session) {
   currentEstId = session.estacion_id;
   currentOaci  = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
 
-  // ── Leer ?oaci= de URL (viene de otros módulos al navegar de regreso) ──
+  /* ── Leer ?oaci= de la URL (memoria de navegación entre módulos)
+     Tiene prioridad sobre la sesión: permite que Área Crítica y
+     Rata de Descarga devuelvan al usuario a la estación correcta. */
   const _urlOaci = new URLSearchParams(window.location.search).get('oaci');
-  if (_urlOaci) currentOaci = _urlOaci.trim().toUpperCase();
+  if (_urlOaci && _urlOaci.trim()) {
+    currentOaci = _urlOaci.trim().toUpperCase();
+  }
 
   if (currentOaci) {
     localStorage.setItem('currentOaci',       currentOaci);
@@ -709,15 +712,7 @@ window.onSEIReady = async function(session) {
     sessionStorage.setItem('sei_estacion',    currentOaci);
   }
 
-  // ── Badge de usuario con emoji de rol + nombre ──
-  const _rolInfo = window.ROL_LABELS?.[currentRol] || { emoji: '👤', label: currentRol?.toUpperCase() || 'USUARIO' };
-  const _nombre  = session.nombre || window.SEI_NOMBRE || '';
-  const _badgeEl = document.getElementById('badgeRol');
-  if (_badgeEl) {
-    _badgeEl.textContent = _nombre
-      ? `${_rolInfo.emoji} ${_nombre.split(' ')[0]}`
-      : _rolInfo.label;
-  }
+  document.getElementById('badgeRol').textContent = currentRol?.toUpperCase() || 'USUARIO';
   document.getElementById('adminBase').textContent = currentOaci || '—';
 
   if (currentOaci) {
@@ -1138,12 +1133,6 @@ function _exportarFlotaLocalStorage(aguaCamiones, aguaBodega, totalDisp) {
     const espumaGal = parseFloat(document.getElementById('bq_espuma_gal')?.value) || 0;
     const pqsKg     = parseFloat(document.getElementById('bq_pqs_kg')?.value)     || 0;
     localStorage.setItem('sei_espuma_bodega_gal', String(espumaGal));
-    // Exportar espuma de camiones por separado (leída por Módulo 03)
-    // Para camiones: la espuma está en los vehículos, no en bodega.
-    // Usamos sei_espuma_bodega_gal para bodega física.
-    // Módulo 03 busca 'sei_espuma_camiones_gal' como fallback → ponemos 0
-    // (la bodega física está en sei_espuma_bodega_gal)
-    localStorage.setItem('sei_espuma_camiones_gal', '0'); // bodega = bq_espuma_gal
     localStorage.setItem('sei_pqs_bodega_kg',     String(pqsKg));
 
     // Concentración y nivel de eficiencia de la estación
