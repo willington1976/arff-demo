@@ -1480,24 +1480,29 @@
       </div>
     </a>
     <div class="nav-sep"></div>
-    <a href="gestion_flota_sei.html" class="btn-return"
-       style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
+    <a href="#" class="btn-return"
+       style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(0,229,255,.35);color:#00e5ff;"
        onmouseover="this.style.background='rgba(0,229,255,.08)'"
-       onmouseout="this.style.background='transparent'">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+       onmouseout="this.style.background='transparent'"
+       onclick="event.preventDefault();(function(){
+         const oaci=sessionStorage.getItem('sei_estacion')||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
+         window.location.href='gestion_flota_sei.html'+(oaci?'?oaci='+encodeURIComponent(oaci):'');
+       })()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px">
         <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
       </svg>
-      ← Inventario Flota
+      ← 1 Inventario
     </a>
-    <a href="dashboard_principal.html" class="btn-return">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <a href="dashboard_principal.html" class="btn-return"
+       style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px">
         <line x1="19" y1="12" x2="5" y2="12" />
         <polyline points="12 19 5 12 12 5" />
       </svg>
-      Volver al Dashboard
+      Dashboard
     </a>
-    <div class="nav-badge">MÓDULO <span>01</span> / ÁREA CRÍTICA</div>
-    <div class="nav-badge">OACI <span>9137</span></div>
+    <div class="nav-badge">Paso <span>2</span> / 3 · ÁREA CRÍTICA</div>
+    <div id="nav-user-badge" class="nav-badge" style="display:none"><span id="nav-user-txt"></span></div>
     <div class="nav-badge">RAC <span>COL</span></div>
   </nav>
 
@@ -2899,6 +2904,19 @@
       initSearch();
 
       // Persistencia desde URL (por ejemplo, desde el dashboard)
+      // ── Badge de usuario (nombre + emoji del rol) ──────────────
+      (function() {
+        const _nombre = window.SEI_NOMBRE || sessionStorage.getItem('sei_nombre') || '';
+        const _rol    = window.SEI_ROL    || sessionStorage.getItem('sei_rol')    || '';
+        const _emo    = window.ROL_LABELS?.[_rol]?.emoji || '👤';
+        const _el     = document.getElementById('nav-user-badge');
+        const _txt    = document.getElementById('nav-user-txt');
+        if (_el && _nombre) {
+          _el.style.display = 'inline-flex';
+          if (_txt) _txt.textContent = `${_emo} ${_nombre.split(' ')[0]}`;
+        }
+      })();
+
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('l') && urlParams.get('wf')) {
         const inpL = document.getElementById('inp-L');
