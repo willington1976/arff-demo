@@ -780,65 +780,63 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 
 /* ═══════════════════════════════════════════════════════════
    BODEGA Q3 — CARGA DESDE SUPABASE
-   Orden de ejecución GARANTIZADO:
-     1. SELECT incluye categoria_rac + reserva_pqs_kg
-     2. Inputs rellenados en pantalla
-     3. localStorage escrito con la categoría → ANTES del semáforo
-     4. Conversiones visuales (sin re-disparar semáforo)
-     5. cargarCapacidadOperativa(oaci) llamado directamente con oaci
-        para que el "Requerido RAC14 (L)" aparezca de inmediato
+   Fix: usa SELECT * sin .single() para evitar "multiple rows".
+   Trabaja con data[0]. Orden garantizado:
+     1. SELECT * → data[0]
+     2. Inputs rellenados
+     3. localStorage('arff_cat_aeropuerto') escrito ANTES del semáforo
+     4. actualizarConversionBodega() → conversiones visuales
+     5. cargarCapacidadOperativa(oaci) → litros requeridos visibles
 ═══════════════════════════════════════════════════════════ */
 async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
 
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
-    .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg, nivel_eficiencia_estacion, concentracion_espuma_estacion, categoria_rac, categoria_oaci')
-    .eq('oaci', oaci)
-    .maybeSingle();
+    .select('*')
+    .eq('oaci', oaci.toUpperCase().trim());
 
   if (error) {
-    console.error('[Bodega] Error SELECT estaciones_sei:', error.message);
+    console.error('[Bodega] Error SELECT:', error.message);
     return;
   }
-  if (!data) {
+  if (!data || data.length === 0) {
     console.warn('[Bodega] Sin registro para OACI:', oaci);
     return;
   }
 
-  /* ── PASO 1: Rellenar inputs ─────────────────────────── */
-  document.getElementById('bq_agua_l').value     = data.reserva_agua_litros    ?? 0;
-  document.getElementById('bq_espuma_gal').value = data.reserva_espuma_galones ?? 0;
-  document.getElementById('bq_pqs_kg').value     = data.reserva_pqs_kg         ?? 0;
-  if (data.nivel_eficiencia_estacion)
-    document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
-  if (data.concentracion_espuma_estacion)
-    document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
+  const row = data[0]; // tomar la primera fila aunque haya duplicados
 
-  /* ── PASO 2: Persistir categoría en localStorage ────────
-     CRÍTICO: debe ocurrir ANTES de llamar al semáforo.
-     - categoria_rac  (int4) → columna nueva, fuente canónica
-     - categoria_oaci          → columna legada, fallback       */
-  const catNum = (data.categoria_rac  != null) ? parseInt(data.categoria_rac)
-               : (data.categoria_oaci != null)  ? parseInt(data.categoria_oaci)
+  /* ── PASO 1: Rellenar inputs de bodega ─────────────────── */
+  document.getElementById('bq_agua_l').value     = row.reserva_agua_litros    ?? 0;
+  document.getElementById('bq_espuma_gal').value = row.reserva_espuma_galones ?? 0;
+  document.getElementById('bq_pqs_kg').value     = row.reserva_pqs_kg         ?? 0;
+  if (row.nivel_eficiencia_estacion)
+    document.getElementById('bq_nivel').value = row.nivel_eficiencia_estacion;
+  if (row.concentracion_espuma_estacion)
+    document.getElementById('bq_conc').value  = String(row.concentracion_espuma_estacion);
+
+  /* ── PASO 2: Persistir categoría en localStorage ───────────
+     CRÍTICO: ocurre ANTES de llamar al semáforo.
+     Fuente canónica: categoria_rac (int4, columna nueva).
+     Fallback:        categoria_oaci (columna legada).          */
+  const catNum = (row.categoria_rac  != null) ? parseInt(row.categoria_rac)
+               : (row.categoria_oaci != null)  ? parseInt(row.categoria_oaci)
                : null;
 
   if (catNum && catNum >= 1 && catNum <= 10) {
-    localStorage.setItem('arff_cat_aeropuerto', String(catNum)); // clave canónica
-    localStorage.setItem('arff_cat',            String(catNum)); // compatibilidad Motor de Decisión
-    console.log('[Bodega] Categoría RAC persistida → Cat', catNum,
-                '| Req.', RAC14_REQ[catNum] ?? 'sin tabla', 'L');
+    localStorage.setItem('arff_cat_aeropuerto', String(catNum));
+    localStorage.setItem('arff_cat',            String(catNum));
+    console.log('[Bodega] Cat RAC persistida → Cat', catNum,
+                '| Req.', RAC14_REQ[catNum] ?? '?', 'L');
   } else {
-    console.warn('[Bodega] categoria_rac sin valor válido en Supabase:', data.categoria_rac);
+    console.warn('[Bodega] categoria_rac no válida:', row.categoria_rac);
   }
 
-  /* ── PASO 3: Conversiones sin re-disparar semáforo ───── */
-  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
-  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
-  document.getElementById('bq_agua_conv').textContent   = (aguaL / L_PER_GAL).toFixed(0) + ' gal';
-  document.getElementById('bq_espuma_conv').textContent = (espumaG * L_PER_GAL).toFixed(0) + ' L';
+  /* ── PASO 3: Conversiones visuales ─────────────────────── */
+  actualizarConversionBodega();
 
-  /* ── PASO 4: Semáforo — ahora sí, con cat ya en localStorage ── */
+  /* ── PASO 4: Semáforo — con la categoría ya en localStorage */
   cargarCapacidadOperativa(oaci);
 }
 
@@ -855,10 +853,11 @@ function actualizarConversionBodega() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GUARDAR BODEGA → UPDATE Supabase estaciones_sei
+   GUARDAR BODEGA → UPDATE tabla estaciones_sei
    Campos: reserva_agua_litros, reserva_espuma_galones,
            reserva_pqs_kg, nivel_eficiencia_estacion,
-           concentracion_espuma_estacion, categoria_rac
+           concentracion_espuma_estacion, categoria_rac.
+   Fix: .eq('oaci', currentOaci.toUpperCase().trim())
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
   if (!currentOaci) { toast('No hay estación seleccionada', 'err'); return; }
@@ -872,7 +871,7 @@ async function guardarBodega() {
   const nivel   = document.getElementById('bq_nivel').value;
   const conc    = parseInt(document.getElementById('bq_conc').value);
 
-  /* Leer categoría del localStorage (puede venir del Módulo 01 o de esta misma carga) */
+  /* Categoría: prioridad Supabase, luego Módulo 01 */
   const catGuardada = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
                    || parseInt(localStorage.getItem('arff_cat'))
                    || null;
@@ -884,12 +883,12 @@ async function guardarBodega() {
     nivel_eficiencia_estacion:     nivel,
     concentracion_espuma_estacion: conc,
   };
-  if (catGuardada) payload.categoria_rac = catGuardada; // sincroniza cat del Módulo 01 → Supabase
+  if (catGuardada) payload.categoria_rac = catGuardada;
 
   const { error } = await supabaseClient
-    .from('estaciones_sei')
+    .from('estaciones_sei')                          // tabla, no la vista
     .update(payload)
-    .eq('oaci', currentOaci);
+    .eq('oaci', currentOaci.toUpperCase().trim());   // normalizar para evitar fallos
 
   const svgIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
   btn.classList.remove('saving');
@@ -897,16 +896,10 @@ async function guardarBodega() {
 
   if (error) { toast('Error guardando bodega: ' + error.message, 'err'); return; }
 
-  localStorage.setItem('arff_oaci_codigo', currentOaci);
-  toast('✅ Bodega guardada en Supabase' + (catGuardada ? ' · Cat ' + catGuardada : ''), 'ok');
+  localStorage.setItem('arff_oaci_codigo', currentOaci.toUpperCase().trim());
+  toast('✅ Bodega guardada' + (catGuardada ? ' · Cat ' + catGuardada : ''), 'ok');
   dispararActualizacionSemaforo();
 }
-
-/* ═══════════════════════════════════════════════════════════
-   dispararActualizacionSemaforo()
-   Punto de entrada único para recalcular el semáforo.
-   Protegido por currentOaci para evitar ejecuciones vacías.
-═══════════════════════════════════════════════════════════ */
 function dispararActualizacionSemaforo() {
   if (currentOaci) cargarCapacidadOperativa(currentOaci);
 }
