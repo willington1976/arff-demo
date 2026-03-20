@@ -779,12 +779,11 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BODEGA Q3 — CARGA DESDE SUPABASE  (versión definitiva)
+   BODEGA Q3 — CARGA DESDE SUPABASE
 ═══════════════════════════════════════════════════════════ */
 async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
 
-  // 1. SELECT a la tabla maestra — sin .single() para evitar error "multiple rows"
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
     .select('*')
@@ -795,38 +794,45 @@ async function cargarBodegaDesdeSupabase(oaci) {
 
   const est = data[0];
 
-  // 2. Llenado forzado de inputs — sin condicionales que bloqueen
-  document.getElementById('bq_agua_l').value    = est.reserva_agua_litros    || 0;
-  document.getElementById('bq_espuma_gal').value= est.reserva_espuma_galones || 0;
-  document.getElementById('bq_pqs_kg').value    = est.reserva_pqs_kg         || 0;
-  document.getElementById('bq_nivel').value     = est.nivel_eficiencia_estacion    || 'B';
-  document.getElementById('bq_conc').value      = est.concentracion_espuma_estacion || '3';
+  // Mapeo explícito — usa ?? null para no sobreescribir con 0 cuando el campo es null
+  const aguaVal   = (est.reserva_agua_litros    != null) ? est.reserva_agua_litros    : '';
+  const espumaVal = (est.reserva_espuma_galones  != null) ? est.reserva_espuma_galones : '';
+  const pqsVal    = (est.reserva_pqs_kg          != null) ? est.reserva_pqs_kg         : '';
 
-  // 3. Persistencia de Categoría — acepta cualquier valor que exista, incluido 0
-  const catValue = est.categoria_rac || est.categoria_oaci || 0;
+  document.getElementById('bq_agua_l').value     = aguaVal;
+  document.getElementById('bq_espuma_gal').value = espumaVal;
+  document.getElementById('bq_pqs_kg').value     = pqsVal;
+  document.getElementById('bq_nivel').value      = est.nivel_eficiencia_estacion    || 'B';
+  document.getElementById('bq_conc').value       = String(est.concentracion_espuma_estacion || '3');
+
+  // Categoría: acepta cualquier valor incluyendo 0
+  const catValue = (est.categoria_rac != null) ? est.categoria_rac
+                 : (est.categoria_oaci != null) ? est.categoria_oaci : 0;
   localStorage.setItem('arff_cat_aeropuerto', catValue);
   localStorage.setItem('arff_cat', catValue);
-  console.log('[Bodega] cat persistida:', catValue, '| agua:', est.reserva_agua_litros, 'L | espuma:', est.reserva_espuma_galones, 'gal');
 
-  // 4. Leer litros requeridos directamente de la vista RAC 14
+  console.log('[Bodega] Cargado:', {
+    oaci, agua: aguaVal, espuma: espumaVal, pqs: pqsVal, cat: catValue
+  });
+
+  // Litros requeridos desde la vista RAC 14
   const { data: vData } = await supabaseClient
     .from('vista_capacidad_operativa_sei')
-    .select('requerido_rac14_litros, agua_disponible_real')
+    .select('requerido_rac14_litros')
     .eq('oaci', oaci.toUpperCase().trim())
     .maybeSingle();
 
   if (vData && vData.requerido_rac14_litros != null) {
     const reqEl = document.getElementById('requerido-litros');
     if (reqEl) reqEl.textContent = parseFloat(vData.requerido_rac14_litros).toLocaleString('es-CO');
-    console.log('[Vista] requerido_rac14_litros:', vData.requerido_rac14_litros);
   }
 
-  // 5. Conversiones visuales + semáforo
+  // Conversiones visuales y semáforo
   actualizarConversionBodega();
-  await cargarCapacidadOperativa(oaci);
+  cargarCapacidadOperativa(oaci);
 }
 
-/* ─── Conversión en tiempo real al escribir en los inputs ─── */
+/* ─── Conversión en tiempo real ─── */
 function actualizarConversionBodega() {
   const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
@@ -836,45 +842,62 @@ function actualizarConversionBodega() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GUARDAR BODEGA → UPDATE tabla estaciones_sei (versión definitiva)
+   GUARDAR BODEGA → UPDATE tabla estaciones_sei
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
-  const oaci = currentOaci;
-  if (!oaci) return toast('Seleccione una estación', 'err');
+  // Obtener OACI con fallback al elemento visual
+  const oaci = (currentOaci || document.getElementById('adminBase').textContent || '').trim().toUpperCase();
+  if (!oaci || oaci === '—') { toast('Seleccione una estación primero', 'err'); return; }
 
+  window._bodegaGuardando = true;  // evita loop con realtime
   const btn = document.getElementById('bodegaSaveBtn');
   btn.classList.add('saving'); btn.textContent = '⏳ Guardando…';
+  const svgIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
 
-  const payload = {
-    reserva_agua_litros:           parseFloat(document.getElementById('bq_agua_l').value)    || 0,
-    reserva_espuma_galones:        parseFloat(document.getElementById('bq_espuma_gal').value) || 0,
-    reserva_pqs_kg:                parseFloat(document.getElementById('bq_pqs_kg').value)    || 0,
-    nivel_eficiencia_estacion:     document.getElementById('bq_nivel').value,
-    concentracion_espuma_estacion: parseFloat(document.getElementById('bq_conc').value),
-    categoria_rac:                 parseInt(localStorage.getItem('arff_cat_aeropuerto')) || 0,
-  };
+  // Captura de valores — parseFloat nunca envía undefined a Supabase
+  const agua   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
+  const espuma = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
+  const pqs    = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
+  const nivel  = document.getElementById('bq_nivel').value  || 'B';
+  const conc   = parseFloat(document.getElementById('bq_conc').value)      || 3;
+  const cat    = parseInt(localStorage.getItem('arff_cat_aeropuerto'))     || 0;
+
+  console.log('[guardarBodega] payload →', { oaci, agua, espuma, pqs, nivel, conc, cat });
 
   const { error } = await supabaseClient
     .from('estaciones_sei')
-    .update(payload)
-    .eq('oaci', oaci.toUpperCase().trim());
+    .update({
+      reserva_agua_litros:           agua,
+      reserva_espuma_galones:        espuma,
+      reserva_pqs_kg:                pqs,
+      nivel_eficiencia_estacion:     nivel,
+      concentracion_espuma_estacion: conc,
+      categoria_rac:                 cat,
+    })
+    .eq('oaci', oaci);   // ya está normalizado arriba
 
-  const svgIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   btn.classList.remove('saving');
   btn.innerHTML = svgIcon + ' Guardar en Supabase';
 
-  if (!error) {
-    toast('✅ Inventario y Espuma guardados');
-    localStorage.setItem('arff_oaci_codigo', oaci.toUpperCase().trim());
-    await cargarBodegaDesdeSupabase(oaci); // recarga para confirmar lo que quedó en BD
-  } else {
-    toast('Error: ' + error.message, 'err');
+  if (error) {
+    window._bodegaGuardando = false;
+    console.error('[guardarBodega] UPDATE error:', error.message);
+    toast('❌ Error: ' + error.message, 'err');
+    return; // NO limpiar pantalla ni recargar — dejar datos visibles
   }
+
+  window._bodegaGuardando = false;  // liberar flag
+  // Éxito: mensaje claro y recarga para confirmar BD
+  toast('✅ Inventario actualizado', 'ok');
+  localStorage.setItem('arff_oaci_codigo', oaci);
+  // Recargamos desde BD para confirmar — pero sin que el realtime lo duplique
+  await cargarBodegaDesdeSupabase(oaci);
 }
 
 function dispararActualizacionSemaforo() {
   if (currentOaci) cargarCapacidadOperativa(currentOaci);
 }
+
 
 /* ═══════════════════════════════════════════════════════════
    SEMÁFORO — VALIDACIÓN CAPACIDAD OPERATIVA TOTAL
@@ -1467,8 +1490,13 @@ function suscribirRealtime() {
     .on('postgres_changes', { event:'*', schema:'public', table:'novedades_maquinas' }, async () => {
       if (currentOaci) { await cargarFlota(currentOaci); dispararActualizacionSemaforo(); }
     })
-    .on('postgres_changes', { event:'*', schema:'public', table:'estaciones_sei' }, async () => {
-      if (currentOaci) { await cargarBodegaDesdeSupabase(currentOaci); dispararActualizacionSemaforo(); }
+    .on('postgres_changes', { event:'*', schema:'public', table:'estaciones_sei' }, async (payload) => {
+      // Solo recarga si el cambio viene de OTRO cliente (no de esta misma sesión guardando)
+      // Compara con el flag que guardarBodega activa para no crear un loop
+      if (currentOaci && !window._bodegaGuardando) {
+        await cargarBodegaDesdeSupabase(currentOaci);
+        dispararActualizacionSemaforo();
+      }
     })
     .subscribe();
 }
