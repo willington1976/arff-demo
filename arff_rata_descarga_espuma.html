@@ -508,8 +508,17 @@
   <div class="nav-sep"></div>
   <div class="nav-badge">Módulo <span>03</span></div>
   <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
-  <a href="arff_rata_descarga_espuma.html" class="btn-return">
-    ← Módulo 02
+  <a href="gestion_flota_sei.html" class="btn-return"
+     style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
+     onmouseover="this.style.background='rgba(0,229,255,.08)'"
+     onmouseout="this.style.background='transparent'">
+    ← Inventario
+  </a>
+  <a href="arff_area_critica.html" class="btn-return"
+     style="border-color:rgba(247,159,0,.35);color:#f59f00;"
+     onmouseover="this.style.background='rgba(247,159,0,.08)'"
+     onmouseout="this.style.background='transparent'">
+    ← Área Crítica
   </a>
 </nav>
 
@@ -555,6 +564,9 @@
   <div id="inherit-missing" class="inherit-missing" style="display:none">
     ⚠ No se detectaron datos del Módulo 01 en localStorage. Ingrese el Área Crítica (Aₚ) y seleccione la categoría manualmente.
   </div>
+
+  <!-- Panel de agentes heredados de Módulo 01 (Inventario Flota) -->
+  <div id="flota-panel-m03" style="display:none;background:var(--panel2);border:1px solid var(--border2);border-left:3px solid #40c057;border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;"></div>
 
   <!-- ═══════════════ MAIN GRID ═══════════════ -->
   <div class="main-grid">
@@ -1038,6 +1050,15 @@ function _supaStatus(state, label) {
 ════════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
 
+  /* ── Leer URLSearchParams (vienen de Módulo 02 via continuarRataDescarga) ── */
+  const _urlP  = new URLSearchParams(window.location.search);
+  const _urlAp  = _urlP.get('ac');   // area critica desde URL
+  const _urlCat = _urlP.get('cat');  // categoria desde URL
+
+  // Si vienen en URL, reforzar localStorage inmediatamente
+  if (_urlAp)  { localStorage.setItem('arff_ap',   _urlAp);  localStorage.setItem('areaCritica', _urlAp); }
+  if (_urlCat) { localStorage.setItem('arff_cat',  _urlCat); localStorage.setItem('catOaci',      _urlCat); }
+
   /* ── Lectura de claves heredadas ── */
   const oaci = sessionStorage.getItem('sei_estacion')
             || localStorage.getItem('sei_estacion')
@@ -1045,19 +1066,47 @@ window.addEventListener('DOMContentLoaded', () => {
             || localStorage.getItem('currentOaci')
             || null;
 
-  const apRaw  = localStorage.getItem('arff_ap')
+  const apRaw  = _urlAp
+              || localStorage.getItem('arff_ap')
               || localStorage.getItem('areaCritica')
               || localStorage.getItem('ap_m2')
               || null;
 
-  const catRaw = localStorage.getItem('arff_cat')
+  const catRaw = _urlCat
+              || localStorage.getItem('arff_cat')
               || localStorage.getItem('catOaci')
               || localStorage.getItem('categoria_oaci')
               || null;
 
+  /* ── Leer datos de flota exportados por Módulo 01 ─────────── */
+  const _flotaAgua    = parseFloat(localStorage.getItem('sei_agua_total_litros'))    || 0;
+  const _flotaCam     = parseFloat(localStorage.getItem('sei_agua_camiones_litros')) || 0;
+  const _flotaBodega  = parseFloat(localStorage.getItem('sei_agua_bodega_litros'))   || 0;
+  const _flotaEspuma  = parseFloat(localStorage.getItem('sei_espuma_bodega_gal'))    || 0;
+  const _flotaPqs     = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))        || 0;
+  const _flotaConc    = parseFloat(localStorage.getItem('sei_concentracion_pct'))    || 3;
+  const _flotaNivel   = localStorage.getItem('sei_nivel_eficiencia')                 || 'B';
+  const _flotaQlpm    = parseFloat(localStorage.getItem('sei_q_flota_total_lpm'))    || 0;
+
+  // Guardar en window para que calcular() los use
+  window._flota = {
+    agua_litros:   _flotaAgua,
+    cam_litros:    _flotaCam,
+    bodega_litros: _flotaBodega,
+    espuma_gal:    _flotaEspuma,
+    pqs_kg:        _flotaPqs,
+    conc_pct:      _flotaConc,
+    nivel:         _flotaNivel,
+    q_lpm:         _flotaQlpm,
+  };
+  console.log('[M03] Datos flota heredados:', window._flota);
+
   const hayDatos = oaci || apRaw;
   document.getElementById('inherit-ok').style.display      = hayDatos ? 'flex' : 'none';
   document.getElementById('inherit-missing').style.display = hayDatos ? 'none' : 'block';
+
+  /* ── Renderizar panel de agentes de flota ─────────────────── */
+  _renderFlotaPanel(window._flota);
 
   if (oaci) {
     document.getElementById('inh-oaci').textContent = oaci;
@@ -1103,7 +1152,63 @@ window.addEventListener('DOMContentLoaded', () => {
     const catVal = parseInt(document.getElementById('sel-cat').value);
     if (!isNaN(apVal) && apVal > 0 && catVal >= 1) calcular(true);
   }
+
+  /* ── Auto-sincronizar selectores con nivel y concentración de flota ── */
+  if (_flotaNivel && ['A','B','C'].includes(_flotaNivel)) {
+    if (typeof selectEff === 'function') selectEff(_flotaNivel);
+  }
+  const _concNum = parseInt(_flotaConc);
+  if ([1,3,6].includes(_concNum)) {
+    if (typeof selectConc === 'function') selectConc(_concNum);
+  }
 });
+
+/* ════════════════════════════════════════════════════════════
+   _renderFlotaPanel() — Muestra agentes heredados de Módulo 01
+════════════════════════════════════════════════════════════ */
+function _renderFlotaPanel(flota) {
+  const el = document.getElementById('flota-panel-m03');
+  if (!el) return;
+  if (!flota || flota.agua_litros === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+  const L_GAL = 3.785411784;
+  el.innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:#40c057;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:#40c057;display:inline-block"></span>
+      Agentes Disponibles — Inventario Táctico SEI
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      <div style="background:#111d2e;border:1px solid #1c2e47;border-radius:6px;padding:9px 12px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:#29b6f6;line-height:1.1">${flota.agua_litros.toLocaleString('es-CO')}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#4a6580;text-transform:uppercase;margin-top:3px">Agua Total (L)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:#4a6580;margin-top:1px">${(flota.agua_litros/L_GAL).toFixed(0)} gal</div>
+      </div>
+      <div style="background:#111d2e;border:1px solid #1c2e47;border-radius:6px;padding:9px 12px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:#80cbc4;line-height:1.1">${flota.espuma_gal.toFixed(1)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#4a6580;text-transform:uppercase;margin-top:3px">Espuma (Gal)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:#4a6580;margin-top:1px">${(flota.espuma_gal*L_GAL).toFixed(0)} L</div>
+      </div>
+      <div style="background:#111d2e;border:1px solid #1c2e47;border-radius:6px;padding:9px 12px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:#ffcc02;line-height:1.1">${flota.pqs_kg.toFixed(0)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#4a6580;text-transform:uppercase;margin-top:3px">PQS (Kg)</div>
+      </div>
+      <div style="background:#111d2e;border:1px solid #1c2e47;border-radius:6px;padding:9px 12px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:#00e5ff;line-height:1.1">${flota.q_lpm.toLocaleString('es-CO')}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:#4a6580;text-transform:uppercase;margin-top:3px">Q Torretas (LPM)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:#4a6580;margin-top:1px">Niv.${flota.nivel} · ${flota.conc_pct}%</div>
+      </div>
+    </div>
+    ${flota.q_lpm > 0 && flota.agua_litros > 0 ? `
+    <div style="margin-top:10px;padding:8px 12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.15);border-radius:6px;font-family:'DM Mono',monospace;font-size:10.5px;color:#7a9bb5;">
+      ⏱ Autonomía estimada de flota:
+      <strong style="color:#00e5ff">${(flota.agua_litros / flota.q_lpm).toFixed(1)} min</strong>
+      de descarga continua a caudal total de torretas
+    </div>` : ''}
+  `;
+}
 
 /* ════════════════════════════════════════════════════════════
    SELECTORES
@@ -1186,15 +1291,21 @@ function calcular(silent) {
   const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
   /* ── Inventario disponible ─────────────────────────────── */
-  // Si Supabase ya respondió usamos agua real; si no, 0 (mostrará rojo).
+  // Inventario: Supabase (inventarioReal) > localStorage flota (window._flota) > 0
   const invDisp = window.inventarioReal
                 ? window.inventarioReal.agua
-                : 0;
+                : (window._flota && window._flota.agua_litros > 0)
+                  ? window._flota.agua_litros
+                  : 0;
 
   /* ── Espuma disponible en bodega (para check adicional) ── */
   const espumaDispGal = window.inventarioReal
                       ? window.inventarioReal.espuma
-                      : 0;
+                      : (window._flota ? window._flota.espuma_gal : 0);
+
+  /* ── Autonomía de descarga: cuánto tiempo dan los agentes disponibles ─ */
+  const qFlotaLpm    = window._flota ? window._flota.q_lpm : 0;
+  const autonomiaMin = (qFlotaLpm > 0 && invDisp > 0) ? (invDisp / qFlotaLpm) : 0;
   const espumaDispL = espumaDispGal * L_PER_GAL;
 
   /* ── Norma RAC 14 ─────────────────────────────────────── */
@@ -1207,8 +1318,11 @@ function calcular(silent) {
   const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
   const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
 
+  /* ── Autonomía mínima (Doc 9137: ≥ 1 min de ataque continuo) ── */
+  const autonomiaOk = autonomiaMin === 0 || autonomiaMin >= 1.0; // ok si no hay Q de flota
+
   /* Veredicto global: todos deben estar ok */
-  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
+  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk && autonomiaOk;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
@@ -1381,7 +1495,12 @@ function _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGal, invDisp) {
     <span class="ts" style="color:${invDisp>0?'var(--blue-bright)':'var(--amber)'};border-color:rgba(51,154,240,.3);background:rgba(51,154,240,.05)">
       Bodega = ${invDisp > 0 ? invDisp.toLocaleString('es-CO') + ' L' : 'Sin datos Supabase'}
     </span>
-  `;
+    ${autonomiaMin > 0 ? `
+    <span class="ts-op">|</span>
+    <span class="ts" style="color:#40c057;border-color:rgba(64,192,87,.3);background:rgba(64,192,87,.06)">
+      ⏱ Autonomía = ${autonomiaMin.toFixed(1)} min
+    </span>` : ''}
+  \`;
 }
 
 /* ─── TOAST ────────────────────────────────────────────── */
