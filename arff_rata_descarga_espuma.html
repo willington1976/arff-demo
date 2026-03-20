@@ -828,25 +828,39 @@
 
               <!-- Tarjetas de inventario -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border);">
-                <!-- Agua -->
+                <!-- Agua — editable para cálculo en tiempo real -->
                 <div style="padding:13px 16px;border-right:1px solid var(--border);">
                   <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">
                     💧 Reserva de Agua en Bodega
                   </div>
-                  <div id="display-bodega-agua" style="font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--cyan);line-height:1.1;">
-                    — L
+                  <div style="display:flex;align-items:baseline;gap:6px;">
+                    <input type="number" id="reserva_agua_litros"
+                      min="0" step="1" placeholder="0"
+                      oninput="calcularLive();_actualizarConvAgua()"
+                      style="background:transparent;border:none;border-bottom:1px solid var(--border2);
+                             font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--cyan);
+                             width:100%;outline:none;padding:2px 0;"
+                      title="Edita para actualizar los semáforos en tiempo real"/>
+                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap">L</span>
                   </div>
                   <div id="display-bodega-agua-gal" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;">
                     — gal
                   </div>
                 </div>
-                <!-- Espuma -->
+                <!-- Espuma — editable para cálculo en tiempo real -->
                 <div style="padding:13px 16px;">
                   <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">
                     🧯 Concentrado Espumante en Bodega
                   </div>
-                  <div id="display-bodega-espuma" style="font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--amber);line-height:1.1;">
-                    — Gal
+                  <div style="display:flex;align-items:baseline;gap:6px;">
+                    <input type="number" id="reserva_espuma_galones"
+                      min="0" step="0.1" placeholder="0"
+                      oninput="calcularLive();_actualizarConvEspuma()"
+                      style="background:transparent;border:none;border-bottom:1px solid var(--border2);
+                             font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--amber);
+                             width:100%;outline:none;padding:2px 0;"
+                      title="Edita para actualizar los semáforos en tiempo real"/>
+                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap">Gal</span>
                   </div>
                   <div id="display-bodega-espuma-l" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;">
                     — L
@@ -995,10 +1009,16 @@ async function obtenerInventarioReal() {
     const espumaG  = parseFloat(data.reserva_espuma_galones) || 0;
     const espumaL  = espumaG * L_PER_GAL;
 
-    document.getElementById('display-bodega-agua').textContent     = aguaL.toLocaleString('es-CO') + ' L';
-    document.getElementById('display-bodega-agua-gal').textContent = lToGal(aguaL).toFixed(0) + ' gal';
-    document.getElementById('display-bodega-espuma').textContent   = espumaG.toFixed(1) + ' Gal';
-    document.getElementById('display-bodega-espuma-l').textContent = espumaL.toFixed(0) + ' L';
+    // Poblar los inputs editables (antes eran divs de solo lectura)
+    const inpAgua   = document.getElementById('reserva_agua_litros');
+    const inpEspuma = document.getElementById('reserva_espuma_galones');
+    if (inpAgua)   inpAgua.value   = aguaL;
+    if (inpEspuma) inpEspuma.value = espumaG;
+    // Actualizar labels de conversión
+    const galEl = document.getElementById('display-bodega-agua-gal');
+    const espLEl= document.getElementById('display-bodega-espuma-l');
+    if (galEl)  galEl.textContent  = lToGal(aguaL).toFixed(0) + ' gal';
+    if (espLEl) espLEl.textContent = espumaL.toFixed(0) + ' L';
 
     /* Nivel eficiencia y concentración de la estación */
     const nivelEst = data.nivel_eficiencia_estacion || '—';
@@ -1023,10 +1043,15 @@ async function obtenerInventarioReal() {
       agua:   aguaL,    // Litros de agua en bodega
       espuma: espumaG,  // Galones de concentrado en bodega
     };
-    // Si Supabase devolvió 0 agua pero Módulo 01 tiene datos, sumar
+    // Si Supabase devolvió 0 agua pero Módulo 01 tiene datos, usar esos
     if (aguaL === 0 && window._flota && window._flota.agua_litros > 0) {
       window.inventarioReal.agua   = window._flota.agua_litros;
       window.inventarioReal.espuma = window._flota.espuma_gal;
+      // Poblar también los inputs con los datos de flota
+      const ia = document.getElementById('reserva_agua_litros');
+      const ie = document.getElementById('reserva_espuma_galones');
+      if (ia && ia.value === '') ia.value = window._flota.agua_litros;
+      if (ie && ie.value === '') ie.value = window._flota.espuma_gal;
       console.log('[M03] inventarioReal enriquecido con datos de flota');
     }
 
@@ -1252,16 +1277,24 @@ function calcular(silent) {
   const concLitros = reqTotal * concFrac;      // L de concentrado puro
   const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
-  /* ── Inventario disponible ─────────────────────────────── */
-  // Si Supabase ya respondió usamos agua real; si no, 0 (mostrará rojo).
-  const invDisp = window.inventarioReal
-                ? window.inventarioReal.agua
-                : 0;
+  /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
+     Lee el valor actual del campo en pantalla para que cualquier
+     edición manual actualice los semáforos en tiempo real.
+     Prioridad: input editable > window.inventarioReal > window._flota > 0 */
+  const _inpAgua    = document.getElementById('reserva_agua_litros');
+  const _inpEspuma  = document.getElementById('reserva_espuma_galones');
 
-  /* ── Espuma disponible en bodega (para check adicional) ── */
-  const espumaDispGal = window.inventarioReal
-                      ? window.inventarioReal.espuma
-                      : 0;
+  const invDisp = _inpAgua && _inpAgua.value !== ''
+                ? (parseFloat(_inpAgua.value) || 0)
+                : window.inventarioReal
+                  ? window.inventarioReal.agua
+                  : (window._flota ? window._flota.agua_litros : 0);
+
+  const espumaDispGal = _inpEspuma && _inpEspuma.value !== ''
+                      ? (parseFloat(_inpEspuma.value) || 0)
+                      : window.inventarioReal
+                        ? window.inventarioReal.espuma
+                        : (window._flota ? window._flota.espuma_gal : 0);
   const espumaDispL = espumaDispGal * L_PER_GAL;
 
   /* ── Norma RAC 14 ─────────────────────────────────────── */
@@ -1327,13 +1360,15 @@ function calcular(silent) {
   );
 
   /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
-  const invLabel = window.inventarioReal
-    ? fmtL(invDisp) + ' disp.'
-    : 'Sin datos';
+  // invDisp ahora viene SIEMPRE del input → nunca "Sin datos" si el campo tiene valor
+  const invLabel = invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos';
+  const invEstado = invDisp > 0
+    ? (inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT')
+    : 'SIN DATOS';
   _semaforo('total',
     invLabel, fmtGal(invDisp),
     inventarioOk,
-    inventarioOk ? 'INVENTARIO OK' : (window.inventarioReal ? 'DÉFICIT' : 'SIN DATOS'),
+    invEstado,
     '💧'
   );
 
@@ -1530,6 +1565,18 @@ function _renderFlotaPanel() {
       de descarga continua a caudal total de torretas
     </div>` : ''}
   `;
+}
+
+/* ── Helpers de conversión reactiva para los inputs de bodega ── */
+function _actualizarConvAgua() {
+  const v   = parseFloat(document.getElementById('reserva_agua_litros')?.value) || 0;
+  const el  = document.getElementById('display-bodega-agua-gal');
+  if (el) el.textContent = v > 0 ? lToGal(v).toFixed(0) + ' gal' : '— gal';
+}
+function _actualizarConvEspuma() {
+  const v   = parseFloat(document.getElementById('reserva_espuma_galones')?.value) || 0;
+  const el  = document.getElementById('display-bodega-espuma-l');
+  if (el) el.textContent = v > 0 ? (v * L_PER_GAL).toFixed(0) + ' L' : '— L';
 }
 
 /* ════════════════════════════════════════════════════════════
