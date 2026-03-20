@@ -1,1495 +1,1404 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Inventario Táctico SEI · Agentes y Flota</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root {
-  --bg:        #060c14;
-  --panel:     #0d1520;
-  --panel2:    #111d2e;
-  --panel3:    #162035;
-  --border:    #1c2e47;
-  --border2:   #243a55;
-  --accent:    #00e5ff;
-  --accent2:   #0097a7;
-  --green:     #00e676;
-  --green-dim: #1b3a2a;
-  --amber:     #ffab40;
-  --amber-dim: #3a2a10;
-  --red:       #ff5252;
-  --red-dim:   #3a1515;
-  --purple:    #ce93d8;
-  --purple-dim:#2a1535;
-  --blue:      #42a5f5;
-  --blue-dim:  #0d2040;
-  --muted:     #4a6580;
-  --text:      #c8d8e8;
-  --text2:     #7a9bb5;
-  --text3:     #4a6580;
-  --radius:    10px;
-  --shadow:    0 4px 24px rgba(0,0,0,0.5);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  background:var(--bg);color:var(--text);
-  font-family:'DM Sans',sans-serif;
-  min-height:100vh;overflow-x:hidden;
-}
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:radial-gradient(circle,rgba(0,229,255,.06) 1px,transparent 1px);
-  background-size:28px 28px;pointer-events:none;z-index:0;
-}
-body::after{
-  content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);
-  pointer-events:none;z-index:0;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <title>ARFF Colombia — Motor de Decisión Operativa</title>
+  <meta name="description" content="Motor de Decisión Operativa ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
 
-/* ─── LAYOUT ──────────────────────────────────────────────── */
-.wrapper{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-/* ─── TOP BAR ─────────────────────────────────────────────── */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 32px;background:rgba(13,21,32,.92);
-  border-bottom:1px solid var(--border);
-  backdrop-filter:blur(8px);position:sticky;top:0;z-index:100;
-}
-.topbar-left{display:flex;align-items:center;gap:16px;}
-.topbar-icon{
-  width:38px;height:38px;background:rgba(0,229,255,.12);
-  border:1px solid var(--accent2);border-radius:8px;
-  display:grid;place-items:center;font-size:18px;
-}
-.topbar-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;}
-.topbar-sub{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:2px;}
-.topbar-right{display:flex;align-items:center;gap:12px;}
-.badge-rol{
-  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;
-  padding:4px 10px;border-radius:4px;
-  background:rgba(0,229,255,.1);border:1px solid var(--accent2);color:var(--accent);
-}
-.btn-back{
-  display:flex;align-items:center;gap:6px;padding:7px 14px;
-  background:transparent;border:1px solid var(--border2);border-radius:var(--radius);
-  color:var(--text2);font-size:12px;cursor:pointer;transition:.2s;text-decoration:none;
-}
-.btn-back:hover{border-color:var(--accent2);color:var(--accent);}
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* ─── Supabase client — Módulo 03: Motor de Decisión ─── */
+    const SUPA_URL = 'https://mctrdchacgwtqimsdpvn.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jdHJkY2hhY2d3dHFpbXNkcHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjY4MDYsImV4cCI6MjA4ODU0MjgwNn0.RypOxjmrjrGXMM2ujRAwxanAkOKLzH4qZEKE4IQTFsQ';
+    const supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  </script>
 
-/* ─── ESTACION BAR ────────────────────────────────────────── */
-.estacion-bar{
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
-  padding:14px 32px;background:rgba(0,229,255,.04);
-  border-bottom:1px solid var(--border);
-}
-.estacion-info{display:flex;align-items:center;gap:16px;}
-.estacion-oaci{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);letter-spacing:2px;}
-.estacion-nombre{font-size:13px;color:var(--text2);}
-.estacion-resumen{display:flex;gap:20px;}
-.resumen-chip{
-  display:flex;flex-direction:column;align-items:center;
-  padding:6px 16px;border-radius:8px;border:1px solid var(--border);
-  background:var(--panel2);min-width:70px;
-}
-.resumen-chip .rc-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;}
-.resumen-chip .rc-lbl{font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
-.resumen-chip.green .rc-val{color:var(--green);}
-.resumen-chip.amber .rc-val{color:var(--amber);}
-.resumen-chip.red   .rc-val{color:var(--red);}
+  <style>
+    /* ═══════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg: #0d1117;
+      --panel: #161d2b;
+      --panel2: #1c2638;
+      --panel3: #212d42;
+      --border: #243047;
+      --border2: #2e3f5c;
 
-/* ─── MAIN ────────────────────────────────────────────────── */
-.main{flex:1;padding:28px 32px 60px;}
+      --red: #e03131;
+      --orange: #f76707;
+      --amber: #f59f00;
+      --green: #2f9e44;
+      --green-bright: #40c057;
+      --cyan: #0bc5ea;
+      --cyan-dim: #0891b2;
+      --blue-bright: #339af0;
+      --purple: #7048e8;
 
-/* ─── ADMIN SEARCH ────────────────────────────────────────── */
-.admin-panel{
-  display:flex;background:rgba(0,229,255,.04);
-  border:1px dashed var(--border2);border-radius:var(--radius);
-  padding:14px 20px;margin-bottom:20px;
-  align-items:center;gap:12px;flex-wrap:wrap;
-}
-.admin-panel label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;}
-.admin-panel input[type=text]{
-  background:var(--panel2);border:1px solid var(--border2);border-radius:6px;
-  color:#fff;font-family:'DM Mono',monospace;font-size:13px;
-  padding:8px 14px;width:100%;outline:none;
-}
-.admin-panel input:focus{border-color:var(--accent);}
-.search-wrap{position:relative;flex:1;min-width:240px;max-width:420px;}
-.search-wrap input[type=text]{width:100%;}
-.search-results{
-  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:150;
-  background:var(--panel);border:1px solid var(--border2);border-radius:8px;
-  max-height:220px;overflow-y:auto;display:none;
-  box-shadow:0 12px 40px rgba(0,0,0,.6);
-}
-.search-results.open{display:block;}
-.search-item{padding:10px 14px;cursor:pointer;transition:.15s;border-bottom:1px solid var(--border);}
-.search-item:last-child{border-bottom:none;}
-.search-item:hover{background:rgba(0,229,255,.07);}
-.search-item .si-oaci{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--accent);}
-.search-item .si-nombre{font-size:11px;color:var(--text2);margin-top:2px;}
-.search-empty{padding:14px;text-align:center;font-size:12px;color:var(--text3);}
+      /* semaphore */
+      --sem-green: #2f9e44;
+      --sem-green-glow: rgba(47,158,68,.35);
+      --sem-amber: #f59f00;
+      --sem-amber-glow: rgba(245,159,0,.35);
+      --sem-red: #e03131;
+      --sem-red-glow: rgba(224,49,49,.35);
 
-/* ═══════════════════════════════════════════════════════════
-   RESERVA EN BODEGA Q3 — NUEVO CARD TÁCTICO
-═══════════════════════════════════════════════════════════ */
-.bodega-card{
-  background:var(--panel);border:1px solid var(--border2);
-  border-left:4px solid var(--purple);border-radius:var(--radius);
-  margin-bottom:18px;overflow:hidden;display:none;
-  animation:fadeIn .3s ease;
-}
-.bodega-card.visible{display:block;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.bodega-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 18px;background:rgba(206,147,216,.06);
-  border-bottom:1px solid rgba(206,147,216,.15);flex-wrap:wrap;gap:8px;
-}
-.bodega-htitle{
-  display:flex;align-items:center;gap:10px;
-  font-family:'Syne',sans-serif;font-size:12px;font-weight:800;
-  color:var(--purple);letter-spacing:.1em;text-transform:uppercase;
-}
-.bodega-htitle svg{opacity:.7;}
-.bodega-hsub{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--text3);letter-spacing:.06em;}
-.bodega-save-btn{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 14px;background:rgba(206,147,216,.12);
-  border:1px solid rgba(206,147,216,.3);border-radius:6px;
-  color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;transition:.2s;
-}
-.bodega-save-btn:hover{background:rgba(206,147,216,.22);border-color:var(--purple);}
-.bodega-save-btn.saving{opacity:.6;pointer-events:none;}
+      --text: #e2e8f0;
+      --text-dim: #8a9bba;
+      --text-muted: #4a5878;
 
-.bodega-fields{
-  display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;
-}
-.bodega-field{
-  padding:14px 18px;
-  border-right:1px solid var(--border);
-}
-.bodega-field:last-child{border-right:none;}
-.bf-label{
-  font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
-  letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:5px;
-}
-.bf-input{
-  background:var(--panel2);border:1px solid var(--border2);
-  border-radius:6px;color:#fff;font-family:'DM Mono',monospace;
-  font-size:16px;font-weight:500;padding:8px 12px;width:100%;outline:none;
-  transition:.2s;
-}
-.bf-input:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(206,147,216,.12);}
-.bf-input.water:focus{border-color:var(--accent);}
-.bf-input.foam:focus {border-color:var(--amber);}
-.bf-conv{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px;}
+      --font-title: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
 
-/* ─── SEMÁFORO SEI ────────────────────────────────────────── */
-.semaforo-sei{
-  margin:0 0 18px;border-radius:10px;border:2px solid var(--border2);
-  overflow:hidden;transition:border-color .3s,background .3s;display:none;
-}
-.semaforo-sei.visible{display:block;}
-.semaforo-header{
-  padding:10px 18px;display:flex;align-items:center;gap:10px;
-  border-bottom:1px solid rgba(255,255,255,.06);
-}
-.semaforo-header .sf-icon{font-size:16px;}
-.semaforo-header .sf-title{
-  font-family:'Syne',sans-serif;font-weight:800;font-size:11px;
-  letter-spacing:.10em;text-transform:uppercase;color:#fff;
-}
-.semaforo-header .sf-badge{
-  margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;
-  font-weight:700;letter-spacing:.10em;padding:2px 9px;
-  border-radius:4px;text-transform:uppercase;
-}
-.semaforo-body{padding:12px 18px 14px;}
-.semaforo-msg{font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:10px;}
-.semaforo-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;}
-.sm-cell{
-  background:var(--panel2);border:1px solid var(--border);
-  border-radius:6px;padding:8px 10px;text-align:center;
-}
-.sm-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);}
-.sm-lbl{font-size:9px;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-top:2px;}
-.semaforo-audit{
-  font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
-  border-top:1px solid var(--border);padding-top:7px;letter-spacing:.04em;line-height:1.5;
-}
-@keyframes sei-glow-red{
-  0%,100%{box-shadow:0 0 0 rgba(255,82,82,0);border-color:var(--red);}
-  50%     {box-shadow:0 0 20px rgba(255,82,82,.5);border-color:#ff8a80;}
-}
-.semaforo-sei.critico{animation:sei-glow-red 1.6s ease-in-out infinite;}
+      --radius: 10px;
+      --radius-sm: 6px;
+      --t: .18s ease;
+    }
 
-/* ─── TOOLBAR ─────────────────────────────────────────────── */
-.toolbar{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:24px;flex-wrap:wrap;gap:12px;
-}
-.toolbar-left{display:flex;align-items:center;gap:10px;}
-.toolbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;}
-.toolbar-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);}
-.btn-add-maquina{
-  display:flex;align-items:center;gap:8px;
-  padding:10px 20px;background:var(--accent);color:#000;
-  font-weight:700;font-size:13px;border:none;border-radius:var(--radius);
-  cursor:pointer;transition:.2s;letter-spacing:.02em;
-}
-.btn-add-maquina:hover{background:#33ebff;transform:translateY(-1px);}
-.btn-add-maquina svg{width:16px;height:16px;}
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior: smooth; }
 
-/* ─── MODAL ───────────────────────────────────────────────── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;place-items:center;backdrop-filter:blur(4px);}
-.modal-overlay.open{display:grid;}
-.modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.7);}
-.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
-.modal-header h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;}
-.btn-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:20px;line-height:1;}
-.btn-close:hover{color:#fff;}
-.modal-body{padding:24px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.form-grid.full{grid-template-columns:1fr;}
-.field{display:flex;flex-direction:column;gap:6px;}
-.field label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;}
-.field input,.field select,.field textarea{
-  background:var(--panel2);border:1px solid var(--border);border-radius:8px;
-  color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;
-  padding:10px 12px;outline:none;transition:.2s;
-}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent2);}
-.field select option{background:var(--panel2);}
-.field textarea{resize:vertical;min-height:70px;}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
-.btn-cancel{padding:9px 20px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;}
-.btn-cancel:hover{border-color:var(--red);color:var(--red);}
-.btn-guardar{padding:9px 24px;background:var(--accent);color:#000;font-weight:700;font-size:13px;border:none;border-radius:8px;cursor:pointer;}
-.btn-guardar:hover{background:#33ebff;}
-.section-sep{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;border-top:1px solid var(--border);padding-top:12px;margin-top:4px;grid-column:1/-1;}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image: radial-gradient(circle, #1e2d47 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
 
-/* ─── CARDS GRID ──────────────────────────────────────────── */
-.cards-grid{display:flex;flex-direction:column;gap:20px;}
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes pulse-green  { 0%,100%{box-shadow:0 0 0 0 var(--sem-green-glow)}  50%{box-shadow:0 0 18px 6px var(--sem-green-glow)} }
+    @keyframes pulse-amber  { 0%,100%{box-shadow:0 0 0 0 var(--sem-amber-glow)}  50%{box-shadow:0 0 18px 6px var(--sem-amber-glow)} }
+    @keyframes pulse-red    { 0%,100%{box-shadow:0 0 0 0 var(--sem-red-glow)}    50%{box-shadow:0 0 18px 6px var(--sem-red-glow)} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes flash-in { from {opacity:0;transform:scale(.96)} to {opacity:1;transform:scale(1)} }
+    @keyframes countup { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
-/* ─── MAQUINA CARD ────────────────────────────────────────── */
-.maquina-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.2s;}
-.maquina-card:hover{border-color:var(--border2);}
-.maquina-card.estado-OPERATIVA  {border-left:4px solid var(--green);}
-.maquina-card.estado-MANTENIMIENTO{border-left:4px solid var(--amber);}
-.maquina-card.estado-FUERA      {border-left:4px solid var(--red);}
-/* Novedad ALTA: fuerza visual degradado rojo */
-.maquina-card.nov-alta-forzada{border-left:4px solid var(--red);background:linear-gradient(135deg,rgba(58,21,21,.22),var(--panel));}
+    /* ═══════════════════════════════════════════
+       NAV
+    ═══════════════════════════════════════════ */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 20px; height: 58px;
+    }
+    .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+    .nav-brand { display:flex; flex-direction:column; line-height:1.1; }
+    .nav-brand-main {
+      font-family: var(--font-title); font-weight:800; font-size:12.5px;
+      color:var(--text); letter-spacing:.04em; text-transform:uppercase;
+    }
+    .nav-brand-sub {
+      font-family: var(--font-mono); font-size:10px;
+      color:var(--green-bright); letter-spacing:.08em; text-transform:uppercase;
+    }
+    .nav-sep { flex:1; }
+    .nav-badge {
+      font-family:var(--font-mono); font-size:10px; color:var(--text-dim);
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:4px; padding:3px 8px; letter-spacing:.06em; white-space:nowrap;
+    }
+    .nav-badge span { color:var(--green-bright); }
+    .btn-return {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,.05); border:1px solid var(--border);
+      border-radius:6px; padding:6px 12px; color:var(--text-dim);
+      font-family:var(--font-mono); font-size:11px; text-decoration:none;
+      letter-spacing:.05em; transition:all var(--t);
+    }
+    .btn-return:hover { background:rgba(255,255,255,.1); color:var(--text); border-color:var(--border2); }
 
-.mcard-header{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:16px;padding:18px 20px;cursor:pointer;border-bottom:1px solid transparent;transition:.2s;}
-.mcard-header:hover{background:rgba(255,255,255,.02);}
-.mcard-header.expanded{border-bottom-color:var(--border);}
-.mcard-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-1px;min-width:50px;}
-.mcard-modelo{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.mcard-marca{font-size:12px;color:var(--text2);margin-top:2px;}
-.mcard-capacidades{display:flex;gap:8px;flex-wrap:wrap;}
-.cap-chip{display:flex;flex-direction:column;align-items:center;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);min-width:60px;}
-.cap-chip .cv{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#fff;}
-.cap-chip .cl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
-.cap-chip.water .cv{color:#29b6f6;}
-.cap-chip.foam  .cv{color:#80cbc4;}
-.cap-chip.pqs   .cv{color:#ffcc02;}
-.cap-chip.torreta .cv{color:var(--accent);}
-/* Autonomía de descarga chip */
-.cap-chip.auto .cv{color:var(--amber);}
+    /* ═══════════════════════════════════════════
+       PAGE
+    ═══════════════════════════════════════════ */
+    .page { max-width:1180px; margin:0 auto; padding:32px 16px 120px; }
 
-.mcard-actions{display:flex;gap:8px;align-items:center;}
-.estado-badge{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:5px 12px;border-radius:20px;letter-spacing:.06em;border:1px solid;cursor:pointer;transition:.2s;white-space:nowrap;}
-.estado-badge.OPERATIVA    {background:var(--green-dim);border-color:var(--green);color:var(--green);}
-.estado-badge.MANTENIMIENTO{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
-.estado-badge.FUERA        {background:var(--red-dim);border-color:var(--red);color:var(--red);}
-/* Badge forzado por novedad alta */
-.estado-badge.FUERA-FORZADO{background:var(--red-dim);border-color:var(--red);color:var(--red);cursor:not-allowed;opacity:.8;}
-.btn-icon{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;display:grid;place-items:center;transition:.2s;font-size:14px;}
-.btn-icon:hover{border-color:var(--border2);color:#fff;}
-.btn-icon.danger:hover{border-color:var(--red);color:var(--red);}
-.btn-icon.edit:hover{border-color:var(--accent2);color:var(--accent);}
-.chevron{transition:.3s;display:grid;place-items:center;}
-.chevron.open{transform:rotate(180deg);}
+    /* ═══════════════════════════════════════════
+       MODULE HEADER
+    ═══════════════════════════════════════════ */
+    .module-header {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden; margin-bottom:24px;
+    }
+    .module-strip { height:4px; background:linear-gradient(90deg,var(--green) 0%,var(--green-bright) 45%,var(--cyan) 100%); }
+    .module-head-inner { padding:24px 28px 20px; }
+    .module-eyebrow {
+      font-family:var(--font-mono); font-size:10px; color:var(--green-bright);
+      letter-spacing:.12em; text-transform:uppercase; margin-bottom:7px;
+    }
+    .module-title {
+      font-family:var(--font-title); font-weight:800; font-size:24px;
+      color:var(--text); letter-spacing:-.01em; margin-bottom:5px;
+    }
+    .module-subtitle { color:var(--text-dim); font-size:13px; max-width:680px; }
+    .module-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    .meta-chip {
+      display:flex; align-items:center; gap:6px;
+      background:var(--panel2); border:1px solid var(--border);
+      border-radius:5px; padding:4px 11px;
+      font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); letter-spacing:.04em;
+    }
+    .meta-chip .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
-/* CARD BODY */
-.mcard-body{display:none;padding:20px;}
-.mcard-body.open{display:block;}
+    /* ═══════════════════════════════════════════
+       INHERITED DATA BANNER
+    ═══════════════════════════════════════════ */
+    .inherit-banner {
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--green-bright);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .inherit-label {
+      font-family: var(--font-mono); font-size: 9.5px;
+      color: var(--green-bright); letter-spacing:.1em; text-transform:uppercase;
+      display:flex; align-items:center; gap:6px;
+    }
+    .inherit-label::before {
+      content:''; display:inline-block; width:6px; height:6px;
+      border-radius:50%; background:var(--green-bright);
+    }
+    .inherit-chips { display:flex; gap:10px; flex-wrap:wrap; }
+    .inh-chip {
+      display:flex; flex-direction:column; gap:1px;
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:6px; padding:7px 14px;
+    }
+    .inh-chip-label { font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:.08em; text-transform:uppercase; }
+    .inh-chip-val { font-family:var(--font-mono); font-size:16px; font-weight:500; color:var(--text); }
+    .inh-chip-val.oaci { color:var(--green-bright); }
+    .inh-chip-val.ap   { color:var(--amber); }
+    .inh-chip-val.cat  { color:var(--cyan); }
+    .inherit-missing {
+      background:rgba(224,49,49,.07); border:1px solid rgba(224,49,49,.3); border-left:3px solid var(--red);
+      border-radius:var(--radius); padding:14px 20px; margin-bottom:20px;
+      font-family:var(--font-mono); font-size:11.5px; color:var(--red);
+    }
 
-/* ─── NOVEDADES ───────────────────────────────────────────── */
-.novedades-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.novedades-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;}
-.btn-add-nov{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,171,64,.1);border:1px solid var(--amber-dim);border-radius:6px;color:var(--amber);font-size:11px;font-weight:600;cursor:pointer;transition:.2s;}
-.btn-add-nov:hover{background:rgba(255,171,64,.2);border-color:var(--amber);}
-.novedades-list{display:flex;flex-direction:column;gap:10px;}
-.novedad-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px 16px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);position:relative;}
-.novedad-row.sev-alta  {border-left:3px solid var(--red);}
-.novedad-row.sev-media {border-left:3px solid var(--amber);}
-.novedad-row.sev-baja  {border-left:3px solid #42a5f5;}
-.nov-sev-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;}
-.sev-alta  .nov-sev-dot{background:var(--red);}
-.sev-media .nov-sev-dot{background:var(--amber);}
-.sev-baja  .nov-sev-dot{background:#42a5f5;}
-.nov-detalle{font-size:13px;color:var(--text);line-height:1.4;}
-.nov-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
-.nov-chip{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--text2);}
-.nov-chip.reparada{background:var(--green-dim);color:var(--green);}
-.nov-chip.pendiente{background:var(--red-dim);color:var(--red);}
-.nov-chip.alta-pendiente{background:var(--red-dim);color:var(--red);font-weight:700;border:1px solid var(--red);}
-.nov-actions{display:flex;gap:6px;}
-.btn-reparar{padding:4px 10px;font-size:10px;font-weight:700;background:var(--green-dim);border:1px solid var(--green);border-radius:4px;color:var(--green);cursor:pointer;transition:.2s;}
-.btn-reparar:hover{background:rgba(0,230,118,.2);}
-.btn-del-nov{width:24px;height:24px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;font-size:11px;display:grid;place-items:center;transition:.2s;}
-.btn-del-nov:hover{border-color:var(--red);color:var(--red);}
-.no-novedades{padding:20px;text-align:center;font-size:12px;color:var(--text3);border:1px dashed var(--border);border-radius:8px;}
-/* Alerta novedad alta forzada */
-.fuera-forzado-alert{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;border-radius:8px;
-  background:var(--red-dim);border:1px solid var(--red);
-  margin-bottom:12px;font-size:12px;color:var(--red);font-weight:600;
-}
+    /* ═══════════════════════════════════════════
+       MAIN GRID
+    ═══════════════════════════════════════════ */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    @media(max-width:860px) { .main-grid { grid-template-columns:1fr; } }
 
-/* ─── NOVEDAD FORM INLINE ─────────────────────────────────── */
-.nov-form{display:none;padding:14px 16px;border-radius:8px;border:1px dashed var(--accent2);background:rgba(0,229,255,.03);margin-top:10px;}
-.nov-form.open{display:block;}
-.nov-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.nov-form-grid .full{grid-column:1/-1;}
-.nov-form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
-.btn-guardar-nov{padding:7px 16px;background:var(--amber);color:#000;font-weight:700;font-size:12px;border:none;border-radius:6px;cursor:pointer;}
-.btn-cancel-nov{padding:7px 14px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;}
+    /* ═══════════════════════════════════════════
+       PANELS
+    ═══════════════════════════════════════════ */
+    .panel {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden;
+    }
+    .panel-head {
+      display:flex; align-items:center; gap:10px;
+      padding:13px 18px; border-bottom:1px solid var(--border);
+      background:var(--panel2);
+    }
+    .panel-icon {
+      width:28px; height:28px; border-radius:6px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .panel-title {
+      font-family:var(--font-title); font-weight:700; font-size:12.5px;
+      letter-spacing:.03em; text-transform:uppercase; color:var(--text);
+    }
+    .panel-body { padding:18px; }
 
-/* ─── EMPTY STATE ─────────────────────────────────────────── */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center;}
-.empty-icon{font-size:48px;margin-bottom:16px;opacity:.4;}
-.empty-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text2);margin-bottom:8px;}
-.empty-sub{font-size:13px;color:var(--text3);max-width:340px;line-height:1.5;}
+    /* ═══════════════════════════════════════════
+       FORM ELEMENTS
+    ═══════════════════════════════════════════ */
+    .field-stack { display:flex; flex-direction:column; gap:16px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field label {
+      font-size:11.5px; color:var(--text-dim); letter-spacing:.04em;
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    }
+    .var-pill {
+      font-family:var(--font-mono); font-size:11px; font-weight:500;
+      padding:1px 7px; border-radius:4px; background:rgba(255,255,255,.04);
+    }
+    .input-wrap { position:relative; }
+    .input-wrap input[type="number"] {
+      width:100%; background:var(--panel2); border:1.5px solid var(--border2);
+      border-radius:var(--radius-sm); color:var(--text);
+      font-family:var(--font-mono); font-size:16px;
+      padding:11px 52px 11px 14px; outline:none;
+      transition:border-color var(--t),box-shadow var(--t);
+      -webkit-appearance:none;
+    }
+    .input-wrap input:focus {
+      border-color:var(--green-bright);
+      box-shadow:0 0 0 3px rgba(64,192,87,.12);
+    }
+    .input-wrap input.locked {
+      background:rgba(64,192,87,.05);
+      border-color:rgba(64,192,87,.3);
+      color:var(--green-bright);
+    }
+    .input-unit {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      font-family:var(--font-mono); font-size:11px; color:var(--text-muted);
+      pointer-events:none;
+    }
 
-/* ─── TOAST ───────────────────────────────────────────────── */
-.toast{position:fixed;bottom:24px;right:24px;z-index:500;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;pointer-events:none;transform:translateY(20px);opacity:0;transition:.3s;box-shadow:0 8px 32px rgba(0,0,0,.5);}
-.toast.show{opacity:1;transform:translateY(0);}
-.toast.ok {background:#1b3a2a;border:1px solid var(--green);color:var(--green);}
-.toast.err{background:var(--red-dim);border:1px solid var(--red);color:var(--red);}
+    /* Segmented selector */
+    .seg-label {
+      font-size:11.5px; color:var(--text-dim); letter-spacing:.04em;
+      display:flex; align-items:center; gap:8px; margin-bottom:6px;
+    }
+    .seg-group { display:flex; gap:6px; }
+    .seg-btn {
+      flex:1; padding:10px 6px; border-radius:var(--radius-sm);
+      border:1.5px solid var(--border2); background:var(--panel2);
+      cursor:pointer; text-align:center;
+      transition:all var(--t); font-family:var(--font-mono);
+    }
+    .seg-btn:hover { border-color:var(--green-bright); }
+    .seg-btn.active {
+      border-color:var(--green-bright);
+      background:rgba(64,192,87,.09);
+      box-shadow:0 0 0 1px rgba(64,192,87,.2);
+    }
+    .seg-val { font-size:17px; font-weight:500; display:block; line-height:1.1; }
+    .seg-sub { font-size:9px; color:var(--text-muted); letter-spacing:.06em; display:block; margin-top:2px; }
+    .seg-desc { font-size:10px; color:var(--text-dim); margin-top:3px; display:block; }
 
-/* ─── ESTADO MODAL ────────────────────────────────────────── */
-.estado-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;place-items:center;}
-.estado-modal-overlay.open{display:grid;}
-.estado-modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;width:340px;padding:28px 24px;box-shadow:0 24px 80px rgba(0,0,0,.7);}
-.em-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:4px;}
-.em-sub{font-size:12px;color:var(--text2);margin-bottom:20px;}
-.estado-options{display:flex;flex-direction:column;gap:10px;}
-.estado-opt{padding:12px 16px;border-radius:8px;border:2px solid var(--border);cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px;}
-.estado-opt:hover{border-color:var(--border2);}
-.estado-opt.sel-OPERATIVA:hover,.estado-opt.active-OPERATIVA{border-color:var(--green);background:var(--green-dim);}
-.estado-opt.sel-MANTENIMIENTO:hover,.estado-opt.active-MANTENIMIENTO{border-color:var(--amber);background:var(--amber-dim);}
-.estado-opt.sel-FUERA:hover,.estado-opt.active-FUERA{border-color:var(--red);background:var(--red-dim);}
-.estado-opt-icon{font-size:20px;}
-.estado-opt-info .eoi-lbl{font-size:13px;font-weight:600;color:#fff;}
-.estado-opt-info .eoi-sub{font-size:11px;color:var(--text2);}
-.em-cancel{margin-top:14px;width:100%;padding:9px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:12px;}
+    /* Efficiency level colors */
+    .seg-btn[data-eff="A"] .seg-val { color:var(--red); }
+    .seg-btn[data-eff="B"] .seg-val { color:var(--amber); }
+    .seg-btn[data-eff="C"] .seg-val { color:var(--green-bright); }
+    .seg-btn[data-conc="1"] .seg-val { color:var(--cyan); }
+    .seg-btn[data-conc="3"] .seg-val { color:var(--amber); }
+    .seg-btn[data-conc="6"] .seg-val { color:var(--orange); }
 
-/* ─── SPINNER ─────────────────────────────────────────────── */
-.spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin .7s linear infinite;margin:60px auto;}
-@keyframes spin{to{transform:rotate(360deg)}}
+    /* Calc button */
+    .btn-calc {
+      width:100%; margin-top:6px; padding:13px;
+      background:linear-gradient(135deg,#1a7a35 0%,var(--green-bright) 100%);
+      border:none; border-radius:var(--radius-sm);
+      color:#fff; font-family:var(--font-title); font-weight:800;
+      font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+      cursor:pointer; transition:opacity var(--t),transform var(--t),box-shadow var(--t);
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .btn-calc:hover { opacity:.92; transform:translateY(-1px); box-shadow:0 6px 24px rgba(64,192,87,.35); }
+    .btn-calc:active { transform:translateY(0); }
 
-footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;color:var(--text3);border-top:1px solid var(--border);position:relative;z-index:1;}
+    /* ═══════════════════════════════════════════
+       DECISION ENGINE PANEL
+    ═══════════════════════════════════════════ */
+    .decision-panel { display:flex; flex-direction:column; }
 
-@media(max-width:768px){
-  .topbar,.main{padding:14px 16px 60px;}
-  .mcard-header{grid-template-columns:auto 1fr auto;}
-  .mcard-capacidades{display:none;}
-  .form-grid{grid-template-columns:1fr;}
-  .bodega-fields{grid-template-columns:1fr;}
-  .semaforo-metrics{grid-template-columns:repeat(2,1fr);}
-}
-</style>
+    /* Empty state */
+    .dec-empty {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:52px 24px; gap:12px; text-align:center;
+    }
+    .dec-empty-icon { font-size:40px; opacity:.25; }
+    .dec-empty-txt { color:var(--text-muted); font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; }
+
+    /* VERDICT BANNER */
+    .verdict-banner {
+      padding:18px 22px;
+      display:flex; align-items:center; gap:16px;
+      border-bottom:1px solid var(--border);
+      transition:all .3s ease;
+    }
+    .verdict-banner.operativo   { background:rgba(47,158,68,.07); }
+    .verdict-banner.degradada   { background:rgba(224,49,49,.07); }
+    .verdict-icon { font-size:28px; flex-shrink:0; }
+    .verdict-text-group { display:flex; flex-direction:column; gap:2px; flex:1; }
+    .verdict-eyebrow { font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); letter-spacing:.1em; text-transform:uppercase; }
+    .verdict-main {
+      font-family:var(--font-title); font-weight:800; font-size:22px; letter-spacing:.02em;
+      transition:color .3s;
+    }
+    .verdict-main.operativo { color:var(--green-bright); }
+    .verdict-main.degradada { color:var(--red); }
+    .verdict-sub { font-size:12px; color:var(--text-dim); }
+    .verdict-cat-badge {
+      font-family:var(--font-mono); font-size:12px;
+      padding:6px 14px; border-radius:6px;
+      border:1px solid var(--border2); background:var(--panel2);
+      text-align:center; flex-shrink:0;
+    }
+    .verdict-cat-badge .vc-lbl { font-size:8.5px; color:var(--text-muted); display:block; letter-spacing:.08em; text-transform:uppercase; }
+    .verdict-cat-badge .vc-val { font-size:18px; font-weight:500; color:var(--cyan); }
+
+    /* SEMAPHORES ROW */
+    .sem-row {
+      display:grid; grid-template-columns:repeat(3,1fr);
+      border-bottom:1px solid var(--border);
+    }
+    .sem-cell {
+      padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:8px;
+      border-right:1px solid var(--border); text-align:center;
+      transition:background .3s;
+    }
+    .sem-cell:last-child { border-right:none; }
+    .sem-lamp {
+      width:44px; height:44px; border-radius:50%;
+      background:var(--panel2); border:2px solid var(--border2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; transition:all .4s ease;
+    }
+    .sem-lamp.green { background:rgba(47,158,68,.15); border-color:var(--sem-green); box-shadow:0 0 12px var(--sem-green-glow); animation:pulse-green 2.5s infinite; }
+    .sem-lamp.amber { background:rgba(245,159,0,.15); border-color:var(--sem-amber); box-shadow:0 0 12px var(--sem-amber-glow); animation:pulse-amber 2.5s infinite; }
+    .sem-lamp.red   { background:rgba(224,49,49,.15);  border-color:var(--sem-red);   box-shadow:0 0 12px var(--sem-red-glow);   animation:pulse-red 2s infinite; }
+    .sem-title { font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); letter-spacing:.1em; text-transform:uppercase; }
+    .sem-val {
+      font-family:var(--font-mono); font-size:15px; font-weight:500; color:var(--text);
+      display:flex; flex-direction:column; gap:1px;
+    }
+    .sem-val .sv-l { color:var(--text); }
+    .sem-val .sv-g { color:var(--text-muted); font-size:11px; }
+    .sem-status { font-size:10px; font-family:var(--font-mono); letter-spacing:.06em; text-transform:uppercase; }
+    .sem-status.ok  { color:var(--green-bright); }
+    .sem-status.warn{ color:var(--amber); }
+    .sem-status.fail{ color:var(--red); }
+
+    /* Q3 200% ZONE */
+    .q3-zone {
+      padding:16px 18px; border-bottom:1px solid var(--border);
+      background:rgba(247,103,7,.04);
+    }
+    .q3-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .q3-title { font-family:var(--font-mono); font-size:10px; color:var(--orange); letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+    .q3-title::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--orange); }
+    .q3-formula { font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); }
+    .q3-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .q3-card {
+      background:var(--panel2); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 12px; text-align:center;
+    }
+    .q3-card-label { font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:.08em; text-transform:uppercase; display:block; margin-bottom:4px; }
+    .q3-card-val { font-family:var(--font-mono); font-size:19px; font-weight:500; display:block; line-height:1.1; }
+    .q3-card-gal { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); display:block; margin-top:2px; }
+    .q3-card.ataque .q3-card-val { color:var(--cyan); }
+    .q3-card.reserva .q3-card-val { color:var(--orange); }
+    .q3-card.total .q3-card-val { color:var(--green-bright); }
+    .q3-card.total { border-color:rgba(64,192,87,.3); background:rgba(64,192,87,.04); }
+
+    /* RAC 14 COMPARISON TABLE */
+    .rac-section { padding:18px; }
+    .rac-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+    .rac-title { font-family:var(--font-mono); font-size:10px; color:var(--blue-bright); letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+    .rac-title::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--blue-bright); }
+    .rac-ref { font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:2px 8px; }
+
+    .rac-table { width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11.5px; }
+    .rac-table th {
+      text-align:left; padding:7px 10px; border-bottom:1px solid var(--border2);
+      color:var(--text-muted); font-weight:400; letter-spacing:.06em; font-size:10px; text-transform:uppercase;
+    }
+    .rac-table td { padding:7px 10px; border-bottom:1px solid var(--border); color:var(--text-dim); }
+    .rac-table tr.active-cat td { background:rgba(11,197,234,.04); }
+    .rac-table tr.active-cat td:first-child { border-left:2px solid var(--cyan); }
+    .rac-table .td-num { text-align:right; }
+    .rac-table .td-pass { color:var(--green-bright); font-weight:500; }
+    .rac-table .td-fail { color:var(--red); font-weight:500; }
+    .rac-table .td-na   { color:var(--text-muted); }
+
+    .comply-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      font-family:var(--font-mono); font-size:9.5px; padding:2px 8px;
+      border-radius:4px; font-weight:500;
+    }
+    .comply-badge.pass { background:rgba(47,158,68,.15); color:var(--green-bright); border:1px solid rgba(47,158,68,.3); }
+    .comply-badge.fail { background:rgba(224,49,49,.15); color:var(--red); border:1px solid rgba(224,49,49,.3); }
+    .comply-badge.na   { background:rgba(255,255,255,.04); color:var(--text-muted); border:1px solid var(--border); }
+
+    /* ═══════════════════════════════════════════
+       FULL-WIDTH FORMULA TRACE
+    ═══════════════════════════════════════════ */
+    .trace-bar {
+      background:var(--panel2); border:1px solid var(--border2);
+      border-left:3px solid var(--amber);
+      border-radius:var(--radius); padding:16px 22px;
+      margin-bottom:20px; display:none;
+    }
+    .trace-bar.show { display:block; animation:fadeUp .25s ease; }
+    .trace-title { font-family:var(--font-mono); font-size:10px; color:var(--amber); letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px; }
+    .trace-steps { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .ts { font-family:var(--font-mono); font-size:12px; color:var(--text-dim); background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:4px 10px; }
+    .ts.hi-ap { color:var(--amber); border-color:rgba(245,159,0,.3); background:rgba(245,159,0,.05); }
+    .ts.hi-r  { color:var(--green-bright); border-color:rgba(64,192,87,.3); background:rgba(64,192,87,.05); }
+    .ts.hi-q1 { color:var(--cyan); border-color:rgba(11,197,234,.3); background:rgba(11,197,234,.05); }
+    .ts.hi-q2 { color:var(--blue-bright); border-color:rgba(51,154,240,.3); background:rgba(51,154,240,.05); }
+    .ts.hi-qt { color:var(--orange); border-color:rgba(247,103,7,.3); background:rgba(247,103,7,.05); }
+    .ts.hi-q3 { color:var(--green-bright); border-color:rgba(64,192,87,.4); background:rgba(64,192,87,.08); font-weight:500; }
+    .ts-op { color:var(--text-muted); font-size:13px; padding:0 2px; }
+
+    /* ═══════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════ */
+    #toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:var(--panel); border:1px solid var(--border2);
+      border-radius:8px; padding:10px 20px;
+      font-family:var(--font-mono); font-size:12px; color:var(--text);
+      box-shadow:0 8px 32px rgba(0,0,0,.5);
+      opacity:0; pointer-events:none; transition:all .25s ease; z-index:9999; white-space:nowrap;
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* ═══════════════════════════════════════════
+       PRINT / PDF
+    ═══════════════════════════════════════════ */
+    .btn-pdf {
+      display:inline-flex; align-items:center; gap:7px;
+      background:rgba(255,255,255,.05); border:1px solid var(--border2);
+      border-radius:var(--radius-sm); padding:9px 16px;
+      color:var(--text-dim); font-family:var(--font-mono); font-size:11px;
+      cursor:pointer; transition:all var(--t); letter-spacing:.05em;
+    }
+    .btn-pdf:hover { background:rgba(255,255,255,.09); color:var(--text); }
+
+    .section-footer { display:flex; justify-content:flex-end; padding-top:16px; }
+
+    @media print {
+      nav,.btn-pdf,.btn-calc,.section-footer { display:none!important; }
+      body { background:white; color:#000; background-image:none; }
+      .panel,.module-header,.inherit-banner,.trace-bar { border-color:#ccc; background:white; }
+    }
+  </style>
 </head>
 <body>
-<div class="wrapper">
 
-<!-- TOP BAR -->
-<header class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-icon">🛡️</div>
-    <div>
-      <div class="topbar-title">INVENTARIO TÁCTICO SEI</div>
-      <div class="topbar-sub">Estatus de Agentes · Flota · Capacidad Operativa</div>
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="28" height="28" rx="7" fill="#161d2b"/>
+      <path d="M7 21L14 7l7 14" stroke="#40c057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9.5 17h9" stroke="#40c057" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="14" cy="7" r="2" fill="#40c057"/>
+    </svg>
+    <div class="nav-brand">
+      <span class="nav-brand-main">ARFF Colombia</span>
+      <span class="nav-brand-sub">Motor de Decisión</span>
+    </div>
+  </a>
+  <div class="nav-sep"></div>
+  <div class="nav-badge">Módulo <span>03</span></div>
+  <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
+  <a href="arff_rata_descarga_espuma.html" class="btn-return">
+    ← Módulo 02
+  </a>
+</nav>
+
+<div class="page">
+
+  <!-- ═══════════════ MODULE HEADER ═══════════════ -->
+  <div class="module-header">
+    <div class="module-strip"></div>
+    <div class="module-head-inner">
+      <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
+      <h1 class="module-title">Motor de Decisión Operativa</h1>
+      <p class="module-subtitle">
+        Calcula la reserva obligatoria del 200% (Q₃), compara contra los mínimos de la categoría OACI
+        detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
+      </p>
+      <div class="module-meta">
+        <div class="meta-chip"><div class="dot" style="background:var(--green-bright)"></div> Eficiencia A/B/C — Doc 9137 §2.3.5</div>
+        <div class="meta-chip"><div class="dot" style="background:var(--amber)"></div> Concentración 1 / 3 / 6 %</div>
+        <div class="meta-chip"><div class="dot" style="background:var(--cyan)"></div> Q₃ = 200% · (Q₁ + Q₂)</div>
+        <div class="meta-chip"><div class="dot" style="background:var(--blue-bright)"></div> RAC 14 Tabla 9.2 — Comparativa automática</div>
+      </div>
     </div>
   </div>
-  <div class="topbar-right">
-    <span class="badge-rol" id="badgeRol">— ROL —</span>
-    <a href="arff_motor_decision_operativa.html" class="btn-back"
-       style="border-color:rgba(64,192,87,.35);color:#40c057;"
-       onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
-       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'">
-      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      Motor Decisión
-    </a>
-    <a href="arff_area_critica.html" class="btn-back"
-       style="border-color:rgba(247,103,7,.35);color:#f59f00;"
-       onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
-       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'">
-      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="18" r=".5" fill="currentColor"/></svg>
-      Área Crítica
-    </a>
-    <a href="dashboard_principal.html" class="btn-back">
-      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Dashboard
-    </a>
-  </div>
-</header>
 
-<!-- ESTACION BAR -->
-<div class="estacion-bar" id="estacionBar">
-  <div class="estacion-info">
-    <div class="estacion-oaci" id="estOaci">—</div>
-    <div class="estacion-nombre" id="estNombre">Cargando estación…</div>
-  </div>
-  <div class="estacion-resumen" id="resumenFlota">
-    <div class="resumen-chip"><span class="rc-val" id="resTotal">—</span><span class="rc-lbl">Total</span></div>
-    <div class="resumen-chip green"><span class="rc-val" id="resOp">—</span><span class="rc-lbl">Operativas</span></div>
-    <div class="resumen-chip amber"><span class="rc-val" id="resMant">—</span><span class="rc-lbl">Mant.</span></div>
-    <div class="resumen-chip red"><span class="rc-val" id="resFuera">—</span><span class="rc-lbl">Fuera</span></div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<main class="main">
-
-  <!-- BUSCADOR -->
-  <div class="admin-panel" id="adminPanel">
-    <label>Estación:</label>
-    <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="Escribe ciudad o código OACI…" autocomplete="off"
-             oninput="buscarEstaciones(this.value)"
-             onfocus="if(this.value.length>0)buscarEstaciones(this.value)"
-             onblur="setTimeout(()=>cerrarResultados(),200)"/>
-      <div class="search-results" id="searchResults"></div>
+  <!-- ═══════════════ INHERITED DATA BANNER ═══════════════ -->
+  <div id="inherit-ok" class="inherit-banner" style="display:none">
+    <div class="inherit-label">Datos heredados del Módulo 01</div>
+    <div class="inherit-chips">
+      <div class="inh-chip">
+        <span class="inh-chip-label">Código OACI</span>
+        <span class="inh-chip-val oaci" id="inh-oaci">—</span>
+      </div>
+      <div class="inh-chip">
+        <span class="inh-chip-label">Área Crítica Aₚ</span>
+        <span class="inh-chip-val ap" id="inh-ap">— m²</span>
+      </div>
+      <div class="inh-chip">
+        <span class="inh-chip-label">Categoría OACI</span>
+        <span class="inh-chip-val cat" id="inh-cat">—</span>
+      </div>
     </div>
-    <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">
-      OACI: <strong id="adminBase" style="color:var(--accent)">—</strong>
-    </span>
+  </div>
+  <div id="inherit-missing" class="inherit-missing" style="display:none">
+    ⚠ No se detectaron datos del Módulo 01 en localStorage. Ingrese el Área Crítica (Aₚ) y seleccione la categoría manualmente.
   </div>
 
-  <!-- ═══ RESERVA EN BODEGA Q3 ═══ -->
-  <div class="bodega-card" id="bodega-card">
-    <div class="bodega-header">
-      <div class="bodega-htitle">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-        </svg>
-        Reserva en Bodega (Q₃)
-      </div>
-      <div class="bodega-hsub">Inventario físico de bodega · UPDATE automático → estaciones_sei</div>
-      <button class="bodega-save-btn" id="bodegaSaveBtn" onclick="guardarBodega()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Guardar en Supabase
-      </button>
-    </div>
-    <div class="bodega-fields" style="grid-template-columns:1fr 1fr 1fr 1fr;">
-      <!-- Agua en bodega -->
-      <div class="bodega-field">
-        <div class="bf-label"><span style="color:#29b6f6">💧</span> Agua en Reserva</div>
-        <input class="bf-input water" type="number" id="bq_agua_l" placeholder="0" min="0"
-               oninput="actualizarConversionBodega()" onchange="actualizarConversionBodega()"/>
-        <div class="bf-conv" id="bq_agua_conv">— gal</div>
-      </div>
-      <!-- Espuma en bodega -->
-      <div class="bodega-field">
-        <div class="bf-label"><span style="color:#80cbc4">🧯</span> Espuma en Bodega</div>
-        <input class="bf-input foam" type="number" id="bq_espuma_gal" placeholder="0" min="0"
-               oninput="actualizarConversionBodega()" onchange="actualizarConversionBodega()"/>
-        <div class="bf-conv" id="bq_espuma_conv">— L</div>
-      </div>
-      <!-- PQS en bodega — reserva_pqs_kg -->
-      <div class="bodega-field">
-        <div class="bf-label"><span style="color:#ffcc02">🧨</span> PQS en Bodega</div>
-        <input class="bf-input" type="number" id="bq_pqs_kg" placeholder="0" min="0"
-               style="border-color:rgba(255,204,2,.3);"
-               onfocus="this.style.borderColor='#ffcc02';this.style.boxShadow='0 0 0 2px rgba(255,204,2,.12)'"
-               onblur="this.style.borderColor='rgba(255,204,2,.3)';this.style.boxShadow='none'"/>
-        <div class="bf-conv" style="color:rgba(255,204,2,.55)">Kilogramos · reserva_pqs_kg</div>
-      </div>
-      <!-- Nivel eficiencia + concentración -->
-      <div class="bodega-field">
-        <div class="bf-label"><span style="color:var(--amber)">⚡</span> Nivel / Concentración</div>
-        <div style="display:flex;gap:6px;">
-          <select id="bq_nivel" class="bf-input" style="font-size:13px;flex:1;" onchange="dispararActualizacionSemaforo()">
-            <option value="A">Niv. A — 8.2</option>
-            <option value="B" selected>Niv. B — 5.5</option>
-            <option value="C">Niv. C — 3.7</option>
-          </select>
-          <select id="bq_conc" class="bf-input" style="font-size:13px;flex:1;" onchange="dispararActualizacionSemaforo()">
-            <option value="1">1%</option>
-            <option value="3" selected>3%</option>
-            <option value="6">6%</option>
-          </select>
+  <!-- ═══════════════ MAIN GRID ═══════════════ -->
+  <div class="main-grid">
+
+    <!-- ── LEFT: INPUT PANEL ── -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-icon" style="background:rgba(64,192,87,.12)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#40c057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/></svg>
         </div>
-        <div class="bf-conv">Régimen L/min/m² · % espumante</div>
+        <span class="panel-title">Parámetros de Cálculo</span>
+      </div>
+      <div class="panel-body">
+        <div class="field-stack">
+
+          <!-- Ap -->
+          <div class="field">
+            <label>
+              Área Crítica
+              <span class="var-pill" style="color:var(--amber)">Aₚ</span>
+              <span style="color:var(--text-muted);font-size:10.5px">— heredado del Módulo 01</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="inp-ap" min="1" step="0.01" placeholder="0.00" oninput="calcularLive()">
+              <span class="input-unit">m²</span>
+            </div>
+          </div>
+
+          <!-- Nivel de Eficiencia -->
+          <div class="field">
+            <div class="seg-label">
+              Nivel de Eficiencia
+              <span class="var-pill" style="color:var(--green-bright)">R</span>
+            </div>
+            <div class="seg-group" id="eff-group">
+              <button class="seg-btn" data-eff="A" onclick="selectEff('A')">
+                <span class="seg-val">8.2</span>
+                <span class="seg-sub">L/min/m²</span>
+                <span class="seg-desc">Nivel A</span>
+              </button>
+              <button class="seg-btn" data-eff="B" onclick="selectEff('B')">
+                <span class="seg-val">5.5</span>
+                <span class="seg-sub">L/min/m²</span>
+                <span class="seg-desc">Nivel B</span>
+              </button>
+              <button class="seg-btn active" data-eff="C" onclick="selectEff('C')">
+                <span class="seg-val">3.7</span>
+                <span class="seg-sub">L/min/m²</span>
+                <span class="seg-desc">Nivel C</span>
+              </button>
+            </div>
+            <div id="eff-info" style="font-size:11.5px;color:var(--text-dim);margin-top:4px;padding:7px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-family:var(--font-mono)"></div>
+          </div>
+
+          <!-- Concentración -->
+          <div class="field">
+            <div class="seg-label">
+              Concentración de Espumante
+              <span class="var-pill" style="color:var(--cyan)">%</span>
+            </div>
+            <div class="seg-group" id="conc-group">
+              <button class="seg-btn active" data-conc="1" onclick="selectConc(1)">
+                <span class="seg-val">1%</span>
+                <span class="seg-sub">AFFF Clase B</span>
+                <span class="seg-desc">Doc 9137 §2.5</span>
+              </button>
+              <button class="seg-btn" data-conc="3" onclick="selectConc(3)">
+                <span class="seg-val">3%</span>
+                <span class="seg-sub">AFFF estándar</span>
+                <span class="seg-desc">Doc 9137 §2.5</span>
+              </button>
+              <button class="seg-btn" data-conc="6" onclick="selectConc(6)">
+                <span class="seg-val">6%</span>
+                <span class="seg-sub">Proteínico</span>
+                <span class="seg-desc">Doc 9137 §2.5</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Categoría OACI (manual fallback) -->
+          <div class="field">
+            <label>
+              Categoría OACI del Aeropuerto
+              <span class="var-pill" style="color:var(--cyan)">Cat</span>
+            </label>
+            <select id="sel-cat" class="seg-btn" style="padding:10px 14px;text-align:left;font-size:13px;font-family:var(--font-mono);width:100%;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9bba'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;-webkit-appearance:none;appearance:none;outline:none;color:var(--text);border:1.5px solid var(--border2);" onchange="calcularLive()">
+              <option value="">— Seleccione categoría —</option>
+              <option value="1">Categoría 1</option>
+              <option value="2">Categoría 2</option>
+              <option value="3">Categoría 3</option>
+              <option value="4">Categoría 4</option>
+              <option value="5">Categoría 5</option>
+              <option value="6">Categoría 6</option>
+              <option value="7">Categoría 7</option>
+              <option value="8">Categoría 8</option>
+              <option value="9">Categoría 9</option>
+              <option value="10">Categoría 10</option>
+            </select>
+          </div>
+
+          <button class="btn-calc" onclick="calcular()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Ejecutar Motor de Decisión
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- SEMÁFORO DE CAPACIDAD SEI -->
-  <div class="semaforo-sei" id="card-capacidad">
-    <div class="semaforo-header">
-      <span class="sf-icon" id="sf-icon">⏳</span>
-      <span class="sf-title">Capacidad Operativa SEI — Inventario Total</span>
-      <span class="sf-badge" id="estado-capacidad">—</span>
-    </div>
-    <div class="semaforo-body">
-      <div class="semaforo-msg" id="faltante-litros">Esperando selección de aeropuerto…</div>
-      <div class="semaforo-metrics">
-        <div class="sm-cell">
-          <div class="sm-val" id="disponible-litros" style="color:var(--green)">—</div>
-          <div class="sm-lbl">Disponible Total (L)</div>
+    <!-- ── RIGHT: DECISION PANEL ── -->
+    <div class="panel decision-panel">
+      <div class="panel-head">
+        <div class="panel-icon" style="background:rgba(47,158,68,.12)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#40c057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
         </div>
-        <div class="sm-cell">
-          <div class="sm-val" id="disp-camiones" style="color:#29b6f6">—</div>
-          <div class="sm-lbl">En Camiones (L)</div>
-        </div>
-        <div class="sm-cell">
-          <div class="sm-val" id="disp-bodega" style="color:var(--purple)">—</div>
-          <div class="sm-lbl">En Bodega (L)</div>
-        </div>
-        <div class="sm-cell">
-          <div class="sm-val" id="requerido-litros" style="color:var(--amber)">—</div>
-          <div class="sm-lbl">Requerido RAC14 (L)</div>
-        </div>
-        <div class="sm-cell">
-          <div class="sm-val" id="sf-maquinas" style="color:var(--green)">—</div>
-          <div class="sm-lbl">Máquinas activas</div>
-        </div>
-      </div>
-      <div class="semaforo-audit" id="semaforo-audit">
-        🔍 Suma: camiones operativos + reserva bodega · Novedades ALTA forzadas a FUERA DE SERVICIO
-      </div>
-    </div>
-  </div>
-
-  <!-- TOOLBAR -->
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <span class="toolbar-title">VEHÍCULOS REGISTRADOS</span>
-      <span class="toolbar-count" id="countLabel">— máquinas</span>
-    </div>
-    <button class="btn-add-maquina" onclick="abrirModalAgregar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-      Agregar Vehículo
-    </button>
-  </div>
-
-  <!-- CARDS -->
-  <div class="cards-grid" id="cardsGrid">
-    <div class="spinner"></div>
-  </div>
-</main>
-
-<footer>DISEÑO: WILLINGTON PEÑA MONTENEGRO — Bombero Aeronáutico BAE 373 &nbsp;·&nbsp; Sistema SEI · UAEAC Colombia &nbsp;·&nbsp; Inventario Táctico v2.0</footer>
-</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-
-<!-- ════ MODAL AGREGAR / EDITAR VEHÍCULO ════ -->
-<div class="modal-overlay" id="addModal">
-<div class="modal">
-  <div class="modal-header">
-    <h3 id="addModalTitle">➕ Agregar Vehículo</h3>
-    <button class="btn-close" onclick="cerrarModalAgregar()">✕</button>
-  </div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="section-sep">Identificación del Vehículo</div>
-      <div class="field"><label>Nº Interno *</label><input type="text" id="f_num" placeholder="Ej: 071"/></div>
-      <div class="field"><label>Estado Inicial *</label>
-        <select id="f_estado">
-          <option value="OPERATIVA">✅ Operativa</option>
-          <option value="MANTENIMIENTO">🔧 Mantenimiento</option>
-          <option value="FUERA">🔴 Fuera de servicio</option>
-        </select>
-      </div>
-      <div class="field"><label>Marca *</label><input type="text" id="f_marca" placeholder="Ej: Oshkosh"/></div>
-      <div class="field"><label>Modelo *</label><input type="text" id="f_modelo" placeholder="Ej: Striker 3000"/></div>
-      <div class="field"><label>Año Fabricación</label><input type="number" id="f_anio" placeholder="Ej: 2018" min="1980" max="2030"/></div>
-      <div class="field"><label>Placa / Serial</label><input type="text" id="f_placa" placeholder="Ej: SEI-071"/></div>
-
-      <div class="section-sep">Capacidades de Agentes</div>
-      <div class="field"><label>Agua (Gal) *</label><input type="number" id="f_agua" placeholder="0" min="0"/></div>
-      <div class="field"><label>Espuma (Gal) *</label><input type="number" id="f_espuma" placeholder="0" min="0"/></div>
-      <div class="field"><label>PQS (Lb)</label><input type="number" id="f_pqs" placeholder="0" min="0"/></div>
-      <div class="field"><label>CO₂ (Lb)</label><input type="number" id="f_co2" placeholder="0" min="0"/></div>
-      <div class="field"><label>Q Torreta (LPM)</label><input type="number" id="f_torreta" placeholder="0" min="0"/></div>
-      <div class="field"><label>% Concentración espuma</label>
-        <select id="f_conc"><option value="3">3%</option><option value="6">6%</option><option value="1">1%</option></select>
+        <span class="panel-title">Panel de Decisión Operativa</span>
       </div>
 
-      <div class="section-sep">Información Adicional</div>
-      <div class="field full"><label>Observaciones</label><textarea id="f_obs" placeholder="Descripción, equipamiento especial…"></textarea></div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn-cancel" onclick="cerrarModalAgregar()">Cancelar</button>
-    <button class="btn-guardar" onclick="guardarMaquina()">Guardar Vehículo</button>
-  </div>
-</div>
-</div>
+      <!-- Empty state -->
+      <div id="dec-empty" class="dec-empty">
+        <div class="dec-empty-icon">🟢</div>
+        <div class="dec-empty-txt">Configure los parámetros y ejecute el motor</div>
+      </div>
 
-<!-- ════ MODAL ESTADO ════ -->
-<div class="estado-modal-overlay" id="estadoModal">
-<div class="estado-modal">
-  <div class="em-title" id="emTitle">Cambiar estado</div>
-  <div class="em-sub" id="emSub">Selecciona el estado operativo</div>
-  <div class="estado-options">
-    <div class="estado-opt sel-OPERATIVA" onclick="confirmarEstado('OPERATIVA')">
-      <span class="estado-opt-icon">✅</span>
-      <div class="estado-opt-info"><div class="eoi-lbl">OPERATIVA</div><div class="eoi-sub">Vehículo apto para servicio</div></div>
-    </div>
-    <div class="estado-opt sel-MANTENIMIENTO" onclick="confirmarEstado('MANTENIMIENTO')">
-      <span class="estado-opt-icon">🔧</span>
-      <div class="estado-opt-info"><div class="eoi-lbl">MANTENIMIENTO</div><div class="eoi-sub">En taller o revisión programada</div></div>
-    </div>
-    <div class="estado-opt sel-FUERA" onclick="confirmarEstado('FUERA')">
-      <span class="estado-opt-icon">🔴</span>
-      <div class="estado-opt-info"><div class="eoi-lbl">FUERA DE SERVICIO</div><div class="eoi-sub">No disponible operacionalmente</div></div>
-    </div>
-  </div>
-  <button class="em-cancel" onclick="cerrarEstadoModal()">Cancelar</button>
-</div>
-</div>
+      <!-- Results -->
+      <div id="dec-content" style="display:none">
 
-<!-- ════ SCRIPTS ════ -->
-<script src="supabase-config.js"></script>
-<script src="auth-guard.js"></script>
+        <!-- VERDICT -->
+        <div class="verdict-banner" id="verdict-banner">
+          <div class="verdict-icon" id="verdict-icon">✅</div>
+          <div class="verdict-text-group">
+            <div class="verdict-eyebrow">Veredicto Operativo</div>
+            <div class="verdict-main" id="verdict-main">OPERATIVO</div>
+            <div class="verdict-sub" id="verdict-sub">Todos los parámetros cumplen el mínimo RAC 14</div>
+          </div>
+          <div class="verdict-cat-badge">
+            <span class="vc-lbl">Cat OACI</span>
+            <span class="vc-val" id="verdict-cat">—</span>
+          </div>
+        </div>
+
+        <!-- SEMAPHORES -->
+        <div class="sem-row">
+          <!-- Ataque -->
+          <div class="sem-cell" id="sem-ataque">
+            <div class="sem-lamp" id="lamp-ataque">🔥</div>
+            <div class="sem-title">Ataque Inicial</div>
+            <div class="sem-val">
+              <span class="sv-l" id="sem-ataque-l">— L/min</span>
+              <span class="sv-g" id="sem-ataque-g">— gal/min</span>
+            </div>
+            <div class="sem-status" id="sem-ataque-status">—</div>
+          </div>
+          <!-- Reserva -->
+          <div class="sem-cell" id="sem-reserva">
+            <div class="sem-lamp" id="lamp-reserva">🚒</div>
+            <div class="sem-title">Reserva (200%)</div>
+            <div class="sem-val">
+              <span class="sv-l" id="sem-reserva-l">— L/min</span>
+              <span class="sv-g" id="sem-reserva-g">— gal/min</span>
+            </div>
+            <div class="sem-status" id="sem-reserva-status">—</div>
+          </div>
+          <!-- Total Q3 -->
+          <div class="sem-cell" id="sem-total">
+            <div class="sem-lamp" id="lamp-total">💧</div>
+            <div class="sem-title">Total Q₃</div>
+            <div class="sem-val">
+              <span class="sv-l" id="sem-total-l">— L/min</span>
+              <span class="sv-g" id="sem-total-g">— gal/min</span>
+            </div>
+            <div class="sem-status" id="sem-total-status">—</div>
+          </div>
+        </div>
+
+        <!-- Q3 BREAKDOWN -->
+        <div class="q3-zone">
+          <div class="q3-header">
+            <div class="q3-title">Desglose Q₃ — Reserva Obligatoria 200%</div>
+            <div class="q3-formula" id="q3-formula-str"></div>
+          </div>
+          <div class="q3-grid">
+            <div class="q3-card ataque">
+              <span class="q3-card-label">Q₁ + Q₂ (Ataque)</span>
+              <span class="q3-card-val" id="q3-ataque-l">—</span>
+              <span class="q3-card-gal" id="q3-ataque-g">—</span>
+            </div>
+            <div class="q3-card reserva">
+              <span class="q3-card-label">Reserva = Q₃ − Ataque</span>
+              <span class="q3-card-val" id="q3-reserva-l">—</span>
+              <span class="q3-card-gal" id="q3-reserva-g">—</span>
+            </div>
+            <div class="q3-card total">
+              <span class="q3-card-label">Q₃ Total (200%)</span>
+              <span class="q3-card-val" id="q3-total-l">—</span>
+              <span class="q3-card-gal" id="q3-total-g">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAC 14 TABLE -->
+        <div class="rac-section">
+          <div class="rac-title-row">
+            <div class="rac-title">Comparativa RAC 14 — Tabla 9.2</div>
+            <div class="rac-ref">Doc 9137 · RAC 14 §9.2</div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="rac-table">
+              <thead>
+                <tr>
+                  <th>Cat OACI</th>
+                  <th style="text-align:right">Mín. RAC 14 (L) Nivel B</th>
+                  <th style="text-align:right">Qt Ataque (L/min)</th>
+                  <th style="text-align:right">Q₃ 200% (L/min)</th>
+                  <th style="text-align:right">Req. Total (L)</th>
+                  <th>Cumplimiento</th>
+                </tr>
+              </thead>
+              <tbody id="rac-tbody"></tbody>
+            </table>
+
+            <!-- Concentrado espumante -->
+            <div style="margin-top:14px;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius-sm);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div style="font-family:var(--font-mono);font-size:9.5px;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:6px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--purple);display:inline-block"></span>Concentrado Espumante Requerido</div>
+              <div id="conc-result" style="font-family:var(--font-mono);font-size:13px;color:var(--text-dim)">— ejecute el motor</div>
+              <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">(L mezcla × %) / 3.785</div>
+            </div>
+
+            <!-- ═══ INVENTARIO EN BODEGA — Supabase live ══════════════ -->
+            <div id="bodega-panel" style="margin-top:10px;background:var(--panel2);border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;">
+
+              <!-- Header del panel -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:var(--font-mono);font-size:9.5px;color:var(--blue-bright);letter-spacing:.1em;text-transform:uppercase;">
+                    🗄 Inventario en Bodega — Supabase Live
+                  </span>
+                  <!-- Indicador de estado de conexión -->
+                  <span id="supa-status-dot" style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(245,159,0,.12);color:var(--amber);border:1px solid rgba(245,159,0,.3);">
+                    <span id="supa-dot" style="width:5px;height:5px;border-radius:50%;background:var(--amber);display:inline-block;"></span>
+                    <span id="supa-status-txt">Conectando…</span>
+                  </span>
+                </div>
+                <button onclick="obtenerInventarioReal()" title="Refrescar desde Supabase"
+                  style="background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:5px;padding:4px 9px;color:var(--text-dim);font-family:var(--font-mono);font-size:10px;cursor:pointer;transition:all .15s ease;"
+                  onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
+                  ↻ Refrescar
+                </button>
+              </div>
+
+              <!-- Tarjetas de inventario -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border);">
+                <!-- Agua -->
+                <div style="padding:13px 16px;border-right:1px solid var(--border);">
+                  <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">
+                    💧 Reserva de Agua en Bodega
+                  </div>
+                  <div id="display-bodega-agua" style="font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--cyan);line-height:1.1;">
+                    — L
+                  </div>
+                  <div id="display-bodega-agua-gal" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;">
+                    — gal
+                  </div>
+                </div>
+                <!-- Espuma -->
+                <div style="padding:13px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">
+                    🧯 Concentrado Espumante en Bodega
+                  </div>
+                  <div id="display-bodega-espuma" style="font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--amber);line-height:1.1;">
+                    — Gal
+                  </div>
+                  <div id="display-bodega-espuma-l" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;">
+                    — L
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fila de nivel de eficiencia y concentración de la estación -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                <div style="padding:10px 16px;border-right:1px solid var(--border);">
+                  <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Nivel Eficiencia Estación</div>
+                  <div id="display-nivel-estacion" style="font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--green-bright);">—</div>
+                </div>
+                <div style="padding:10px 16px;">
+                  <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">Concentración Estación</div>
+                  <div id="display-conc-estacion" style="font-family:var(--font-mono);font-size:15px;font-weight:500;color:var(--orange);">—</div>
+                </div>
+              </div>
+
+            </div><!-- /bodega-panel -->
+          </div>
+
+          <div class="section-footer">
+            <button class="btn-pdf" onclick="exportPDF()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Exportar PDF
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /dec-content -->
+    </div><!-- /decision-panel -->
+
+  </div><!-- /main-grid -->
+
+  <!-- ═══════════════ FORMULA TRACE ═══════════════ -->
+  <div class="trace-bar" id="trace-bar">
+    <div class="trace-title">Trazabilidad del Cálculo</div>
+    <div class="trace-steps" id="trace-steps"></div>
+  </div>
+
+</div><!-- /page -->
+
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     JAVASCRIPT — BUSINESS LOGIC ENGINE
+═══════════════════════════════════════════════════════ -->
 <script>
 /* ═══════════════════════════════════════════════════════════════
-   INVENTARIO TÁCTICO SEI — v2.0
-   Mejoras: Bodega Q3, Autonomía, Semáforo Total (camiones+bodega),
-   Novedades ALTA → FUERA DE SERVICIO forzado, UPDATE Supabase bodega
+   ARFF COLOMBIA — MOTOR DE DECISIÓN OPERATIVA
+   Lógica de Negocio v3.0 — Supabase Live
+   Base normativa: RAC 14 Tabla 9.2 (Nivel B) / OACI Doc 9137
 ═══════════════════════════════════════════════════════════════ */
+
+/* ─── RAC 14 Tabla 9.2 — Nivel B ─────────────────────────────
+   Volumen mínimo de agente extintor en Litros por categoría OACI.
+   Fuente: RAC 14 Tabla 9.2, columna Nivel B.
+─────────────────────────────────────────────────────────────── */
+const RAC14 = {
+  1:  { volMin:    230, ref: 'L ≤ 9 m' },
+  2:  { volMin:    670, ref: '9 < L ≤ 12 m' },
+  3:  { volMin:   1200, ref: '12 < L ≤ 18 m' },
+  4:  { volMin:   2400, ref: '18 < L ≤ 24 m' },
+  5:  { volMin:   5400, ref: '24 < L ≤ 28 m' },
+  6:  { volMin:   7900, ref: '28 < L ≤ 39 m' },
+  7:  { volMin:  12100, ref: '39 < L ≤ 49 m' },
+  8:  { volMin:  18200, ref: '49 < L ≤ 61 m' },
+  9:  { volMin:  24300, ref: '61 < L ≤ 76 m' },
+  10: { volMin:  32300, ref: 'L > 76 m' },
+};
+
+/* ─── Regímenes de aplicación ──────────────────────────────── */
+const EFF_RATE = { A: 8.2, B: 5.5, C: 3.7 };
+const EFF_INFO = {
+  A: 'Nivel A — 8.2 L/min/m² · AFFF 1%. Categorías 7-10. Máxima protección.',
+  B: 'Nivel B — 5.5 L/min/m² · AFFF 3%. Categorías 4-9. Estándar RAC 14.',
+  C: 'Nivel C — 3.7 L/min/m² · Espuma proteínica 6%. Categorías 1-6. Mínimo Doc 9137.',
+};
+
+/* ─── Conversión ────────────────────────────────────────────── */
 const L_PER_GAL = 3.785411784;
+function lToGal(l)    { return l / L_PER_GAL; }
+function fmtL(l)      { return l.toFixed(1) + ' L'; }
+function fmtGal(l)    { return lToGal(l).toFixed(1) + ' gal'; }
+function fmtLmin(l)   { return l.toFixed(1) + ' L/min'; }
+function fmtGalMin(l) { return lToGal(l).toFixed(1) + ' gal/min'; }
 
-let currentOaci  = null;
-let currentEstId = null;
-let currentRol   = null;
-let maquinas     = [];
-let novedadesMap = {};
-let editandoId   = null;
-let estadoTarget = null;
+/* ─── Estado global del motor ──────────────────────────────── */
+let currentEff   = 'B';
+let currentConc  = 3;
+let lastResult   = null;
 
-/* RAC 14 Tabla 9.2 Nivel B — requerimiento por categoría OACI */
-const RAC14_REQ = {
-  1:230, 2:670, 3:1200, 4:2400, 5:5400,
-  6:7900, 7:12100, 8:18200, 9:24300, 10:32300,
-};
+/* window.inventarioReal:
+   Se escribe por obtenerInventarioReal() cuando Supabase responde.
+   El motor calcular() lo consume si existe; si no, usa fallback = 0
+   y muestra el semáforo en rojo hasta que lleguen datos reales.     */
+window.inventarioReal = null;
 
-/* ═══════════════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════════════ */
-window.onSEIReady = async function(session) {
-  currentRol   = session.rol;
-  currentEstId = session.estacion_id;
-  currentOaci  = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
+/* ════════════════════════════════════════════════════════════
+   SUPABASE — obtenerInventarioReal()
+   Lee la tabla estaciones_sei filtrando por el código OACI
+   guardado en localStorage ('arff_oaci_codigo').
+   Escribe en el DOM y en window.inventarioReal, luego llama
+   a calcular() para refrescar el veredicto con datos reales.
+════════════════════════════════════════════════════════════ */
+async function obtenerInventarioReal() {
+  _supaStatus('loading');
 
-  if (currentOaci) {
-    localStorage.setItem('currentOaci',       currentOaci);
-    localStorage.setItem('sei_estacion',      currentOaci);
-    localStorage.setItem('arff_oaci_codigo',  currentOaci);
-    sessionStorage.setItem('sei_estacion',    currentOaci);
-  }
+  const oaciGuardado = localStorage.getItem('arff_oaci_codigo')
+                    || localStorage.getItem('sei_estacion')
+                    || localStorage.getItem('currentOaci')
+                    || null;
 
-  document.getElementById('badgeRol').textContent = currentRol?.toUpperCase() || 'USUARIO';
-  document.getElementById('adminBase').textContent = currentOaci || '—';
-
-  if (currentOaci) {
-    document.getElementById('searchInput').value = currentOaci;
-    actualizarEstacionBar(currentOaci);
-    await cargarBodegaDesdeSupabase(currentOaci);
-    await cargarFlota(currentOaci);
-    document.getElementById('card-capacidad').classList.add('visible');
-    document.getElementById('bodega-card').classList.add('visible');
-    suscribirRealtime();
-  } else {
-    document.getElementById('cardsGrid').innerHTML = emptyAdminHTML();
-    document.getElementById('estOaci').textContent   = '—';
-    document.getElementById('estNombre').textContent = 'Busca una estación arriba';
-  }
-};
-
-/* ═══════════════════════════════════════════════════════════
-   BUSCADOR DINÁMICO
-═══════════════════════════════════════════════════════════ */
-async function buscarEstaciones(val) {
-  const dd = document.getElementById('searchResults');
-  val = (val || '').trim();
-  if (val.length < 1) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
-
-  const [r1, r2] = await Promise.all([
-    supabaseClient.from('maquinas_sei').select('aeropuerto_id').ilike('aeropuerto_id', `%${val.toUpperCase()}%`).limit(8),
-    supabaseClient.from('estaciones_sei').select('id,oaci,nombre_aeropuerto,ciudad').or(`oaci.ilike.%${val}%,nombre_aeropuerto.ilike.%${val}%,ciudad.ilike.%${val}%`).limit(8),
-  ]);
-
-  const seen = new Set(); const items = [];
-  (r2.data || []).forEach(e => {
-    const oaci = (e.oaci || '').toUpperCase();
-    if (oaci && !seen.has(oaci)) { seen.add(oaci); items.push({ oaci, nombre: e.nombre_aeropuerto || '', ciudad: e.ciudad || '', estId: e.id }); }
-  });
-  (r1.data || []).forEach(m => {
-    const oaci = (m.aeropuerto_id || '').toUpperCase();
-    if (oaci && !seen.has(oaci)) { seen.add(oaci); items.push({ oaci, nombre: '', ciudad: '', estId: null }); }
-  });
-
-  if (!items.length) { dd.innerHTML = '<div class="search-empty">Sin resultados</div>'; }
-  else {
-    dd.innerHTML = items.map(it => `
-      <div class="search-item" onmousedown="seleccionarEstacion('${it.oaci}','${it.nombre}','${it.ciudad}','${it.estId||''}')">
-        <div class="si-oaci">${it.oaci}</div>
-        ${it.nombre ? `<div class="si-nombre">${it.nombre}${it.ciudad ? ' · '+it.ciudad : ''}</div>` : ''}
-      </div>`).join('');
-  }
-  dd.classList.add('open');
-}
-
-function cerrarResultados() { document.getElementById('searchResults')?.classList.remove('open'); }
-
-async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
-  currentOaci  = oaci.toUpperCase();
-  currentEstId = estId || null;
-  localStorage.setItem('currentOaci', currentOaci);
-  localStorage.setItem('sei_estacion', currentOaci);
-  localStorage.setItem('arff_oaci_codigo', currentOaci);
-  sessionStorage.setItem('sei_estacion', currentOaci);
-
-  document.getElementById('searchInput').value     = oaci;
-  document.getElementById('adminBase').textContent = oaci;
-  cerrarResultados();
-  actualizarEstacionBar(oaci, nombre, ciudad);
-
-  document.getElementById('card-capacidad').classList.add('visible');
-  document.getElementById('bodega-card').classList.add('visible');
-
-  await cargarBodegaDesdeSupabase(currentOaci);
-  await cargarFlota(oaci);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BODEGA Q3 — CARGA DESDE SUPABASE
-═══════════════════════════════════════════════════════════ */
-async function cargarBodegaDesdeSupabase(oaci) {
-  if (!oaci) return;
-  const { data, error } = await supabaseClient
-    .from('estaciones_sei')
-    .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg, nivel_eficiencia_estacion, concentracion_espuma_estacion, categoria_rac, categoria_oaci')
-    .eq('oaci', oaci)
-    .maybeSingle();
-
-  if (error) { console.error('Error bodega:', error.message); return; }
-  if (!data)  return;
-
-  /* ── Rellenar inputs de bodega ── */
-  document.getElementById('bq_agua_l').value    = data.reserva_agua_litros    ?? 0;
-  document.getElementById('bq_espuma_gal').value= data.reserva_espuma_galones ?? 0;
-  document.getElementById('bq_pqs_kg').value    = data.reserva_pqs_kg         ?? 0;
-  if (data.nivel_eficiencia_estacion)     document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
-  if (data.concentracion_espuma_estacion) document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
-
-  /* ── Persistir categoría RAC en localStorage ────────────────────────────────
-     'arff_cat_aeropuerto' es la clave canónica de la categoría leída desde
-     la BD (tabla estaciones_sei.categoria_rac).
-     'arff_cat' es la clave que consume cargarCapacidadOperativa() y el Motor
-     de Decisión — se actualiza con el valor más preciso disponible.          */
-  const catRac  = data.categoria_rac  ?? data.categoria_oaci ?? null;
-  if (catRac) {
-    localStorage.setItem('arff_cat_aeropuerto', String(catRac));
-    localStorage.setItem('arff_cat',            String(catRac));   // consumida por semáforo y Motor de Decisión
-  }
-
-  /* ── Conversiones visuales + semáforo inmediato ── */
-  actualizarConversionBodega();   // actualiza los textos de conversión
-  dispararActualizacionSemaforo(); // → cargarCapacidadOperativa() con la cat ya en localStorage
-}
-
-/* ─── Actualizaciones de conversión visibles al usuario ────── */
-function actualizarConversionBodega() {
-  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
-  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
-  document.getElementById('bq_agua_conv').textContent   = (aguaL / L_PER_GAL).toFixed(0) + ' gal';
-  document.getElementById('bq_espuma_conv').textContent = (espumaG * L_PER_GAL).toFixed(0) + ' L';
-  dispararActualizacionSemaforo();
-}
-
-/* ═══════════════════════════════════════════════════════════
-   GUARDAR BODEGA → UPDATE Supabase estaciones_sei
-═══════════════════════════════════════════════════════════ */
-async function guardarBodega() {
-  if (!currentOaci) { toast('No hay estación seleccionada', 'err'); return; }
-
-  const btn = document.getElementById('bodegaSaveBtn');
-  btn.classList.add('saving'); btn.textContent = '⏳ Guardando…';
-
-  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
-  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
-  const pqsKg   = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
-  const nivel   = document.getElementById('bq_nivel').value;
-  const conc    = parseInt(document.getElementById('bq_conc').value);
-
-  const { error } = await supabaseClient
-    .from('estaciones_sei')
-    .update({
-      reserva_agua_litros:           aguaL,
-      reserva_espuma_galones:        espumaG,
-      reserva_pqs_kg:                pqsKg,
-      nivel_eficiencia_estacion:     nivel,
-      concentracion_espuma_estacion: conc,
-    })
-    .eq('oaci', currentOaci);
-
-  btn.classList.remove('saving');
-  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar en Supabase`;
-
-  if (error) { toast('Error guardando bodega: ' + error.message, 'err'); return; }
-
-  /* Sincronizar localStorage para el Motor de Decisión */
-  localStorage.setItem('arff_ap', localStorage.getItem('arff_ap') || '0');
-  localStorage.setItem('arff_oaci_codigo', currentOaci);
-
-  toast('✅ Reserva de bodega guardada en Supabase', 'ok');
-  dispararActualizacionSemaforo();
-}
-
-/* ═══════════════════════════════════════════════════════════
-   EVENTO PERSONALIZADO — dispararActualizacionSemaforo()
-   Se lanza cada vez que cambia un valor que afecte al semáforo.
-   Así el semáforo refleja la realidad instantáneamente.
-═══════════════════════════════════════════════════════════ */
-function dispararActualizacionSemaforo() {
-  if (currentOaci) cargarCapacidadOperativa(currentOaci);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SEMÁFORO — VALIDACIÓN CAPACIDAD OPERATIVA TOTAL
-
-   Fórmula completa:
-   disponible = Σ agua_camiones_operativos + reserva_bodega_litros
-   requerido  = RAC14[cat].volMin (Nivel B)
-
-   Regla Novedad ALTA → FUERA DE SERVICIO forzado:
-   Si un vehículo tiene al menos una novedad severidad='alta'
-   con reparado=false, se excluye del cálculo aunque su estado
-   sea OPERATIVA.
-═══════════════════════════════════════════════════════════ */
-function cargarCapacidadOperativa(oaci) {
-  const panel  = document.getElementById('card-capacidad');
-  const icon   = document.getElementById('sf-icon');
-  const badge  = document.getElementById('estado-capacidad');
-  const msg    = document.getElementById('faltante-litros');
-  const dispEl = document.getElementById('disponible-litros');
-  const camEl  = document.getElementById('disp-camiones');
-  const bodEl  = document.getElementById('disp-bodega');
-  const reqEl  = document.getElementById('requerido-litros');
-  const maqEl  = document.getElementById('sf-maquinas');
-  const audit  = document.getElementById('semaforo-audit');
-
-  if (!oaci) return;
-  panel.style.display = 'block';
-
-  /* ─── 1. Inventario en camiones (solo operativos sin novedad ALTA pendiente) ── */
-  let aguaCamiones = 0;
-  let maquinasActivas = 0;
-  let maquinasForzadas = 0;
-
-  maquinas.forEach(m => {
-    const novsM = novedadesMap[m.id] || [];
-    const tieneAltaPendiente = novsM.some(n => !n.reparado && (n.severidad || '').toLowerCase() === 'alta');
-    const estadoEfectivo = tieneAltaPendiente ? 'FUERA' : (m.estado || 'OPERATIVA');
-
-    if (tieneAltaPendiente && (m.estado || 'OPERATIVA') !== 'FUERA') maquinasForzadas++;
-
-    if (estadoEfectivo === 'OPERATIVA') {
-      const ag = parseFloat(m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? 0);
-      aguaCamiones += ag * L_PER_GAL;
-      maquinasActivas++;
-    }
-  });
-
-  /* ─── 2. Inventario en bodega ──────────────────────────── */
-  const aguaBodega = parseFloat(document.getElementById('bq_agua_l').value) || 0;
-
-  /* ─── 3. Total disponible ─────────────────────────────── */
-  const totalDisp = aguaCamiones + aguaBodega;
-
-  /* ─── 4. Requerimiento RAC 14 ─────────────────────────── */
-  // Prioridad: categoria_rac (Supabase) > arff_cat (Módulo 01)
-  const catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-                || parseInt(localStorage.getItem('arff_cat'))
-                || 0;
-  const requerimiento = catLocal && RAC14_REQ[catLocal] ? RAC14_REQ[catLocal] : 0;
-
-  /* ─── 5. Actualizar DOM ────────────────────────────────── */
-  dispEl.textContent = Math.round(totalDisp).toLocaleString('es-CO');
-  camEl.textContent  = Math.round(aguaCamiones).toLocaleString('es-CO');
-  bodEl.textContent  = Math.round(aguaBodega).toLocaleString('es-CO');
-  reqEl.textContent  = requerimiento > 0 ? Math.round(requerimiento).toLocaleString('es-CO') : '—';
-  maqEl.textContent  = maquinasActivas;
-  maqEl.style.color  = maquinasActivas > 0 ? 'var(--green)' : 'var(--red)';
-
-  const auditParts = [
-    `🚒 Camiones op.: ${maquinasActivas}`,
-    `💧 Camiones: ${Math.round(aguaCamiones).toLocaleString()} L`,
-    `🗄 Bodega: ${Math.round(aguaBodega).toLocaleString()} L`,
-  ];
-  if (maquinasForzadas > 0) auditParts.push(`⚠ ${maquinasForzadas} forzada(s) FUERA por novedad ALTA`);
-  if (catLocal) auditParts.push(`RAC14 Cat ${catLocal}: ${(RAC14_REQ[catLocal]||0).toLocaleString()} L`);
-  audit.textContent = auditParts.join(' · ');
-
-  /* ─── 6. Veredicto semáforo ──────────────────────────── */
-  const falta = requerimiento - totalDisp;
-
-  if (requerimiento <= 0) {
-    badge.textContent = 'SIN CATEGORÍA'; badge.style.background = 'var(--panel3)';
-    icon.textContent  = '📊'; panel.classList.remove('critico');
-    msg.textContent   = 'No hay categoría RAC 14 registrada. Ingrese el Área Crítica en el Módulo 01.';
-  } else if (falta <= 0) {
-    panel.classList.remove('critico');
-    icon.textContent = '✅'; badge.textContent = 'SUFICIENTE';
-    badge.style.background = 'var(--green)'; badge.style.color = '#000';
-    dispEl.style.color = 'var(--green)';
-    msg.innerHTML = `<span style="color:var(--green)">CAPACIDAD SUFICIENTE:</span> Inventario total (${Math.round(totalDisp).toLocaleString('es-CO')} L) cubre el requerimiento RAC 14 Cat ${catLocal} (${requerimiento.toLocaleString()} L).`;
-  } else {
-    panel.classList.add('critico');
-    icon.textContent = '⚠️'; badge.textContent = 'CRÍTICO';
-    badge.style.background = 'var(--red)'; badge.style.color = '#fff';
-    dispEl.style.color = 'var(--red)';
-    msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} litros</strong>`
-      + ` para cumplir RAC 14 Cat ${catLocal || '?'} (req. ${requerimiento.toLocaleString()} L). Disponible: ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   CARGAR FLOTA
-═══════════════════════════════════════════════════════════ */
-function actualizarEstacionBar(oaci, nombre, ciudad) {
-  document.getElementById('estOaci').textContent = oaci;
-  if (nombre) document.getElementById('estNombre').textContent = `${nombre}${ciudad ? ' · '+ciudad : ''}`;
-}
-
-async function cargarFlota(oaci) {
-  document.getElementById('cardsGrid').innerHTML = '<div class="spinner"></div>';
-  const { data: maqData, error: maqErr } = await supabaseClient
-    .from('maquinas_sei').select('*').eq('aeropuerto_id', oaci).order('numero_interno', { ascending: true });
-  if (maqErr) { toast('Error cargando flota: '+maqErr.message, 'err'); return; }
-
-  maquinas = maqData || [];
-  const ids = maquinas.map(m => m.id);
-  novedadesMap = {};
-
-  if (ids.length > 0) {
-    const { data: novData } = await supabaseClient
-      .from('novedades_maquinas').select('*').in('maquina_id', ids).order('created_at', { ascending: false });
-    (novData || []).forEach(n => {
-      if (!novedadesMap[n.maquina_id]) novedadesMap[n.maquina_id] = [];
-      novedadesMap[n.maquina_id].push(n);
-    });
-  }
-
-  renderFlota();
-  actualizarResumen();
-  dispararActualizacionSemaforo();
-}
-
-function actualizarResumen() {
-  const total = maquinas.length;
-  const op    = maquinas.filter(m => (m.estado||'OPERATIVA') === 'OPERATIVA').length;
-  const mant  = maquinas.filter(m => m.estado === 'MANTENIMIENTO').length;
-  const fuera = maquinas.filter(m => m.estado === 'FUERA').length;
-  document.getElementById('resTotal').textContent  = total;
-  document.getElementById('resOp').textContent     = op;
-  document.getElementById('resMant').textContent   = mant;
-  document.getElementById('resFuera').textContent  = fuera;
-  document.getElementById('countLabel').textContent= `${total} ${total===1?'máquina':'máquinas'}`;
-}
-
-function renderFlota() {
-  const grid = document.getElementById('cardsGrid');
-  if (!maquinas.length) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🚒</div><div class="empty-title">Sin vehículos registrados</div><div class="empty-sub">Agrega el primer vehículo SEI de esta estación.</div></div>`;
+  if (!oaciGuardado) {
+    _supaStatus('warn', 'Sin código OACI en localStorage');
+    showToast('⚠ No se encontró código OACI para consultar bodega');
     return;
   }
-  grid.innerHTML = maquinas.map(m => buildCard(m)).join('');
+
+  try {
+    const { data, error } = await supabase
+      .from('estaciones_sei')
+      .select('reserva_agua_litros, reserva_espuma_galones, nivel_eficiencia_estacion, concentracion_espuma_estacion')
+      .eq('oaci', oaciGuardado)
+      .single();
+
+    if (error) {
+      console.error('Error Supabase (bodega):', error.message);
+      _supaStatus('error', 'Error de consulta');
+      showToast('⚠ Error al cargar inventario: ' + error.message);
+      return;
+    }
+
+    if (!data) {
+      _supaStatus('warn', 'Sin datos para ' + oaciGuardado);
+      showToast('⚠ No se encontró registro para OACI: ' + oaciGuardado);
+      return;
+    }
+
+    /* ── 1. Escribir en el DOM ─────────────────────── */
+    const aguaL    = parseFloat(data.reserva_agua_litros)    || 0;
+    const espumaG  = parseFloat(data.reserva_espuma_galones) || 0;
+    const espumaL  = espumaG * L_PER_GAL;
+
+    document.getElementById('display-bodega-agua').textContent     = aguaL.toLocaleString('es-CO') + ' L';
+    document.getElementById('display-bodega-agua-gal').textContent = lToGal(aguaL).toFixed(0) + ' gal';
+    document.getElementById('display-bodega-espuma').textContent   = espumaG.toFixed(1) + ' Gal';
+    document.getElementById('display-bodega-espuma-l').textContent = espumaL.toFixed(0) + ' L';
+
+    /* Nivel eficiencia y concentración de la estación */
+    const nivelEst = data.nivel_eficiencia_estacion || '—';
+    const concEst  = data.concentracion_espuma_estacion != null
+                   ? data.concentracion_espuma_estacion + '%'
+                   : '—';
+    document.getElementById('display-nivel-estacion').textContent = nivelEst;
+    document.getElementById('display-conc-estacion').textContent  = concEst;
+
+    /* Si la estación tiene nivel y concentración definidos,
+       sincronizamos los selectores automáticamente            */
+    if (data.nivel_eficiencia_estacion && EFF_RATE[data.nivel_eficiencia_estacion]) {
+      selectEff(data.nivel_eficiencia_estacion);
+    }
+    if (data.concentracion_espuma_estacion) {
+      const concNum = parseInt(data.concentracion_espuma_estacion);
+      if ([1, 3, 6].includes(concNum)) selectConc(concNum);
+    }
+
+    /* ── 2. Guardar en variable global ────────────── */
+    window.inventarioReal = {
+      agua:   aguaL,    // Litros de agua en bodega
+      espuma: espumaG,  // Galones de concentrado en bodega
+    };
+
+    _supaStatus('ok', oaciGuardado + ' · live');
+    showToast('✓ Inventario cargado desde Supabase — ' + oaciGuardado);
+
+    /* ── 3. Recalcular con datos reales ───────────── */
+    calcular(true);
+
+  } catch (err) {
+    console.error('Error de red Supabase:', err);
+    _supaStatus('error', 'Error de red');
+    showToast('⚠ Sin conexión a Supabase');
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   BUILD CARD — con Autonomía de Descarga + Forzado ALTA
-═══════════════════════════════════════════════════════════ */
-function buildCard(m) {
-  const novs = novedadesMap[m.id] || [];
+/* ─── Helper: actualiza el badge de estado Supabase ─────── */
+function _supaStatus(state, label) {
+  const dot = document.getElementById('supa-dot');
+  const txt = document.getElementById('supa-status-txt');
+  const wrap = document.getElementById('supa-status-dot');
+  if (!dot || !txt || !wrap) return;
 
-  /* ── Validar novedad ALTA pendiente ── */
-  const tieneAltaPendiente = novs.some(n => !n.reparado && (n.severidad || '').toLowerCase() === 'alta');
-  const estadoEfectivo = tieneAltaPendiente ? 'FUERA' : (m.estado || 'OPERATIVA');
-
-  const novPend = novs.filter(n => !n.reparado).length;
-  const novBadge = novPend > 0
-    ? `<span data-novbadge="1" style="font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;background:var(--red-dim);border:1px solid var(--red);color:var(--red);">⚠ ${novPend} NOV</span>`
-    : '';
-
-  const agua    = parseFloat(m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? 0);
-  const espuma  = parseFloat(m.capacidad_espuma_gal ?? m.espuma_gal  ?? 0);
-  const pqs     = parseFloat(m.capacidad_pqs_lb     ?? m.pqs_lb      ?? 0);
-  const torreta = parseFloat(m.q_torreta_lpm        ?? 0);
-
-  /* ── Autonomía de Descarga: (Capacidad agua en litros) / Q torreta ── */
-  const aguaL   = agua * L_PER_GAL;
-  const autoMin = (torreta > 0 && aguaL > 0) ? (aguaL / torreta).toFixed(1) : null;
-  const autoChip = autoMin
-    ? `<div class="cap-chip auto" title="Autonomía torreta: ${autoMin} min"><span class="cv">${autoMin}'</span><span class="cl">Autonomía</span></div>`
-    : '';
-
-  /* ── Badge de estado con forzado ── */
-  const estadoBadgeHtml = tieneAltaPendiente
-    ? `<span class="estado-badge FUERA-FORZADO" title="Forzado FUERA por novedad ALTA pendiente">🔴 FUERA FORZADO</span>`
-    : `<span class="estado-badge ${estadoEfectivo}" onclick="event.stopPropagation();abrirEstadoModal('${m.id}','${m.numero_interno||''}')">${estadoLabel(estadoEfectivo)}</span>`;
-
-  const cardClass = tieneAltaPendiente
-    ? `maquina-card estado-FUERA nov-alta-forzada`
-    : `maquina-card estado-${estadoEfectivo}`;
-
-  return `
-<div class="${cardClass}" id="card-${m.id}">
-  <div class="mcard-header" id="hdr-${m.id}" onclick="toggleCard('${m.id}')">
-    <div class="mcard-num">${m.numero_interno || '—'}</div>
-    <div class="mcard-info">
-      <div class="mcard-modelo">${(m.modelo||'').toUpperCase()}</div>
-      <div class="mcard-marca">${m.marca||'—'}${m.anio_fabricacion?' · '+m.anio_fabricacion:''}${m.placa?' · '+m.placa:''}</div>
-    </div>
-    <div class="mcard-capacidades">
-      <div class="cap-chip water"><span class="cv">${agua.toLocaleString()}</span><span class="cl">Agua Gal</span></div>
-      <div class="cap-chip foam"><span class="cv">${espuma.toLocaleString()}</span><span class="cl">Esp. Gal</span></div>
-      <div class="cap-chip pqs"><span class="cv">${pqs.toLocaleString()}</span><span class="cl">PQS Lb</span></div>
-      <div class="cap-chip torreta"><span class="cv">${torreta.toLocaleString()}</span><span class="cl">Torreta LPM</span></div>
-      ${autoChip}
-    </div>
-    <div class="mcard-actions">
-      ${novBadge}
-      ${estadoBadgeHtml}
-      <button class="btn-icon edit" title="Editar" onclick="event.stopPropagation();abrirEditar('${m.id}')">✏</button>
-      <button class="btn-icon danger" title="Eliminar" onclick="event.stopPropagation();eliminarMaquina('${m.id}','${m.numero_interno||''}')">🗑</button>
-      <div class="chevron" id="chev-${m.id}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-    </div>
-  </div>
-  <div class="mcard-body" id="body-${m.id}">
-    ${tieneAltaPendiente ? `<div class="fuera-forzado-alert">🚨 Vehículo EXCLUIDO del cálculo operativo — Tiene novedad de severidad ALTA pendiente de reparación. Marque la novedad como reparada para reincorporarlo.</div>` : ''}
-    ${buildNovedadesSection(m.id)}
-    ${m.observaciones ? `<div style="margin-top:14px;padding:12px 16px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);font-size:12px;color:var(--text2);">📝 ${m.observaciones}</div>` : ''}
-  </div>
-</div>`;
-}
-
-function estadoLabel(e) {
-  return { OPERATIVA:'✅ OPERATIVA', MANTENIMIENTO:'🔧 MANT.', FUERA:'🔴 FUERA' }[e] || e;
-}
-
-/* ─── NOVEDADES SECTION ───────────────────────────────────── */
-function buildNovedadesSection(maqId) {
-  const novs = novedadesMap[maqId] || [];
-  return `
-    <div class="novedades-header">
-      <span class="novedades-title">📋 Novedades / Estado técnico</span>
-      <button class="btn-add-nov" onclick="toggleNovForm('${maqId}')">+ Registrar novedad</button>
-    </div>
-    <div class="novedades-list" id="novlist-${maqId}">
-      ${novs.length ? novs.map(n => buildNovRow(n)).join('') : '<div class="no-novedades">Sin novedades registradas ✅</div>'}
-    </div>
-    <div class="nov-form" id="novform-${maqId}">
-      <div class="nov-form-grid">
-        <div class="field">
-          <label>Severidad</label>
-          <select id="nf_sev_${maqId}" onchange="verificarSevAlta('${maqId}')">
-            <option value="alta">🔴 Alta</option>
-            <option value="media" selected>🟡 Media</option>
-            <option value="baja">🔵 Baja</option>
-          </select>
-        </div>
-        <div class="field"><label>Tipo</label>
-          <select id="nf_tipo_${maqId}">
-            <option value="Mecánica">Mecánica</option><option value="Eléctrica">Eléctrica</option>
-            <option value="Hidráulica">Hidráulica</option><option value="Carrocería">Carrocería</option>
-            <option value="Equipamiento">Equipamiento</option><option value="Otro">Otro</option>
-          </select>
-        </div>
-        <div class="field full"><label>Descripción *</label><textarea id="nf_det_${maqId}" rows="2" placeholder="Describe el problema…"></textarea></div>
-        <div class="field full"><label>Responsable / Técnico</label><input type="text" id="nf_resp_${maqId}" placeholder="Nombre del responsable"/></div>
-        <div id="nf_alta_warn_${maqId}" class="full" style="display:none;font-size:11px;color:var(--red);padding:6px 10px;background:var(--red-dim);border-radius:6px;border:1px solid var(--red);">
-          ⚠ Novedad ALTA: este vehículo será forzado automáticamente a FUERA DE SERVICIO hasta que sea reparada.
-        </div>
-      </div>
-      <div class="nov-form-actions">
-        <button class="btn-cancel-nov" onclick="toggleNovForm('${maqId}')">Cancelar</button>
-        <button class="btn-guardar-nov" onclick="guardarNovedad('${maqId}')">Guardar Novedad</button>
-      </div>
-    </div>`;
-}
-
-function verificarSevAlta(maqId) {
-  const sev  = document.getElementById(`nf_sev_${maqId}`)?.value;
-  const warn = document.getElementById(`nf_alta_warn_${maqId}`);
-  if (warn) warn.style.display = sev === 'alta' ? 'block' : 'none';
-}
-
-function buildNovRow(n) {
-  const sev  = n.severidad || 'media';
-  const fecha = n.created_at ? new Date(n.created_at).toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '';
-  const esAltaPendiente = !n.reparado && sev === 'alta';
-  return `
-    <div class="novedad-row sev-${sev}" id="nov-${n.id}">
-      <div class="nov-sev-dot"></div>
-      <div class="nov-content">
-        <div class="nov-detalle">${n.descripcion || n.detalle || '—'}</div>
-        <div class="nov-meta">
-          ${n.tipo ? `<span class="nov-chip">${n.tipo}</span>` : ''}
-          ${fecha  ? `<span class="nov-chip">📅 ${fecha}</span>` : ''}
-          ${n.responsable ? `<span class="nov-chip">👤 ${n.responsable}</span>` : ''}
-          <span class="nov-chip ${n.reparado ? 'reparada' : (esAltaPendiente ? 'alta-pendiente' : 'pendiente')}">${n.reparado ? '✅ Reparada' : (esAltaPendiente ? '🚨 ALTA — Fuerza FUERA' : '⏳ Pendiente')}</span>
-        </div>
-      </div>
-      <div class="nov-actions">
-        ${!n.reparado ? `<button class="btn-reparar" onclick="marcarReparada('${n.id}','${n.maquina_id}')">✓ Reparar</button>` : ''}
-        <button class="btn-del-nov" onclick="eliminarNovedad('${n.id}','${n.maquina_id}')" title="Eliminar">✕</button>
-      </div>
-    </div>`;
-}
-
-/* ─── TOGGLE CARD ─────────────────────────────────────────── */
-function toggleCard(id) {
-  const body = document.getElementById(`body-${id}`);
-  const chev = document.getElementById(`chev-${id}`);
-  const hdr  = document.getElementById(`hdr-${id}`);
-  const open = body.classList.toggle('open');
-  chev.classList.toggle('open', open);
-  hdr.classList.toggle('expanded', open);
-}
-
-function toggleNovForm(maqId) {
-  const form = document.getElementById(`novform-${maqId}`);
-  form.classList.toggle('open');
-  if (form.classList.contains('open')) document.getElementById(`nf_det_${maqId}`)?.focus();
-}
-
-/* ─── GUARDAR NOVEDAD ─────────────────────────────────────── */
-async function guardarNovedad(maqId) {
-  const detalle = document.getElementById(`nf_det_${maqId}`).value.trim();
-  if (!detalle) { toast('Escribe la descripción de la novedad', 'err'); return; }
-
-  const sev = document.getElementById(`nf_sev_${maqId}`).value;
-  const payload = {
-    maquina_id:  maqId,
-    descripcion: detalle,
-    tipo:        document.getElementById(`nf_tipo_${maqId}`).value,
-    severidad:   sev,
-    responsable: document.getElementById(`nf_resp_${maqId}`).value.trim() || null,
-    reparado:    false,
+  const map = {
+    loading: { bg:'rgba(245,159,0,.12)', color:'var(--amber)',       border:'rgba(245,159,0,.3)',  dotBg:'var(--amber)',       lbl:'Conectando…' },
+    ok:      { bg:'rgba(47,158,68,.12)', color:'var(--green-bright)', border:'rgba(47,158,68,.3)', dotBg:'var(--green-bright)', lbl: label || 'Conectado' },
+    warn:    { bg:'rgba(245,159,0,.12)', color:'var(--amber)',        border:'rgba(245,159,0,.3)', dotBg:'var(--amber)',        lbl: label || 'Advertencia' },
+    error:   { bg:'rgba(224,49,49,.12)', color:'var(--red)',          border:'rgba(224,49,49,.3)', dotBg:'var(--red)',          lbl: label || 'Error' },
   };
-
-  const { data, error } = await supabaseClient.from('novedades_maquinas').insert(payload).select().single();
-  if (error) { toast('Error al guardar: '+error.message, 'err'); return; }
-
-  if (!novedadesMap[maqId]) novedadesMap[maqId] = [];
-  novedadesMap[maqId].unshift(data);
-
-  /* Si es severidad ALTA → forzar estado FUERA en Supabase */
-  if (sev === 'alta') {
-    await supabaseClient.from('maquinas_sei').update({ estado: 'FUERA' }).eq('id', maqId);
-    const m = maquinas.find(x => x.id === maqId);
-    if (m) m.estado = 'FUERA';
-    toast('⚠ Novedad ALTA → Vehículo forzado a FUERA DE SERVICIO', 'err');
-  } else {
-    toast('Novedad registrada', 'ok');
-  }
-
-  document.getElementById(`nf_det_${maqId}`).value  = '';
-  document.getElementById(`nf_resp_${maqId}`).value = '';
-  toggleNovForm(maqId);
-
-  refreshNovList(maqId);
-  actualizarBadgeCard(maqId);
-
-  /* Reconstruir card para reflejar estado visual forzado */
-  await recargarCard(maqId);
-  dispararActualizacionSemaforo();
+  const s = map[state] || map.warn;
+  wrap.style.background = s.bg;
+  wrap.style.color      = s.color;
+  wrap.style.border     = '1px solid ' + s.border;
+  dot.style.background  = s.dotBg;
+  txt.textContent       = s.lbl;
 }
 
-/* ─── MARCAR REPARADA ─────────────────────────────────────── */
-async function marcarReparada(novId, maqId) {
-  const { error } = await supabaseClient.from('novedades_maquinas').update({ reparado: true }).eq('id', novId);
-  if (error) { toast('Error: '+error.message, 'err'); return; }
+/* ════════════════════════════════════════════════════════════
+   INIT — Carga automática desde localStorage + Supabase
+════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
 
-  const nov = novedadesMap[maqId]?.find(n => n.id === novId);
-  if (nov) nov.reparado = true;
+  /* ── Lectura de claves heredadas ── */
+  const oaci = sessionStorage.getItem('sei_estacion')
+            || localStorage.getItem('sei_estacion')
+            || localStorage.getItem('arff_oaci_codigo')
+            || localStorage.getItem('currentOaci')
+            || null;
 
-  /* Verificar si quedan novedades ALTA pendientes en esta máquina */
-  const quedanAltas = (novedadesMap[maqId] || []).some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
-  if (!quedanAltas) {
-    /* Reactivar vehículo si no quedan novedades ALTA */
-    const m = maquinas.find(x => x.id === maqId);
-    if (m && m.estado === 'FUERA') {
-      await supabaseClient.from('maquinas_sei').update({ estado: 'OPERATIVA' }).eq('id', maqId);
-      m.estado = 'OPERATIVA';
-      toast('✅ Novedad reparada — Vehículo reactivado a OPERATIVA', 'ok');
-    } else {
-      toast('Marcada como reparada ✅', 'ok');
+  const apRaw  = localStorage.getItem('arff_ap')
+              || localStorage.getItem('areaCritica')
+              || localStorage.getItem('ap_m2')
+              || null;
+
+  const catRaw = localStorage.getItem('arff_cat')
+              || localStorage.getItem('catOaci')
+              || localStorage.getItem('categoria_oaci')
+              || null;
+
+  const hayDatos = oaci || apRaw;
+  document.getElementById('inherit-ok').style.display      = hayDatos ? 'flex' : 'none';
+  document.getElementById('inherit-missing').style.display = hayDatos ? 'none' : 'block';
+
+  if (oaci) {
+    document.getElementById('inh-oaci').textContent = oaci;
+    document.getElementById('nav-oaci').textContent = oaci;
+  }
+
+  if (apRaw) {
+    const ap = parseFloat(apRaw);
+    if (!isNaN(ap) && ap > 0) {
+      document.getElementById('inh-ap').textContent = ap.toFixed(2) + ' m²';
+      const inpAp = document.getElementById('inp-ap');
+      inpAp.value = ap.toFixed(2);
+      inpAp.classList.add('locked');
+      inpAp.title = 'Valor heredado del Módulo 01 — Área Crítica Aₚ';
     }
-  } else {
-    toast('Novedad reparada ✅ — Aún quedan novedades ALTA pendientes', 'ok');
   }
 
-  await recargarCard(maqId);
-  dispararActualizacionSemaforo();
-}
-
-/* ─── ELIMINAR NOVEDAD ────────────────────────────────────── */
-async function eliminarNovedad(novId, maqId) {
-  if (!confirm('¿Eliminar esta novedad?')) return;
-  const { error } = await supabaseClient.from('novedades_maquinas').delete().eq('id', novId);
-  if (error) { toast('Error: '+error.message, 'err'); return; }
-
-  novedadesMap[maqId] = (novedadesMap[maqId] || []).filter(n => n.id !== novId);
-  await recargarCard(maqId);
-  dispararActualizacionSemaforo();
-  toast('Novedad eliminada', 'ok');
-}
-
-/* ─── RELOAD CARD ─────────────────────────────────────────── */
-async function recargarCard(maqId) {
-  const m = maquinas.find(x => x.id === maqId);
-  if (!m) return;
-  const cardEl = document.getElementById(`card-${maqId}`);
-  if (!cardEl) return;
-  const wasOpen = document.getElementById(`body-${maqId}`)?.classList.contains('open');
-  cardEl.outerHTML = buildCard(m);
-  if (wasOpen) {
-    document.getElementById(`body-${maqId}`)?.classList.add('open');
-    document.getElementById(`chev-${maqId}`)?.classList.add('open');
-    document.getElementById(`hdr-${maqId}`)?.classList.add('expanded');
-  }
-  actualizarResumen();
-}
-
-/* ─── REFRESH NOV LIST ────────────────────────────────────── */
-function refreshNovList(maqId) {
-  const el = document.getElementById(`novlist-${maqId}`);
-  if (!el) return;
-  const novs = novedadesMap[maqId] || [];
-  el.innerHTML = novs.length ? novs.map(n => buildNovRow(n)).join('') : '<div class="no-novedades">Sin novedades registradas ✅</div>';
-}
-
-/* ─── BADGE PENDIENTES ────────────────────────────────────── */
-function actualizarBadgeCard(maqId) {
-  const hdr = document.getElementById(`hdr-${maqId}`);
-  if (!hdr) return;
-  const novPend = (novedadesMap[maqId] || []).filter(n => !n.reparado).length;
-  let badge = hdr.querySelector('[data-novbadge]');
-  const actions = hdr.querySelector('.mcard-actions');
-  if (!actions) return;
-  if (novPend > 0) {
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.setAttribute('data-novbadge','1');
-      badge.style.cssText = "font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;background:var(--red-dim);border:1px solid var(--red);color:var(--red);";
-      actions.insertBefore(badge, actions.firstChild);
+  if (catRaw) {
+    const cat = parseInt(catRaw);
+    if (cat >= 1 && cat <= 10) {
+      document.getElementById('inh-cat').textContent = 'Cat ' + cat;
+      document.getElementById('sel-cat').value = String(cat);
     }
-    badge.textContent = `⚠ ${novPend} NOV`;
-  } else { if (badge) badge.remove(); }
+  }
+
+  /* ── Sincronizar selectores al estado inicial ── */
+  document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.eff === currentEff));
+  document.querySelectorAll('#conc-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.conc) === currentConc));
+  updateEffInfo();
+
+  /* ── Lanzar consulta a Supabase ─────────────────────────────
+     Si hay OACI guardado, intentamos cargar inventario real.
+     Esto también llamará a calcular() al finalizar.
+     Si falla o no hay OACI, el motor igual corre con invDisp=0
+     y mostrará CAPACIDAD DEGRADADA hasta recibir datos.          */
+  if (oaci) {
+    obtenerInventarioReal();
+  } else {
+    /* Sin OACI: calcular igual para mostrar la interfaz */
+    const apVal  = parseFloat(document.getElementById('inp-ap').value);
+    const catVal = parseInt(document.getElementById('sel-cat').value);
+    if (!isNaN(apVal) && apVal > 0 && catVal >= 1) calcular(true);
+  }
+});
+
+/* ════════════════════════════════════════════════════════════
+   SELECTORES
+════════════════════════════════════════════════════════════ */
+function selectEff(e) {
+  currentEff = e;
+  document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.eff === e));
+  updateEffInfo();
+  calcularLive();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ESTADO MODAL
-═══════════════════════════════════════════════════════════ */
-function abrirEstadoModal(maqId, num) {
-  /* Bloquear si hay novedad ALTA pendiente */
-  const tieneAlta = (novedadesMap[maqId] || []).some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
-  if (tieneAlta) {
-    toast('⚠ No se puede cambiar el estado — tiene novedad ALTA pendiente', 'err');
+function updateEffInfo() {
+  document.getElementById('eff-info').textContent = EFF_INFO[currentEff] || '';
+}
+
+function selectConc(c) {
+  currentConc = c;
+  document.querySelectorAll('#conc-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.conc) === c));
+  calcularLive();
+}
+
+/* ════════════════════════════════════════════════════════════
+   calcularLive() — Reactivo al cambiar inputs
+════════════════════════════════════════════════════════════ */
+function calcularLive() {
+  const ap  = parseFloat(document.getElementById('inp-ap').value);
+  const cat = parseInt(document.getElementById('sel-cat').value);
+  if (!isNaN(ap) && ap > 0 && cat >= 1) calcular(true);
+}
+
+/* ════════════════════════════════════════════════════════════
+   calcular() — MOTOR DE DECISIÓN PRINCIPAL
+
+   CADENA DE CÁLCULO:
+   ┌──────────────────────────────────────────────────────────┐
+   │  Q₁     = Aₚ × Régimen            (L/min)               │
+   │  Q₂     = Q₁ × 1.0               (100% adicional Q₁)   │
+   │  Qt     = Q₁ + Q₂                (Ataque Inicial total) │
+   │  Q₃     = Qt × 2.0               (Reserva 200%)         │
+   │  Req    = Qt + Q₃                (Requerimiento Total)  │
+   │  Conc   = Req × % / 100 / 3.785  (gal concentrado puro) │
+   └──────────────────────────────────────────────────────────┘
+
+   FUENTE DEL INVENTARIO (prioridad):
+   1. window.inventarioReal.agua  ← Supabase live
+   2. 0 L                         ← Sin datos → semáforo rojo
+
+   LÓGICA DE SEMÁFOROS:
+   • Ataque  → Qt   ≥ RAC14[cat].volMin         (norma)
+   • Reserva → Q₃   ≥ RAC14[cat].volMin         (norma)
+   • Bodega  → invDisp ≥ Req                    (inventario real)
+     Verde si cumple | Rojo si deficiente → CAPACIDAD DEGRADADA
+════════════════════════════════════════════════════════════ */
+function calcular(silent) {
+  const ap  = parseFloat(document.getElementById('inp-ap').value);
+  const cat = parseInt(document.getElementById('sel-cat').value) || 0;
+
+  if (isNaN(ap) || ap <= 0) {
+    if (!silent) showToast('⚠ Ingrese un Área Crítica válida (Aₚ > 0)');
     return;
   }
-  estadoTarget = { maqId, num };
-  const m = maquinas.find(x => x.id === maqId);
-  document.getElementById('emTitle').textContent = `Vehículo ${num}`;
-  document.getElementById('emSub').textContent   = 'Selecciona el nuevo estado operativo';
-  document.querySelectorAll('.estado-opt').forEach(el => el.className = el.className.replace(/active-\w+/g,'').trim());
-  if (m) {
-    const cur = m.estado || 'OPERATIVA';
-    document.querySelector(`.sel-${cur}`)?.classList.add(`active-${cur}`);
-  }
-  document.getElementById('estadoModal').classList.add('open');
-}
-
-function cerrarEstadoModal() {
-  document.getElementById('estadoModal').classList.remove('open');
-  estadoTarget = null;
-}
-
-async function confirmarEstado(nuevoEstado) {
-  if (!estadoTarget) return;
-  const { maqId } = estadoTarget;
-
-  const { error } = await supabaseClient.from('maquinas_sei').update({ estado: nuevoEstado }).eq('id', maqId);
-  if (error) { toast('Error: '+error.message, 'err'); cerrarEstadoModal(); return; }
-
-  if (nuevoEstado === 'MANTENIMIENTO' || nuevoEstado === 'FUERA') {
-    const tipoNov = nuevoEstado === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Fuera de servicio';
-    await supabaseClient.from('novedades_maquinas').insert({
-      maquina_id:  maqId,
-      descripcion: `Vehículo marcado como ${nuevoEstado} por cambio de estado operativo.`,
-      tipo:        tipoNov,
-      severidad:   nuevoEstado === 'FUERA' ? 'alta' : 'media',
-      reparado:    false,
-    });
+  if (!cat || cat < 1 || cat > 10) {
+    if (!silent) showToast('⚠ Seleccione la Categoría OACI del aeropuerto');
+    return;
   }
 
-  if (currentOaci) {
-    await cargarFlota(currentOaci);
-    dispararActualizacionSemaforo();
-    actualizarEstacionBar(currentOaci);
-  }
-  cerrarEstadoModal();
-  toast(`Estado → ${nuevoEstado}`, 'ok');
-}
+  /* ── Cálculo escalonado ─────────────────────────────────── */
+  const rate     = EFF_RATE[currentEff];
+  const Q1       = ap * rate;
+  const Q2       = Q1 * 1.0;                  // 100% adicional
+  const Qt       = Q1 + Q2;                   // Ataque Inicial
+  const Q3       = Qt * 2.0;                  // Reserva 200%
+  const reqTotal = Qt + Q3;                   // Requerimiento total en bodega
 
-/* ═══════════════════════════════════════════════════════════
-   MODAL AGREGAR / EDITAR
-═══════════════════════════════════════════════════════════ */
-function abrirModalAgregar() {
-  editandoId = null;
-  document.getElementById('addModalTitle').textContent = '➕ Agregar Vehículo';
-  limpiarFormMaquina();
-  document.getElementById('addModal').classList.add('open');
-}
-function cerrarModalAgregar() { document.getElementById('addModal').classList.remove('open'); editandoId = null; }
+  /* ── Concentrado espumante ─────────────────────────────── */
+  const concFrac   = currentConc / 100;
+  const concLitros = reqTotal * concFrac;      // L de concentrado puro
+  const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
-function abrirEditar(maqId) {
-  const m = maquinas.find(x => x.id === maqId);
-  if (!m) return;
-  editandoId = maqId;
-  document.getElementById('addModalTitle').textContent = `✏ Editar Vehículo ${m.numero_interno}`;
-  document.getElementById('f_num').value    = m.numero_interno || '';
-  document.getElementById('f_estado').value = m.estado || 'OPERATIVA';
-  document.getElementById('f_marca').value  = m.marca  || '';
-  document.getElementById('f_modelo').value = m.modelo || '';
-  document.getElementById('f_anio').value   = m.anio_fabricacion || '';
-  document.getElementById('f_placa').value  = m.placa  || '';
-  document.getElementById('f_agua').value   = m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? '';
-  document.getElementById('f_espuma').value = m.capacidad_espuma_gal ?? m.espuma_gal ?? '';
-  document.getElementById('f_pqs').value    = m.capacidad_pqs_lb ?? m.pqs_lb ?? '';
-  document.getElementById('f_co2').value    = m.capacidad_co2_lb ?? 0;
-  document.getElementById('f_torreta').value= m.q_torreta_lpm ?? 0;
-  document.getElementById('f_conc').value   = m.concentracion_pct ?? 3;
-  document.getElementById('f_obs').value    = m.observaciones || '';
-  document.getElementById('addModal').classList.add('open');
-}
+  /* ── Inventario disponible ─────────────────────────────── */
+  // Si Supabase ya respondió usamos agua real; si no, 0 (mostrará rojo).
+  const invDisp = window.inventarioReal
+                ? window.inventarioReal.agua
+                : 0;
 
-function limpiarFormMaquina() {
-  ['f_num','f_marca','f_modelo','f_anio','f_placa','f_obs'].forEach(id => document.getElementById(id).value='');
-  ['f_agua','f_espuma','f_pqs','f_co2','f_torreta'].forEach(id => document.getElementById(id).value=0);
-  document.getElementById('f_estado').value='OPERATIVA';
-  document.getElementById('f_conc').value='3';
-}
+  /* ── Espuma disponible en bodega (para check adicional) ── */
+  const espumaDispGal = window.inventarioReal
+                      ? window.inventarioReal.espuma
+                      : 0;
+  const espumaDispL = espumaDispGal * L_PER_GAL;
 
-async function guardarMaquina() {
-  const num   = document.getElementById('f_num').value.trim();
-  const marca = document.getElementById('f_marca').value.trim();
-  const modelo= document.getElementById('f_modelo').value.trim();
-  if (!num||!marca||!modelo) { toast('Nº Interno, Marca y Modelo son requeridos','err'); return; }
-  if (!currentOaci) { toast('No hay estación seleccionada','err'); return; }
+  /* ── Norma RAC 14 ─────────────────────────────────────── */
+  const norma  = RAC14[cat];
+  const volMin = norma.volMin;
 
-  const payload = {
-    aeropuerto_id:       currentOaci,
-    numero_interno:      num,
-    estado:              document.getElementById('f_estado').value,
-    marca, modelo,
-    anio_fabricacion:    parseInt(document.getElementById('f_anio').value) || null,
-    placa:               document.getElementById('f_placa').value.trim() || null,
-    agua_galones:        parseFloat(document.getElementById('f_agua').value) || 0,
-    capacidad_espuma_gal:parseFloat(document.getElementById('f_espuma').value) || 0,
-    capacidad_pqs_lb:    parseFloat(document.getElementById('f_pqs').value) || 0,
-    capacidad_co2_lb:    parseFloat(document.getElementById('f_co2').value) || 0,
-    q_torreta_lpm:       parseFloat(document.getElementById('f_torreta').value) || 0,
-    concentracion_pct:   parseInt(document.getElementById('f_conc').value) || 3,
-    observaciones:       document.getElementById('f_obs').value.trim() || null,
+  /* ── Evaluación de cumplimiento ──────────────────────── */
+  const ataqueOk     = Qt     >= volMin;          // Qt cumple norma
+  const reservaOk    = Q3     >= volMin;          // Q3 cumple norma
+  const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
+  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
+
+  /* Veredicto global: todos deben estar ok */
+  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
+
+  lastResult = {
+    ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
+    concLitros, concGalones,
+    volMin, invDisp, espumaDispGal, espumaDispL,
+    ataqueOk, reservaOk, inventarioOk, espumaOk, allOk,
   };
 
-  let data, error;
-  if (editandoId) {
-    ({ data, error } = await supabaseClient.from('maquinas_sei').update(payload).eq('id', editandoId).select().single());
-    if (!error) { const idx = maquinas.findIndex(m => m.id === editandoId); if (idx !== -1) maquinas[idx] = { ...maquinas[idx], ...data }; }
+  /* ════ RENDER ════════════════════════════════════════════ */
+  document.getElementById('dec-empty').style.display   = 'none';
+  document.getElementById('dec-content').style.display = 'block';
+
+  /* ── Veredicto principal ──────────────────────────────── */
+  const vBanner = document.getElementById('verdict-banner');
+  const vMain   = document.getElementById('verdict-main');
+  const vSub    = document.getElementById('verdict-sub');
+  vBanner.className = 'verdict-banner ' + (allOk ? 'operativo' : 'degradada');
+  vMain.className   = 'verdict-main '   + (allOk ? 'operativo' : 'degradada');
+  vMain.textContent = allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA';
+  document.getElementById('verdict-icon').textContent = allOk ? '✅' : '🔴';
+  document.getElementById('verdict-cat').textContent  = cat;
+
+  if (!window.inventarioReal) {
+    vSub.innerHTML = '<span style="color:var(--amber)">⏳ Esperando datos de inventario desde Supabase…</span>';
+  } else if (allOk) {
+    vSub.textContent = `Bodega (${invDisp.toLocaleString('es-CO')} L) cubre el requerimiento total para Cat ${cat}`;
   } else {
-    ({ data, error } = await supabaseClient.from('maquinas_sei').insert(payload).select().single());
-    if (!error) maquinas.push(data);
+    const causas = [];
+    if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
+    if (!inventarioOk) causas.push(`Bodega (${invDisp.toLocaleString()} L) < req (${reqTotal.toFixed(0)} L)`);
+    if (!espumaOk)     causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
+    vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
-  if (error) { toast('Error: '+error.message,'err'); return; }
 
-  if (currentOaci) {
-    await cargarFlota(currentOaci);
-    dispararActualizacionSemaforo();
-    actualizarEstacionBar(currentOaci);
+  /* ── Semáforo: Ataque Inicial ────────────────────────── */
+  _semaforo('ataque',
+    fmtLmin(Qt), fmtGalMin(Qt),
+    ataqueOk,
+    ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO',
+    '🔥'
+  );
+
+  /* ── Semáforo: Reserva Q3 ────────────────────────────── */
+  _semaforo('reserva',
+    fmtLmin(Q3), fmtGalMin(Q3),
+    reservaOk,
+    reservaOk ? 'CUMPLE 200%' : 'INSUFICIENTE',
+    '🚒'
+  );
+
+  /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
+  const invLabel = window.inventarioReal
+    ? fmtL(invDisp) + ' disp.'
+    : 'Sin datos';
+  _semaforo('total',
+    invLabel, fmtGal(invDisp),
+    inventarioOk,
+    inventarioOk ? 'INVENTARIO OK' : (window.inventarioReal ? 'DÉFICIT' : 'SIN DATOS'),
+    '💧'
+  );
+
+  /* ── Desglose Q3 ──────────────────────────────────────── */
+  document.getElementById('q3-ataque-l').textContent  = fmtLmin(Qt);
+  document.getElementById('q3-ataque-g').textContent  = fmtGalMin(Qt);
+  document.getElementById('q3-reserva-l').textContent = fmtLmin(Q3);
+  document.getElementById('q3-reserva-g').textContent = fmtGalMin(Q3);
+  document.getElementById('q3-total-l').textContent   = fmtL(reqTotal);
+  document.getElementById('q3-total-g').textContent   = fmtGal(reqTotal);
+  document.getElementById('q3-formula-str').textContent =
+    `Qt=${Qt.toFixed(1)} L/min  ×2  →  Q₃=${Q3.toFixed(1)} L/min  →  Req=${reqTotal.toFixed(1)} L`;
+
+  /* ── Concentrado espumante ────────────────────────────── */
+  const concEl = document.getElementById('conc-result');
+  if (concEl) {
+    const dispStr = espumaDispL > 0
+      ? `<span style="color:var(--text-muted);font-size:10px"> · Bodega: <span style="color:${espumaOk?'var(--green-bright)':'var(--red)'}">${espumaDispL.toFixed(0)} L / ${espumaDispGal.toFixed(1)} Gal</span></span>`
+      : '';
+    concEl.innerHTML =
+      `<span style="color:var(--amber)">${concLitros.toFixed(1)} L</span>`
+      + ` <span style="color:var(--text-muted)">|</span> `
+      + `<span style="color:var(--cyan)">${concGalones.toFixed(1)} gal</span>`
+      + `<span style="color:var(--text-muted);font-size:10px"> requeridos (${currentConc}%)</span>`
+      + dispStr;
   }
-  cerrarModalAgregar();
-  toast(editandoId ? 'Vehículo actualizado ✅' : 'Vehículo agregado ✅', 'ok');
+
+  /* ── Tabla RAC 14 ─────────────────────────────────────── */
+  _buildRacTable(Qt, Q3, reqTotal, cat);
+
+  /* ── Traza de cálculo ─────────────────────────────────── */
+  _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGalones, invDisp);
+
+  if (!silent) showToast('✓ Motor ejecutado — ' + (allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA'));
 }
 
-/* ─── ELIMINAR MAQUINA ────────────────────────────────────── */
-async function eliminarMaquina(maqId, num) {
-  if (!confirm(`¿Eliminar el vehículo ${num}?\nEsta acción también eliminará sus novedades.`)) return;
-  await supabaseClient.from('novedades_maquinas').delete().eq('maquina_id', maqId);
-  const { error } = await supabaseClient.from('maquinas_sei').delete().eq('id', maqId);
-  if (error) { toast('Error: '+error.message,'err'); return; }
-  if (currentOaci) { await cargarFlota(currentOaci); dispararActualizacionSemaforo(); }
-  toast(`Vehículo ${num} eliminado`, 'ok');
+/* ════════════════════════════════════════════════════════════
+   _semaforo() — Renderiza un bloque semáforo
+════════════════════════════════════════════════════════════ */
+function _semaforo(id, txtL, txtG, ok, statusTxt, icon) {
+  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + (ok ? 'green' : 'red');
+  document.getElementById('lamp-' + id).textContent    = icon;
+  document.getElementById('sem-' + id + '-l').textContent = txtL;
+  document.getElementById('sem-' + id + '-g').textContent = txtG;
+  const st = document.getElementById('sem-' + id + '-status');
+  st.textContent = statusTxt;
+  st.className   = 'sem-status ' + (ok ? 'ok' : 'fail');
 }
 
-/* ─── REALTIME ────────────────────────────────────────────── */
-function suscribirRealtime() {
-  supabaseClient.channel('flota-sei-live-v2')
-    .on('postgres_changes', { event:'*', schema:'public', table:'maquinas_sei' }, async () => {
-      if (currentOaci) { await cargarFlota(currentOaci); dispararActualizacionSemaforo(); }
-    })
-    .on('postgres_changes', { event:'*', schema:'public', table:'novedades_maquinas' }, async () => {
-      if (currentOaci) { await cargarFlota(currentOaci); dispararActualizacionSemaforo(); }
-    })
-    .on('postgres_changes', { event:'*', schema:'public', table:'estaciones_sei' }, async () => {
-      if (currentOaci) { await cargarBodegaDesdeSupabase(currentOaci); dispararActualizacionSemaforo(); }
-    })
-    .subscribe();
+/* ════════════════════════════════════════════════════════════
+   _buildRacTable() — Tabla comparativa RAC 14 completa
+════════════════════════════════════════════════════════════ */
+function _buildRacTable(Qt, Q3, reqTotal, activeCat) {
+  const tbody = document.getElementById('rac-tbody');
+  tbody.innerHTML = '';
+
+  for (let c = 1; c <= 10; c++) {
+    const n     = RAC14[c];
+    const isAct = c === activeCat;
+    const comply = isAct ? (Qt >= n.volMin && Q3 >= n.volMin) : null;
+
+    const badge = !isAct
+      ? '<span class="comply-badge na">—</span>'
+      : comply
+        ? '<span class="comply-badge pass">✓ CUMPLE</span>'
+        : '<span class="comply-badge fail">✗ DEFICIENTE</span>';
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="${isAct ? 'active-cat' : ''}">
+        <td>
+          <span style="font-family:var(--font-mono);font-weight:${isAct?600:400};color:${isAct?'var(--cyan)':'var(--text-dim)'}">
+            Cat ${c}${isAct ? ' ◀' : ''}
+          </span>
+        </td>
+        <td class="td-num" style="color:var(--text-dim)">${n.volMin.toLocaleString()}</td>
+        <td class="td-num">
+          ${isAct ? `<span class="${Qt >= n.volMin ? 'td-pass' : 'td-fail'}">${Qt.toFixed(1)}</span>` : '<span class="td-na">—</span>'}
+        </td>
+        <td class="td-num">
+          ${isAct ? `<span class="${Q3 >= n.volMin ? 'td-pass' : 'td-fail'}">${Q3.toFixed(1)}</span>` : '<span class="td-na">—</span>'}
+        </td>
+        <td class="td-num">
+          ${isAct ? `<span style="color:var(--text)">${reqTotal.toFixed(1)}</span>` : '<span class="td-na">—</span>'}
+        </td>
+        <td>${badge}</td>
+      </tr>`);
+  }
 }
 
-function emptyAdminHTML() {
-  return `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Modo Administrador</div><div class="empty-sub">Busca una estación por código OACI o nombre de aeropuerto.</div></div>`;
+/* ════════════════════════════════════════════════════════════
+   _buildTrace() — Barra de trazabilidad del cálculo
+════════════════════════════════════════════════════════════ */
+function _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGal, invDisp) {
+  document.getElementById('trace-bar').classList.add('show');
+  document.getElementById('trace-steps').innerHTML = `
+    <span class="ts hi-ap">Aₚ = ${ap} m²</span>
+    <span class="ts-op">×</span>
+    <span class="ts hi-r">R = ${rate} L/min/m²</span>
+    <span class="ts-op">=</span>
+    <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L/min</span>
+    <span class="ts-op">+</span>
+    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L/min (100% Q₁)</span>
+    <span class="ts-op">=</span>
+    <span class="ts hi-qt">Qt = ${Qt.toFixed(1)} L/min</span>
+    <span class="ts-op">× 2</span>
+    <span class="ts hi-q3">Q₃ = ${Q3.toFixed(1)} L/min (Reserva 200%)</span>
+    <span class="ts-op">→</span>
+    <span class="ts" style="color:var(--text);border-color:rgba(255,255,255,.15)">Req = ${reqTotal.toFixed(1)} L</span>
+    <span class="ts-op">|</span>
+    <span class="ts" style="color:var(--purple);border-color:rgba(112,72,232,.3);background:rgba(112,72,232,.06)">Conc = ${concGal.toFixed(1)} gal (${currentConc}%)</span>
+    <span class="ts-op">|</span>
+    <span class="ts" style="color:${invDisp>0?'var(--blue-bright)':'var(--amber)'};border-color:rgba(51,154,240,.3);background:rgba(51,154,240,.05)">
+      Bodega = ${invDisp > 0 ? invDisp.toLocaleString('es-CO') + ' L' : 'Sin datos Supabase'}
+    </span>
+  `;
 }
 
-/* ─── TOAST ───────────────────────────────────────────────── */
-function toast(msg, tipo='ok') {
+/* ─── TOAST ────────────────────────────────────────────── */
+let _tt;
+function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast ${tipo} show`;
-  setTimeout(() => t.classList.remove('show'), 3400);
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-/* ─── CERRAR MODALES CON ESC ──────────────────────────────── */
-document.addEventListener('keydown', e => {
-  if (e.key==='Escape') { cerrarModalAgregar(); cerrarEstadoModal(); }
-});
-document.getElementById('addModal').addEventListener('click', e => {
-  if (e.target===document.getElementById('addModal')) cerrarModalAgregar();
-});
-document.getElementById('estadoModal').addEventListener('click', e => {
-  if (e.target===document.getElementById('estadoModal')) cerrarEstadoModal();
-});
+/* ─── PDF EXPORT ───────────────────────────────────────── */
+function exportPDF() {
+  if (!lastResult) { showToast('⚠ Ejecute el motor primero'); return; }
+  showToast('⏳ Preparando impresión...');
+  setTimeout(() => window.print(), 200);
+}
 </script>
 </body>
 </html>
