@@ -492,35 +492,38 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
         Guardar en Supabase
       </button>
     </div>
-    <div class="bodega-fields">
+    <div class="bodega-fields" style="grid-template-columns:1fr 1fr 1fr 1fr;">
       <!-- Agua en bodega -->
       <div class="bodega-field">
-        <div class="bf-label">
-          <span style="color:#29b6f6">💧</span> Agua en Reserva
-        </div>
+        <div class="bf-label"><span style="color:#29b6f6">💧</span> Agua en Reserva</div>
         <input class="bf-input water" type="number" id="bq_agua_l" placeholder="0" min="0"
                oninput="actualizarConversionBodega()" onchange="actualizarConversionBodega()"/>
         <div class="bf-conv" id="bq_agua_conv">— gal</div>
       </div>
       <!-- Espuma en bodega -->
       <div class="bodega-field">
-        <div class="bf-label">
-          <span style="color:#80cbc4">🧯</span> Espuma en Bodega
-        </div>
+        <div class="bf-label"><span style="color:#80cbc4">🧯</span> Espuma en Bodega</div>
         <input class="bf-input foam" type="number" id="bq_espuma_gal" placeholder="0" min="0"
                oninput="actualizarConversionBodega()" onchange="actualizarConversionBodega()"/>
         <div class="bf-conv" id="bq_espuma_conv">— L</div>
       </div>
+      <!-- PQS en bodega — reserva_pqs_kg -->
+      <div class="bodega-field">
+        <div class="bf-label"><span style="color:#ffcc02">🧨</span> PQS en Bodega</div>
+        <input class="bf-input" type="number" id="bq_pqs_kg" placeholder="0" min="0"
+               style="border-color:rgba(255,204,2,.3);"
+               onfocus="this.style.borderColor='#ffcc02';this.style.boxShadow='0 0 0 2px rgba(255,204,2,.12)'"
+               onblur="this.style.borderColor='rgba(255,204,2,.3)';this.style.boxShadow='none'"/>
+        <div class="bf-conv" style="color:rgba(255,204,2,.55)">Kilogramos · reserva_pqs_kg</div>
+      </div>
       <!-- Nivel eficiencia + concentración -->
       <div class="bodega-field">
-        <div class="bf-label">
-          <span style="color:var(--amber)">⚡</span> Nivel / Concentración Estación
-        </div>
+        <div class="bf-label"><span style="color:var(--amber)">⚡</span> Nivel / Concentración</div>
         <div style="display:flex;gap:6px;">
           <select id="bq_nivel" class="bf-input" style="font-size:13px;flex:1;" onchange="dispararActualizacionSemaforo()">
-            <option value="A">Nivel A — 8.2</option>
-            <option value="B" selected>Nivel B — 5.5</option>
-            <option value="C">Nivel C — 3.7</option>
+            <option value="A">Niv. A — 8.2</option>
+            <option value="B" selected>Niv. B — 5.5</option>
+            <option value="C">Niv. C — 3.7</option>
           </select>
           <select id="bq_conc" class="bf-input" style="font-size:13px;flex:1;" onchange="dispararActualizacionSemaforo()">
             <option value="1">1%</option>
@@ -782,22 +785,34 @@ async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
-    .select('reserva_agua_litros, reserva_espuma_galones, nivel_eficiencia_estacion, concentracion_espuma_estacion, categoria_oaci')
+    .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg, nivel_eficiencia_estacion, concentracion_espuma_estacion, categoria_rac, categoria_oaci')
     .eq('oaci', oaci)
     .maybeSingle();
 
   if (error) { console.error('Error bodega:', error.message); return; }
   if (!data)  return;
 
+  /* ── Rellenar inputs de bodega ── */
   document.getElementById('bq_agua_l').value    = data.reserva_agua_litros    ?? 0;
   document.getElementById('bq_espuma_gal').value= data.reserva_espuma_galones ?? 0;
-  if (data.nivel_eficiencia_estacion)      document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
-  if (data.concentracion_espuma_estacion)  document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
+  document.getElementById('bq_pqs_kg').value    = data.reserva_pqs_kg         ?? 0;
+  if (data.nivel_eficiencia_estacion)     document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
+  if (data.concentracion_espuma_estacion) document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
 
-  /* Guardar categoría en localStorage para el Motor de Decisión */
-  if (data.categoria_oaci) localStorage.setItem('arff_cat', String(data.categoria_oaci));
+  /* ── Persistir categoría RAC en localStorage ────────────────────────────────
+     'arff_cat_aeropuerto' es la clave canónica de la categoría leída desde
+     la BD (tabla estaciones_sei.categoria_rac).
+     'arff_cat' es la clave que consume cargarCapacidadOperativa() y el Motor
+     de Decisión — se actualiza con el valor más preciso disponible.          */
+  const catRac  = data.categoria_rac  ?? data.categoria_oaci ?? null;
+  if (catRac) {
+    localStorage.setItem('arff_cat_aeropuerto', String(catRac));
+    localStorage.setItem('arff_cat',            String(catRac));   // consumida por semáforo y Motor de Decisión
+  }
 
-  actualizarConversionBodega();
+  /* ── Conversiones visuales + semáforo inmediato ── */
+  actualizarConversionBodega();   // actualiza los textos de conversión
+  dispararActualizacionSemaforo(); // → cargarCapacidadOperativa() con la cat ya en localStorage
 }
 
 /* ─── Actualizaciones de conversión visibles al usuario ────── */
@@ -820,16 +835,18 @@ async function guardarBodega() {
 
   const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
+  const pqsKg   = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
   const nivel   = document.getElementById('bq_nivel').value;
   const conc    = parseInt(document.getElementById('bq_conc').value);
 
   const { error } = await supabaseClient
     .from('estaciones_sei')
     .update({
-      reserva_agua_litros:              aguaL,
-      reserva_espuma_galones:           espumaG,
-      nivel_eficiencia_estacion:        nivel,
-      concentracion_espuma_estacion:    conc,
+      reserva_agua_litros:           aguaL,
+      reserva_espuma_galones:        espumaG,
+      reserva_pqs_kg:                pqsKg,
+      nivel_eficiencia_estacion:     nivel,
+      concentracion_espuma_estacion: conc,
     })
     .eq('oaci', currentOaci);
 
@@ -908,8 +925,10 @@ function cargarCapacidadOperativa(oaci) {
   const totalDisp = aguaCamiones + aguaBodega;
 
   /* ─── 4. Requerimiento RAC 14 ─────────────────────────── */
-  // Intentamos obtener la categoría: primero de localStorage, luego del campo bodega
-  const catLocal = parseInt(localStorage.getItem('arff_cat')) || 0;
+  // Prioridad: categoria_rac (Supabase) > arff_cat (Módulo 01)
+  const catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+                || parseInt(localStorage.getItem('arff_cat'))
+                || 0;
   const requerimiento = catLocal && RAC14_REQ[catLocal] ? RAC14_REQ[catLocal] : 0;
 
   /* ─── 5. Actualizar DOM ────────────────────────────────── */
