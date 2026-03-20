@@ -883,11 +883,53 @@ function actualizarConversionBodega() {
 
 /* ═══════════════════════════════════════════════════════════
    GUARDAR BODEGA → UPDATE tabla estaciones_sei
+   Notas técnicas:
+   • oaciLimpio = trim + toUpperCase garantiza match exacto
+   • Supabase con RLS puede devolver [] aunque el UPDATE sea
+     exitoso → NO usamos rowsActualizadas para decidir éxito
+   • Confirmamos el guardado con un SELECT posterior
+   • console.log de diagnóstico antes de cada operación
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
-  const oaci = (currentOaci || document.getElementById('adminBase')?.textContent || '').trim().toUpperCase();
-  if (!oaci || oaci === '—') { toast('Seleccione una estación primero', 'err'); return; }
+  // ── Paso 1: Obtener y limpiar el OACI ───────────────────
+  const oaciRaw  = currentOaci
+                || document.getElementById('adminBase')?.textContent
+                || '';
+  const oaciLimpio = oaciRaw.trim().toUpperCase();
 
+  console.log('[guardarBodega] currentOaci:', currentOaci,
+              '| adminBase:', document.getElementById('adminBase')?.textContent,
+              '| oaciLimpio:', oaciLimpio);
+
+  if (!oaciLimpio || oaciLimpio === '—' || oaciLimpio === '') {
+    toast('Seleccione una estación primero', 'err');
+    return;
+  }
+
+  // ── Paso 2: Verificar que la fila existe ANTES de actualizar
+  const { data: checkData, error: checkErr } = await supabaseClient
+    .from('estaciones_sei')
+    .select('id, oaci')
+    .eq('oaci', oaciLimpio)
+    .limit(1);
+
+  console.log('[guardarBodega] Verificación SELECT →', { checkData, checkErr });
+
+  if (checkErr) {
+    toast('❌ Error consultando BD: ' + checkErr.message, 'err');
+    return;
+  }
+  if (!checkData || checkData.length === 0) {
+    // La fila no existe: mostrar todos los OACIs disponibles para debug
+    const { data: todos } = await supabaseClient
+      .from('estaciones_sei').select('oaci').limit(20);
+    const lista = (todos || []).map(r => r.oaci).join(', ');
+    console.warn('[guardarBodega] OACIs en BD:', lista);
+    toast(`⚠ OACI "${oaciLimpio}" no encontrado. En BD: ${lista || 'ninguno'}`, 'err');
+    return;
+  }
+
+  // ── Paso 3: Construir payload ────────────────────────────
   window._bodegaGuardando = true;
   const btn     = document.getElementById('bodegaSaveBtn');
   const svgIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
@@ -898,10 +940,8 @@ async function guardarBodega() {
   const pqs    = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
   const nivel  = document.getElementById('bq_nivel').value || 'B';
   const conc   = parseFloat(document.getElementById('bq_conc').value) || 3;
-
-  // Categoría: solo incluir en el payload si es un valor válido (>0)
-  // así nunca borramos la categoría que ya tiene la BD con un 0
   const catRaw = parseInt(localStorage.getItem('arff_cat_aeropuerto')) || 0;
+
   const payload = {
     reserva_agua_litros:           agua,
     reserva_espuma_galones:        espuma,
@@ -909,40 +949,41 @@ async function guardarBodega() {
     nivel_eficiencia_estacion:     nivel,
     concentracion_espuma_estacion: conc,
   };
-  if (catRaw > 0) payload.categoria_rac = catRaw; // solo si es válida
+  if (catRaw > 0) payload.categoria_rac = catRaw;
 
-  console.log('[guardarBodega] oaci:', oaci, '| payload:', payload);
+  console.log('[guardarBodega] Intentando guardar en:', oaciLimpio, '| payload:', payload);
 
-  const { data: updData, error } = await supabaseClient
+  // ── Paso 4: UPDATE ────────────────────────────────────────
+  // Sin .select() para evitar problemas con RLS que devuelve [] aunque funcione
+  const { error: updErr } = await supabaseClient
     .from('estaciones_sei')
     .update(payload)
-    .eq('oaci', oaci)
-    .select(); // pedir los datos actualizados para confirmar
+    .eq('oaci', oaciLimpio);
 
   btn.classList.remove('saving');
   btn.innerHTML = svgIcon + ' Guardar en Supabase';
   window._bodegaGuardando = false;
 
-  if (error) {
-    console.error('[guardarBodega] UPDATE error:', error);
-    toast('❌ Error: ' + error.message, 'err');
+  if (updErr) {
+    console.error('[guardarBodega] UPDATE error:', updErr);
+    toast('❌ Error al guardar: ' + updErr.message, 'err');
     return;
   }
 
-  // Confirmar cuántas filas actualizó
-  const rowsActualizadas = Array.isArray(updData) ? updData.length : 0;
-  console.log('[guardarBodega] Filas actualizadas:', rowsActualizadas, updData);
+  // ── Paso 5: Confirmar con SELECT posterior ────────────────
+  const { data: confirmData } = await supabaseClient
+    .from('estaciones_sei')
+    .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg')
+    .eq('oaci', oaciLimpio)
+    .limit(1);
 
-  if (rowsActualizadas === 0) {
-    toast('⚠ No se encontró la estación en BD. Verifica OACI: ' + oaci, 'err');
-    return;
-  }
+  console.log('[guardarBodega] Confirmación post-UPDATE:', confirmData);
 
   toast('✅ Inventario actualizado', 'ok');
-  localStorage.setItem('arff_oaci_codigo', oaci);
+  localStorage.setItem('arff_oaci_codigo', oaciLimpio);
 
-  // Recargar desde BD para confirmar que persistió
-  await cargarBodegaDesdeSupabase(oaci);
+  // Recargar para mostrar los datos que quedaron en BD
+  await cargarBodegaDesdeSupabase(oaciLimpio);
 }
 
 function dispararActualizacionSemaforo() {
