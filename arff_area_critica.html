@@ -1480,19 +1480,14 @@
       </div>
     </a>
     <div class="nav-sep"></div>
-    <a href="#" class="btn-return"
+    <a href="gestion_flota_sei.html" class="btn-return"
        style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
        onmouseover="this.style.background='rgba(0,229,255,.08)'"
-       onmouseout="this.style.background='transparent'"
-       onclick="event.preventDefault();(function(){
-         var o=sessionStorage.getItem('sei_estacion')||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
-         o=o.trim().toUpperCase();
-         window.location.href='gestion_flota_sei.html'+(o?'?oaci='+encodeURIComponent(o):'');
-       })()">
+       onmouseout="this.style.background='transparent'">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
       </svg>
-      ← 1 Inventario
+      ← Inventario Flota
     </a>
     <a href="dashboard_principal.html" class="btn-return">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2262,6 +2257,8 @@
         const midL = ref.Lmax === Infinity ? 80 : (ref.Lmax * 0.9).toFixed(1);
         document.getElementById('inp-L').value  = midL;
         document.getElementById('inp-Wf').value = ref.Wf.toFixed(2);
+        localStorage.setItem('arff_ac_L',  String(midL));
+        localStorage.setItem('arff_ac_Wf', String(ref.Wf.toFixed(2)));
         autoCalcF();
         clearResult();
       } else {
@@ -2295,11 +2292,13 @@
       // Store globals for next calculator
       window.lastAc = AcRound;
 
-      // ── Exportar a localStorage para Módulo 03 ───────────────
+      // ── Exportar a localStorage para Módulo 03 + persistencia de estado ─
       try {
         localStorage.setItem('arff_ap',           String(AcRound));
         localStorage.setItem('areaCritica',        String(AcRound));
         localStorage.setItem('ap_m2',              String(AcRound));
+        localStorage.setItem('arff_ac_L',          String(L));
+        localStorage.setItem('arff_ac_Wf',         String(Wf));
         // categoria se escribe después de catRef
       } catch(e) {}
 
@@ -2903,8 +2902,9 @@
       await loadAeronaves();
       initSearch();
 
-      // Persistencia desde URL (por ejemplo, desde el dashboard)
       const urlParams = new URLSearchParams(window.location.search);
+
+      // Prioridad 1: parámetros ?l= y ?wf= en la URL
       if (urlParams.get('l') && urlParams.get('wf')) {
         const inpL = document.getElementById('inp-L');
         const inpWf = document.getElementById('inp-Wf');
@@ -2915,6 +2915,19 @@
           if (selCat) selCat.value = urlParams.get('cat');
         }
         setTimeout(calcular, 300);
+
+      // Prioridad 2: estado guardado en localStorage
+      // Se activa al regresar desde Módulo 03 sin parámetros en URL
+      } else {
+        const savedL  = localStorage.getItem('arff_ac_L');
+        const savedWf = localStorage.getItem('arff_ac_Wf');
+        if (savedL && savedWf) {
+          const inpL = document.getElementById('inp-L');
+          const inpWf = document.getElementById('inp-Wf');
+          if (inpL)  inpL.value  = savedL;
+          if (inpWf) inpWf.value = savedWf;
+          setTimeout(calcular, 400);
+        }
       }
     };
   </script>
