@@ -780,117 +780,168 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 
 /* ═══════════════════════════════════════════════════════════
    BODEGA Q3 — CARGA DESDE SUPABASE
+   Fixes definitivos:
+   • SELECT * sin .single() — soporta múltiples filas (data[0])
+   • categoria_rac leída y persistida ANTES de cualquier render
+   • requerido-litros viene de la vista Y del objeto RAC14_REQ
+   • cargarCapacidadOperativa NO sobreescribe requerido-litros
+     si la vista ya lo escribió (flag _reqDesdeVista)
+   • guardarBodega NO envía categoria_rac=0 cuando es desconocida
+   • Realtime anti-loop con _bodegaGuardando
 ═══════════════════════════════════════════════════════════ */
+
+// Flag global: indica que la vista ya escribió el requerimiento
+// evita que cargarCapacidadOperativa lo pise con "—"
+window._reqDesdeVista    = false;
+window._reqVistaLitros   = 0;
+window._bodegaGuardando  = false;
+
 async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
 
+  /* ── 1. SELECT tabla maestra (sin .single()) ─────────── */
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
     .select('*')
     .eq('oaci', oaci.toUpperCase().trim());
 
-  if (error) { console.error('[Bodega] SELECT error:', error.message); return; }
-  if (!data || data.length === 0) { console.warn('[Bodega] Sin registro para OACI:', oaci); return; }
-
-  const est = data[0];
-
-  // Mapeo explícito — usa ?? null para no sobreescribir con 0 cuando el campo es null
-  const aguaVal   = (est.reserva_agua_litros    != null) ? est.reserva_agua_litros    : '';
-  const espumaVal = (est.reserva_espuma_galones  != null) ? est.reserva_espuma_galones : '';
-  const pqsVal    = (est.reserva_pqs_kg          != null) ? est.reserva_pqs_kg         : '';
-
-  document.getElementById('bq_agua_l').value     = aguaVal;
-  document.getElementById('bq_espuma_gal').value = espumaVal;
-  document.getElementById('bq_pqs_kg').value     = pqsVal;
-  document.getElementById('bq_nivel').value      = est.nivel_eficiencia_estacion    || 'B';
-  document.getElementById('bq_conc').value       = String(est.concentracion_espuma_estacion || '3');
-
-  // Categoría: acepta cualquier valor incluyendo 0
-  const catValue = (est.categoria_rac != null) ? est.categoria_rac
-                 : (est.categoria_oaci != null) ? est.categoria_oaci : 0;
-  localStorage.setItem('arff_cat_aeropuerto', catValue);
-  localStorage.setItem('arff_cat', catValue);
-
-  console.log('[Bodega] Cargado:', {
-    oaci, agua: aguaVal, espuma: espumaVal, pqs: pqsVal, cat: catValue
-  });
-
-  // Litros requeridos desde la vista RAC 14
-  const { data: vData } = await supabaseClient
-    .from('vista_capacidad_operativa_sei')
-    .select('requerido_rac14_litros')
-    .eq('oaci', oaci.toUpperCase().trim())
-    .maybeSingle();
-
-  if (vData && vData.requerido_rac14_litros != null) {
-    const reqEl = document.getElementById('requerido-litros');
-    if (reqEl) reqEl.textContent = parseFloat(vData.requerido_rac14_litros).toLocaleString('es-CO');
+  if (error) {
+    console.error('[Bodega] SELECT error:', error.message);
+    return;
+  }
+  if (!data || data.length === 0) {
+    console.warn('[Bodega] Sin registro para OACI:', oaci);
+    return;
   }
 
-  // Conversiones visuales y semáforo
-  actualizarConversionBodega();
+  const est = data[0];
+  console.log('[Bodega] Fila recibida:', est);
+
+  /* ── 2. Rellenar inputs — valor real o vacío (nunca fuerza 0) */
+  document.getElementById('bq_agua_l').value     = est.reserva_agua_litros    != null ? est.reserva_agua_litros    : '';
+  document.getElementById('bq_espuma_gal').value = est.reserva_espuma_galones != null ? est.reserva_espuma_galones : '';
+  document.getElementById('bq_pqs_kg').value     = est.reserva_pqs_kg         != null ? est.reserva_pqs_kg         : '';
+  document.getElementById('bq_nivel').value      = est.nivel_eficiencia_estacion     || 'B';
+  document.getElementById('bq_conc').value       = String(est.concentracion_espuma_estacion || '3');
+
+  /* ── 3. Persistir categoría ANTES de cualquier render ────
+     categoria_rac (int4 nueva) > categoria_oaci (legada)
+     Solo guardar si hay valor real > 0                      */
+  const catRaw = est.categoria_rac != null ? est.categoria_rac
+               : est.categoria_oaci != null ? est.categoria_oaci : null;
+  if (catRaw != null) {
+    localStorage.setItem('arff_cat_aeropuerto', String(catRaw));
+    localStorage.setItem('arff_cat',            String(catRaw));
+    console.log('[Bodega] Categoría persistida:', catRaw);
+  }
+
+  /* ── 4. Conversiones visuales (sin disparar semáforo aún) */
+  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
+  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
+  document.getElementById('bq_agua_conv').textContent   = (aguaL / L_PER_GAL).toFixed(0) + ' gal';
+  document.getElementById('bq_espuma_conv').textContent = (espumaG * L_PER_GAL).toFixed(0) + ' L';
+
+  /* ── 5. Litros requeridos desde la vista RAC 14 ──────────
+     Escribimos directo en el DOM y guardamos en flag global
+     para que cargarCapacidadOperativa no lo borre           */
+  window._reqDesdeVista  = false;
+  window._reqVistaLitros = 0;
+
+  try {
+    const { data: vData, error: vErr } = await supabaseClient
+      .from('vista_capacidad_operativa_sei')
+      .select('requerido_rac14_litros')
+      .eq('oaci', oaci.toUpperCase().trim())
+      .maybeSingle();
+
+    if (!vErr && vData && vData.requerido_rac14_litros != null) {
+      const litros = parseFloat(vData.requerido_rac14_litros);
+      window._reqDesdeVista  = true;
+      window._reqVistaLitros = litros;
+      const reqEl = document.getElementById('requerido-litros');
+      if (reqEl) reqEl.textContent = litros.toLocaleString('es-CO');
+      console.log('[Vista] requerido_rac14_litros:', litros);
+    } else {
+      console.warn('[Vista] Sin dato requerido_rac14_litros:', vErr?.message);
+    }
+  } catch(e) {
+    console.warn('[Vista] Error consultando vista:', e.message);
+  }
+
+  /* ── 6. Semáforo completo ─────────────────────────────── */
   cargarCapacidadOperativa(oaci);
 }
 
-/* ─── Conversión en tiempo real ─── */
+/* ─── Conversión en tiempo real (inputs manuales) ─── */
 function actualizarConversionBodega() {
   const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
   document.getElementById('bq_agua_conv').textContent   = (aguaL / L_PER_GAL).toFixed(0) + ' gal';
   document.getElementById('bq_espuma_conv').textContent = (espumaG * L_PER_GAL).toFixed(0) + ' L';
-  dispararActualizacionSemaforo();
+  if (window.currentOaci) cargarCapacidadOperativa(window.currentOaci);
 }
 
 /* ═══════════════════════════════════════════════════════════
    GUARDAR BODEGA → UPDATE tabla estaciones_sei
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
-  // Obtener OACI con fallback al elemento visual
-  const oaci = (currentOaci || document.getElementById('adminBase').textContent || '').trim().toUpperCase();
+  const oaci = (currentOaci || document.getElementById('adminBase')?.textContent || '').trim().toUpperCase();
   if (!oaci || oaci === '—') { toast('Seleccione una estación primero', 'err'); return; }
 
-  window._bodegaGuardando = true;  // evita loop con realtime
-  const btn = document.getElementById('bodegaSaveBtn');
-  btn.classList.add('saving'); btn.textContent = '⏳ Guardando…';
+  window._bodegaGuardando = true;
+  const btn     = document.getElementById('bodegaSaveBtn');
   const svgIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
+  btn.classList.add('saving'); btn.textContent = '⏳ Guardando…';
 
-  // Captura de valores — parseFloat nunca envía undefined a Supabase
   const agua   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espuma = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
   const pqs    = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
-  const nivel  = document.getElementById('bq_nivel').value  || 'B';
-  const conc   = parseFloat(document.getElementById('bq_conc').value)      || 3;
-  const cat    = parseInt(localStorage.getItem('arff_cat_aeropuerto'))     || 0;
+  const nivel  = document.getElementById('bq_nivel').value || 'B';
+  const conc   = parseFloat(document.getElementById('bq_conc').value) || 3;
 
-  console.log('[guardarBodega] payload →', { oaci, agua, espuma, pqs, nivel, conc, cat });
+  // Categoría: solo incluir en el payload si es un valor válido (>0)
+  // así nunca borramos la categoría que ya tiene la BD con un 0
+  const catRaw = parseInt(localStorage.getItem('arff_cat_aeropuerto')) || 0;
+  const payload = {
+    reserva_agua_litros:           agua,
+    reserva_espuma_galones:        espuma,
+    reserva_pqs_kg:                pqs,
+    nivel_eficiencia_estacion:     nivel,
+    concentracion_espuma_estacion: conc,
+  };
+  if (catRaw > 0) payload.categoria_rac = catRaw; // solo si es válida
 
-  const { error } = await supabaseClient
+  console.log('[guardarBodega] oaci:', oaci, '| payload:', payload);
+
+  const { data: updData, error } = await supabaseClient
     .from('estaciones_sei')
-    .update({
-      reserva_agua_litros:           agua,
-      reserva_espuma_galones:        espuma,
-      reserva_pqs_kg:                pqs,
-      nivel_eficiencia_estacion:     nivel,
-      concentracion_espuma_estacion: conc,
-      categoria_rac:                 cat,
-    })
-    .eq('oaci', oaci);   // ya está normalizado arriba
+    .update(payload)
+    .eq('oaci', oaci)
+    .select(); // pedir los datos actualizados para confirmar
 
   btn.classList.remove('saving');
   btn.innerHTML = svgIcon + ' Guardar en Supabase';
+  window._bodegaGuardando = false;
 
   if (error) {
-    window._bodegaGuardando = false;
-    console.error('[guardarBodega] UPDATE error:', error.message);
+    console.error('[guardarBodega] UPDATE error:', error);
     toast('❌ Error: ' + error.message, 'err');
-    return; // NO limpiar pantalla ni recargar — dejar datos visibles
+    return;
   }
 
-  window._bodegaGuardando = false;  // liberar flag
-  // Éxito: mensaje claro y recarga para confirmar BD
+  // Confirmar cuántas filas actualizó
+  const rowsActualizadas = Array.isArray(updData) ? updData.length : 0;
+  console.log('[guardarBodega] Filas actualizadas:', rowsActualizadas, updData);
+
+  if (rowsActualizadas === 0) {
+    toast('⚠ No se encontró la estación en BD. Verifica OACI: ' + oaci, 'err');
+    return;
+  }
+
   toast('✅ Inventario actualizado', 'ok');
   localStorage.setItem('arff_oaci_codigo', oaci);
-  // Recargamos desde BD para confirmar — pero sin que el realtime lo duplique
+
+  // Recargar desde BD para confirmar que persistió
   await cargarBodegaDesdeSupabase(oaci);
 }
 
@@ -898,18 +949,10 @@ function dispararActualizacionSemaforo() {
   if (currentOaci) cargarCapacidadOperativa(currentOaci);
 }
 
-
 /* ═══════════════════════════════════════════════════════════
    SEMÁFORO — VALIDACIÓN CAPACIDAD OPERATIVA TOTAL
-
-   Fórmula completa:
-   disponible = Σ agua_camiones_operativos + reserva_bodega_litros
-   requerido  = RAC14[cat].volMin (Nivel B)
-
-   Regla Novedad ALTA → FUERA DE SERVICIO forzado:
-   Si un vehículo tiene al menos una novedad severidad='alta'
-   con reparado=false, se excluye del cálculo aunque su estado
-   sea OPERATIVA.
+   Fix: si la vista ya escribió _reqVistaLitros, usarlo
+   directamente y no borrarlo con "—"
 ═══════════════════════════════════════════════════════════ */
 function cargarCapacidadOperativa(oaci) {
   const panel  = document.getElementById('card-capacidad');
@@ -926,45 +969,56 @@ function cargarCapacidadOperativa(oaci) {
   if (!oaci) return;
   panel.style.display = 'block';
 
-  /* ─── 1. Inventario en camiones (solo operativos sin novedad ALTA pendiente) ── */
-  let aguaCamiones = 0;
-  let maquinasActivas = 0;
-  let maquinasForzadas = 0;
-
+  /* ─── Inventario en camiones ─────────────────────────── */
+  let aguaCamiones = 0, maquinasActivas = 0, maquinasForzadas = 0;
   maquinas.forEach(m => {
     const novsM = novedadesMap[m.id] || [];
-    const tieneAltaPendiente = novsM.some(n => !n.reparado && (n.severidad || '').toLowerCase() === 'alta');
-    const estadoEfectivo = tieneAltaPendiente ? 'FUERA' : (m.estado || 'OPERATIVA');
-
-    if (tieneAltaPendiente && (m.estado || 'OPERATIVA') !== 'FUERA') maquinasForzadas++;
-
-    if (estadoEfectivo === 'OPERATIVA') {
+    const tieneAlta = novsM.some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
+    const estado = tieneAlta ? 'FUERA' : (m.estado || 'OPERATIVA');
+    if (tieneAlta && (m.estado || 'OPERATIVA') !== 'FUERA') maquinasForzadas++;
+    if (estado === 'OPERATIVA') {
       const ag = parseFloat(m.agua_galones ?? m.capacidad_agua_gal ?? m.agua_gal ?? 0);
       aguaCamiones += ag * L_PER_GAL;
       maquinasActivas++;
     }
   });
 
-  /* ─── 2. Inventario en bodega ──────────────────────────── */
+  /* ─── Inventario en bodega ───────────────────────────── */
   const aguaBodega = parseFloat(document.getElementById('bq_agua_l').value) || 0;
+  const totalDisp  = aguaCamiones + aguaBodega;
 
-  /* ─── 3. Total disponible ─────────────────────────────── */
-  const totalDisp = aguaCamiones + aguaBodega;
+  /* ─── Requerimiento RAC 14 ───────────────────────────────
+     Fuente 1: vista Supabase (ya escrita en DOM y _reqVistaLitros)
+     Fuente 2: localStorage + tabla RAC14_REQ hardcoded
+     Fuente 3: leer el DOM actual (lo que sea que haya)        */
+  let requerimiento = 0;
+  let catLocal = 0;
 
-  /* ─── 4. Requerimiento RAC 14 ─────────────────────────── */
-  // Prioridad: categoria_rac (Supabase) > arff_cat (Módulo 01)
-  const catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-                || parseInt(localStorage.getItem('arff_cat'))
-                || 0;
-  const requerimiento = catLocal && RAC14_REQ[catLocal] ? RAC14_REQ[catLocal] : 0;
+  if (window._reqDesdeVista && window._reqVistaLitros > 0) {
+    // La vista ya calculó el requerimiento — usarlo directamente
+    requerimiento = window._reqVistaLitros;
+  } else {
+    // Fallback: tabla local RAC14_REQ
+    catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+            || parseInt(localStorage.getItem('arff_cat'))
+            || 0;
+    requerimiento = (catLocal > 0 && RAC14_REQ[catLocal]) ? RAC14_REQ[catLocal] : 0;
+  }
 
-  /* ─── 5. Actualizar DOM ────────────────────────────────── */
+  /* ─── Actualizar DOM ─────────────────────────────────── */
   dispEl.textContent = Math.round(totalDisp).toLocaleString('es-CO');
   camEl.textContent  = Math.round(aguaCamiones).toLocaleString('es-CO');
   bodEl.textContent  = Math.round(aguaBodega).toLocaleString('es-CO');
-  reqEl.textContent  = requerimiento > 0 ? Math.round(requerimiento).toLocaleString('es-CO') : '—';
   maqEl.textContent  = maquinasActivas;
   maqEl.style.color  = maquinasActivas > 0 ? 'var(--green)' : 'var(--red)';
+
+  // Solo escribir reqEl si tenemos un valor real — no borrar lo que la vista puso
+  if (requerimiento > 0) {
+    reqEl.textContent = Math.round(requerimiento).toLocaleString('es-CO');
+  } else if (!window._reqDesdeVista) {
+    reqEl.textContent = '—';
+  }
+  // Si _reqDesdeVista=true y requerimiento=0 (raro), dejar lo que hay en DOM
 
   const auditParts = [
     `🚒 Camiones op.: ${maquinasActivas}`,
@@ -972,31 +1026,42 @@ function cargarCapacidadOperativa(oaci) {
     `🗄 Bodega: ${Math.round(aguaBodega).toLocaleString()} L`,
   ];
   if (maquinasForzadas > 0) auditParts.push(`⚠ ${maquinasForzadas} forzada(s) FUERA por novedad ALTA`);
-  if (catLocal) auditParts.push(`RAC14 Cat ${catLocal}: ${(RAC14_REQ[catLocal]||0).toLocaleString()} L`);
-  audit.textContent = auditParts.join(' · ');
+  if (requerimiento > 0) auditParts.push(`Req. RAC14: ${Math.round(requerimiento).toLocaleString()} L`);
+  if (audit) audit.textContent = auditParts.join(' · ');
 
-  /* ─── 6. Veredicto semáforo ──────────────────────────── */
+  /* ─── Veredicto semáforo ─────────────────────────────── */
   const falta = requerimiento - totalDisp;
 
   if (requerimiento <= 0) {
-    badge.textContent = 'SIN CATEGORÍA'; badge.style.background = 'var(--panel3)';
-    icon.textContent  = '📊'; panel.classList.remove('critico');
-    msg.textContent   = 'No hay categoría RAC 14 registrada. Ingrese el Área Crítica en el Módulo 01.';
+    badge.textContent       = 'SIN CATEGORÍA';
+    badge.style.background  = 'var(--panel3)';
+    badge.style.color       = 'var(--text2)';
+    icon.textContent        = '📊';
+    panel.classList.remove('critico');
+    msg.textContent         = window._reqDesdeVista
+      ? 'Vista cargada. Requerimiento pendiente de cálculo.'
+      : 'Sin categoría RAC 14. Verifica la columna categoria_rac en estaciones_sei.';
   } else if (falta <= 0) {
     panel.classList.remove('critico');
-    icon.textContent = '✅'; badge.textContent = 'SUFICIENTE';
-    badge.style.background = 'var(--green)'; badge.style.color = '#000';
-    dispEl.style.color = 'var(--green)';
-    msg.innerHTML = `<span style="color:var(--green)">CAPACIDAD SUFICIENTE:</span> Inventario total (${Math.round(totalDisp).toLocaleString('es-CO')} L) cubre el requerimiento RAC 14 Cat ${catLocal} (${requerimiento.toLocaleString()} L).`;
+    icon.textContent        = '✅';
+    badge.textContent       = 'SUFICIENTE';
+    badge.style.background  = 'var(--green)';
+    badge.style.color       = '#000';
+    dispEl.style.color      = 'var(--green)';
+    msg.innerHTML = `<span style="color:var(--green)">CAPACIDAD SUFICIENTE:</span> `
+      + `${Math.round(totalDisp).toLocaleString('es-CO')} L disponibles ≥ ${Math.round(requerimiento).toLocaleString('es-CO')} L requeridos.`;
   } else {
     panel.classList.add('critico');
-    icon.textContent = '⚠️'; badge.textContent = 'CRÍTICO';
-    badge.style.background = 'var(--red)'; badge.style.color = '#fff';
-    dispEl.style.color = 'var(--red)';
-    msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} litros</strong>`
-      + ` para cumplir RAC 14 Cat ${catLocal || '?'} (req. ${requerimiento.toLocaleString()} L). Disponible: ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
+    icon.textContent        = '⚠️';
+    badge.textContent       = 'CRÍTICO';
+    badge.style.background  = 'var(--red)';
+    badge.style.color       = '#fff';
+    dispEl.style.color      = 'var(--red)';
+    msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} L</strong>`
+      + ` — Req. ${Math.round(requerimiento).toLocaleString('es-CO')} L | Disp. ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
   }
 }
+
 
 /* ═══════════════════════════════════════════════════════════
    CARGAR FLOTA
@@ -1490,12 +1555,9 @@ function suscribirRealtime() {
     .on('postgres_changes', { event:'*', schema:'public', table:'novedades_maquinas' }, async () => {
       if (currentOaci) { await cargarFlota(currentOaci); dispararActualizacionSemaforo(); }
     })
-    .on('postgres_changes', { event:'*', schema:'public', table:'estaciones_sei' }, async (payload) => {
-      // Solo recarga si el cambio viene de OTRO cliente (no de esta misma sesión guardando)
-      // Compara con el flag que guardarBodega activa para no crear un loop
+    .on('postgres_changes', { event:'*', schema:'public', table:'estaciones_sei' }, async () => {
       if (currentOaci && !window._bodegaGuardando) {
         await cargarBodegaDesdeSupabase(currentOaci);
-        dispararActualizacionSemaforo();
       }
     })
     .subscribe();
