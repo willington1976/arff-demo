@@ -697,12 +697,11 @@ window.onSEIReady = async function(session) {
   currentEstId = session.estacion_id;
   currentOaci  = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
 
-  /* ── Leer ?oaci= de la URL (memoria de navegación entre módulos)
-     Tiene prioridad sobre la sesión: permite que Área Crítica y
-     Rata de Descarga devuelvan al usuario a la estación correcta. */
-  const _urlOaci = new URLSearchParams(window.location.search).get('oaci');
-  if (_urlOaci && _urlOaci.trim()) {
-    currentOaci = _urlOaci.trim().toUpperCase();
+  /* Solo si session NO trajo OACI, usar ?oaci= de URL como fallback.
+     session.oaci (del perfil del usuario) siempre tiene prioridad. */
+  if (!currentOaci) {
+    const _urlOaci = new URLSearchParams(window.location.search).get('oaci');
+    if (_urlOaci && _urlOaci.trim()) currentOaci = _urlOaci.trim().toUpperCase();
   }
 
   if (currentOaci) {
