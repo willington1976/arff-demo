@@ -13,10 +13,23 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    /* ─── Supabase client — Módulo 03: Motor de Decisión ─── */
-    const SUPA_URL = 'https://mctrdchacgwtqimsdpvn.supabase.co';
-    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jdHJkY2hhY2d3dHFpbXNkcHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjY4MDYsImV4cCI6MjA4ODU0MjgwNn0.RypOxjmrjrGXMM2ujRAwxanAkOKLzH4qZEKE4IQTFsQ';
-    const supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    /* ─── Supabase client — Módulo 03: Motor de Decisión ───────────────
+       IMPORTANTE: NO usar "const supabase" porque supabase-config.js
+       (inyectado por el servidor) ya declara window.supabase y genera
+       "Identifier 'supabase' has already been declared".
+       Usamos window.supabaseClient (el nombre estándar del proyecto)
+       que ya viene inicializado por supabase-config.js, o lo creamos
+       si el módulo se carga de forma independiente.
+    ─────────────────────────────────────────────────────────────────── */
+    (function() {
+      const SUPA_URL = 'https://mctrdchacgwtqimsdpvn.supabase.co';
+      const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jdHJkY2hhY2d3dHFpbXNkcHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NjY4MDYsImV4cCI6MjA4ODU0MjgwNn0.RypOxjmrjrGXMM2ujRAwxanAkOKLzH4qZEKE4IQTFsQ';
+      // Reusar el cliente ya creado por supabase-config.js si existe,
+      // o crear uno nuevo si el módulo corre de forma autónoma.
+      if (!window.supabaseClient) {
+        window.supabaseClient = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+      }
+    })();
   </script>
 
   <style>
@@ -958,7 +971,7 @@ async function obtenerInventarioReal() {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('estaciones_sei')
       .select('reserva_agua_litros, reserva_espuma_galones, nivel_eficiencia_estacion, concentracion_espuma_estacion')
       .eq('oaci', oaciGuardado)
