@@ -514,8 +514,8 @@
       <circle cx="14" cy="7" r="2" fill="#40c057"/>
     </svg>
     <div class="nav-brand">
-      <span class="nav-brand-main">ARFF Colombia</span>
-      <span class="nav-brand-sub">Motor de Decisión</span>
+      <span class="nav-brand-main">Bomberos Aeronáuticos</span>
+      <span class="nav-brand-sub">ARFF Colombia · Cálculos Críticos</span>
     </div>
   </a>
   <div class="nav-sep"></div>
@@ -527,20 +527,10 @@
      onmouseout="this.style.background='transparent'">
     ← Inventario
   </a>
-  <a href="#" class="btn-return"
-     style="border-color:rgba(247,103,7,.35);color:#f59f00;"
-     onmouseover="this.style.background='rgba(247,103,7,.08)'"
-     onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault();(function(){
-       var o=document.getElementById('nav-oaci')?.textContent||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
-       o=o.trim();
-       var L=localStorage.getItem('arff_ac_L')||'';
-       var Wf=localStorage.getItem('arff_ac_Wf')||'';
-       var params=[];
-       if(o&&o!=='—') params.push('oaci='+encodeURIComponent(o));
-       if(L&&Wf){ params.push('l='+encodeURIComponent(L)); params.push('wf='+encodeURIComponent(Wf)); }
-       window.location.href='arff_area_critica.html'+(params.length?'?'+params.join('&'):'');
-     })()">
+  <a href="arff_area_critica.html" class="btn-return"
+     style="border-color:rgba(247,159,0,.35);color:#f59f00;"
+     onmouseover="this.style.background='rgba(247,159,0,.08)'"
+     onmouseout="this.style.background='transparent'">
     ← Área Crítica
   </a>
 </nav>
@@ -552,7 +542,7 @@
     <div class="module-strip"></div>
     <div class="module-head-inner">
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
-      <h1 class="module-title">Motor de Decisión Operativa</h1>
+      <h1 class="module-title">Cálculo Rata de Descarga</h1>
       <p class="module-subtitle">
         Calcula la reserva obligatoria del 200% (Q₃), compara contra los mínimos de la categoría OACI
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
@@ -689,7 +679,7 @@
 
           <button class="btn-calc" onclick="calcular()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Ejecutar Motor de Decisión
+            Calcular
           </button>
         </div>
       </div>
