@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0d1117">
-  <title>ARFF Colombia — Motor de Decisión Operativa</title>
+  <title>ARFF Colombia — Rata de Descarga de Espuma</title>
   <meta name="description" content="Motor de Decisión Operativa ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -506,7 +506,7 @@
 
 <!-- ═══════════════ NAV ═══════════════ -->
 <nav>
-  <a href="#" class="nav-logo">
+  <a href="dashboard_principal.html" class="nav-logo">
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="28" height="28" rx="7" fill="#161d2b"/>
       <path d="M7 21L14 7l7 14" stroke="#40c057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -515,23 +515,28 @@
     </svg>
     <div class="nav-brand">
       <span class="nav-brand-main">ARFF Colombia</span>
-      <span class="nav-brand-sub">Motor de Decisión</span>
+      <span class="nav-brand-sub">Paso 3 / 3 · Rata de Descarga</span>
     </div>
   </a>
   <div class="nav-sep"></div>
   <div class="nav-badge">Módulo <span>03</span></div>
   <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
-  <a href="gestion_flota_sei.html" class="btn-return"
-     style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
+  <div class="nav-badge" id="nav-user-badge-m03" style="display:none"><span id="nav-user-txt-m03"></span></div>
+  <a href="#" class="btn-return"
+     style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(0,229,255,.35);color:#00e5ff;"
      onmouseover="this.style.background='rgba(0,229,255,.08)'"
-     onmouseout="this.style.background='transparent'">
-    ← Inventario
+     onmouseout="this.style.background='transparent'"
+     onclick="event.preventDefault();(function(){var oaci=document.getElementById('nav-oaci').textContent||localStorage.getItem('sei_estacion')||'';window.location.href='gestion_flota_sei.html'+(oaci&&oaci!='—'?'?oaci='+encodeURIComponent(oaci):'');})()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    ← 1 Inventario
   </a>
-  <a href="arff_area_critica.html" class="btn-return"
-     style="border-color:rgba(247,159,0,.35);color:#f59f00;"
-     onmouseover="this.style.background='rgba(247,159,0,.08)'"
-     onmouseout="this.style.background='transparent'">
-    ← Área Crítica
+  <a href="#" class="btn-return"
+     style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(247,103,7,.35);color:#f59f00;"
+     onmouseover="this.style.background='rgba(247,103,7,.08)'"
+     onmouseout="this.style.background='transparent'"
+     onclick="event.preventDefault();(function(){var oaci=document.getElementById('nav-oaci').textContent||localStorage.getItem('sei_estacion')||'';window.location.href='arff_area_critica.html'+(oaci&&oaci!='—'?'?oaci='+encodeURIComponent(oaci):'');})()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polygon points="12 2 2 22 22 22"/></svg>
+    ← 2 Área Crítica
   </a>
 </nav>
 
@@ -542,7 +547,7 @@
     <div class="module-strip"></div>
     <div class="module-head-inner">
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
-      <h1 class="module-title">Motor de Decisión Operativa</h1>
+      <h1 class="module-title">Rata de Descarga de Espuma</h1>
       <p class="module-subtitle">
         Calcula la reserva obligatoria del 200% (Q₃), compara contra los mínimos de la categoría OACI
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
@@ -1159,6 +1164,16 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sel-cat').value = String(cat);
     }
   }
+
+  // ── Badge de usuario ──────────────────────────────────────
+  (function(){
+    var _n=window.SEI_NOMBRE||sessionStorage.getItem('sei_nombre')||'';
+    var _r=window.SEI_ROL||sessionStorage.getItem('sei_rol')||'';
+    var _e=(window.ROL_LABELS&&window.ROL_LABELS[_r])?window.ROL_LABELS[_r].emoji:'👤';
+    var el=document.getElementById('nav-user-badge-m03');
+    var tx=document.getElementById('nav-user-txt-m03');
+    if(el&&_n){el.style.display='inline-flex';if(tx)tx.textContent=_e+' '+_n.split(' ')[0];}
+  })();
 
   /* ── Sincronizar selectores al estado inicial ── */
   document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
