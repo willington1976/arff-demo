@@ -1102,6 +1102,58 @@ function cargarCapacidadOperativa(oaci) {
     msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} L</strong>`
       + ` — Req. ${Math.round(requerimiento).toLocaleString('es-CO')} L | Disp. ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
   }
+
+  /* ── Exportar datos de flota a localStorage ─────────────────
+     Permite que Módulo 02 (Área Crítica) y Módulo 03 (Motor de
+     Decisión) lean los agentes disponibles sin nueva consulta.  */
+  _exportarFlotaLocalStorage(aguaCamiones, aguaBodega, totalDisp);
+}
+
+/* ════════════════════════════════════════════════════════════
+   _exportarFlotaLocalStorage()
+   Escribe el snapshot actual de agentes en localStorage para
+   que los otros módulos lo lean al iniciar.
+════════════════════════════════════════════════════════════ */
+function _exportarFlotaLocalStorage(aguaCamiones, aguaBodega, totalDisp) {
+  try {
+    // Agua total disponible (camiones operativos + bodega) en litros
+    localStorage.setItem('sei_agua_total_litros',    String(Math.round(totalDisp)));
+    localStorage.setItem('sei_agua_camiones_litros', String(Math.round(aguaCamiones)));
+    localStorage.setItem('sei_agua_bodega_litros',   String(Math.round(aguaBodega)));
+
+    // Espuma bodega (desde el input visible)
+    const espumaGal = parseFloat(document.getElementById('bq_espuma_gal')?.value) || 0;
+    const pqsKg     = parseFloat(document.getElementById('bq_pqs_kg')?.value)     || 0;
+    localStorage.setItem('sei_espuma_bodega_gal', String(espumaGal));
+    localStorage.setItem('sei_pqs_bodega_kg',     String(pqsKg));
+
+    // Concentración y nivel de eficiencia de la estación
+    const conc  = document.getElementById('bq_conc')?.value  || '3';
+    const nivel = document.getElementById('bq_nivel')?.value || 'B';
+    localStorage.setItem('sei_concentracion_pct',    conc);
+    localStorage.setItem('sei_nivel_eficiencia',     nivel);
+
+    // Capacidad total de flota operativa (Q caudal en L/min — suma torretas)
+    let qFlotaTotal = 0;
+    if (typeof maquinas !== 'undefined') {
+      maquinas.forEach(m => {
+        const novsM    = (typeof novedadesMap !== 'undefined') ? (novedadesMap[m.id] || []) : [];
+        const tieneAlta = novsM.some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
+        const estado    = tieneAlta ? 'FUERA' : (m.estado || 'OPERATIVA');
+        if (estado === 'OPERATIVA') {
+          qFlotaTotal += parseFloat(m.q_torreta_lpm || 0);
+        }
+      });
+    }
+    localStorage.setItem('sei_q_flota_total_lpm', String(Math.round(qFlotaTotal)));
+
+    console.log('[Flota→LS] Exportado:', {
+      agua_total: Math.round(totalDisp), espuma_gal: espumaGal,
+      pqs_kg: pqsKg, conc, nivel, q_flota_lpm: Math.round(qFlotaTotal)
+    });
+  } catch(e) {
+    console.warn('[Flota→LS] Error exportando:', e.message);
+  }
 }
 
 
