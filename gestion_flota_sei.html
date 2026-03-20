@@ -779,71 +779,54 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BODEGA Q3 — CARGA DESDE SUPABASE
-   Fix: usa SELECT * sin .single() para evitar "multiple rows".
-   Trabaja con data[0]. Orden garantizado:
-     1. SELECT * → data[0]
-     2. Inputs rellenados
-     3. localStorage('arff_cat_aeropuerto') escrito ANTES del semáforo
-     4. actualizarConversionBodega() → conversiones visuales
-     5. cargarCapacidadOperativa(oaci) → litros requeridos visibles
+   BODEGA Q3 — CARGA DESDE SUPABASE  (versión definitiva)
 ═══════════════════════════════════════════════════════════ */
 async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
 
+  // 1. SELECT a la tabla maestra — sin .single() para evitar error "multiple rows"
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
     .select('*')
     .eq('oaci', oaci.toUpperCase().trim());
 
-  if (error) {
-    console.error('[Bodega] Error SELECT:', error.message);
-    return;
-  }
-  if (!data || data.length === 0) {
-    console.warn('[Bodega] Sin registro para OACI:', oaci);
-    return;
-  }
+  if (error) { console.error('[Bodega] SELECT error:', error.message); return; }
+  if (!data || data.length === 0) { console.warn('[Bodega] Sin registro para OACI:', oaci); return; }
 
-  const row = data[0]; // tomar la primera fila aunque haya duplicados
+  const est = data[0];
 
-  /* ── PASO 1: Rellenar inputs de bodega ─────────────────── */
-  document.getElementById('bq_agua_l').value     = row.reserva_agua_litros    ?? 0;
-  document.getElementById('bq_espuma_gal').value = row.reserva_espuma_galones ?? 0;
-  document.getElementById('bq_pqs_kg').value     = row.reserva_pqs_kg         ?? 0;
-  if (row.nivel_eficiencia_estacion)
-    document.getElementById('bq_nivel').value = row.nivel_eficiencia_estacion;
-  if (row.concentracion_espuma_estacion)
-    document.getElementById('bq_conc').value  = String(row.concentracion_espuma_estacion);
+  // 2. Llenado forzado de inputs — sin condicionales que bloqueen
+  document.getElementById('bq_agua_l').value    = est.reserva_agua_litros    || 0;
+  document.getElementById('bq_espuma_gal').value= est.reserva_espuma_galones || 0;
+  document.getElementById('bq_pqs_kg').value    = est.reserva_pqs_kg         || 0;
+  document.getElementById('bq_nivel').value     = est.nivel_eficiencia_estacion    || 'B';
+  document.getElementById('bq_conc').value      = est.concentracion_espuma_estacion || '3';
 
-  /* ── PASO 2: Persistir categoría en localStorage ───────────
-     CRÍTICO: ocurre ANTES de llamar al semáforo.
-     Fuente canónica: categoria_rac (int4, columna nueva).
-     Fallback:        categoria_oaci (columna legada).          */
-  const catNum = (row.categoria_rac  != null) ? parseInt(row.categoria_rac)
-               : (row.categoria_oaci != null)  ? parseInt(row.categoria_oaci)
-               : null;
+  // 3. Persistencia de Categoría — acepta cualquier valor que exista, incluido 0
+  const catValue = est.categoria_rac || est.categoria_oaci || 0;
+  localStorage.setItem('arff_cat_aeropuerto', catValue);
+  localStorage.setItem('arff_cat', catValue);
+  console.log('[Bodega] cat persistida:', catValue, '| agua:', est.reserva_agua_litros, 'L | espuma:', est.reserva_espuma_galones, 'gal');
 
-  if (catNum && catNum >= 1 && catNum <= 10) {
-    localStorage.setItem('arff_cat_aeropuerto', String(catNum));
-    localStorage.setItem('arff_cat',            String(catNum));
-    console.log('[Bodega] Cat RAC persistida → Cat', catNum,
-                '| Req.', RAC14_REQ[catNum] ?? '?', 'L');
-  } else {
-    console.warn('[Bodega] categoria_rac no válida:', row.categoria_rac);
+  // 4. Leer litros requeridos directamente de la vista RAC 14
+  const { data: vData } = await supabaseClient
+    .from('vista_capacidad_operativa_sei')
+    .select('requerido_rac14_litros, agua_disponible_real')
+    .eq('oaci', oaci.toUpperCase().trim())
+    .maybeSingle();
+
+  if (vData && vData.requerido_rac14_litros != null) {
+    const reqEl = document.getElementById('requerido-litros');
+    if (reqEl) reqEl.textContent = parseFloat(vData.requerido_rac14_litros).toLocaleString('es-CO');
+    console.log('[Vista] requerido_rac14_litros:', vData.requerido_rac14_litros);
   }
 
-  /* ── PASO 3: Conversiones visuales ─────────────────────── */
+  // 5. Conversiones visuales + semáforo
   actualizarConversionBodega();
-
-  /* ── PASO 4: Semáforo — con la categoría ya en localStorage */
-  cargarCapacidadOperativa(oaci);
+  await cargarCapacidadOperativa(oaci);
 }
 
-/* ─── Conversión en tiempo real al escribir en los inputs ───
-   Llamada por oninput/onchange de bq_agua_l y bq_espuma_gal.
-   No llama al semáforo directamente; usa dispararActualizacionSemaforo()
-   para respetar la guarda de currentOaci.                     */
+/* ─── Conversión en tiempo real al escribir en los inputs ─── */
 function actualizarConversionBodega() {
   const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
@@ -853,53 +836,42 @@ function actualizarConversionBodega() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GUARDAR BODEGA → UPDATE tabla estaciones_sei
-   Campos: reserva_agua_litros, reserva_espuma_galones,
-           reserva_pqs_kg, nivel_eficiencia_estacion,
-           concentracion_espuma_estacion, categoria_rac.
-   Fix: .eq('oaci', currentOaci.toUpperCase().trim())
+   GUARDAR BODEGA → UPDATE tabla estaciones_sei (versión definitiva)
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
-  if (!currentOaci) { toast('No hay estación seleccionada', 'err'); return; }
+  const oaci = currentOaci;
+  if (!oaci) return toast('Seleccione una estación', 'err');
 
   const btn = document.getElementById('bodegaSaveBtn');
   btn.classList.add('saving'); btn.textContent = '⏳ Guardando…';
 
-  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
-  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
-  const pqsKg   = parseFloat(document.getElementById('bq_pqs_kg').value)    || 0;
-  const nivel   = document.getElementById('bq_nivel').value;
-  const conc    = parseInt(document.getElementById('bq_conc').value);
-
-  /* Categoría: prioridad Supabase, luego Módulo 01 */
-  const catGuardada = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-                   || parseInt(localStorage.getItem('arff_cat'))
-                   || null;
-
   const payload = {
-    reserva_agua_litros:           aguaL,
-    reserva_espuma_galones:        espumaG,
-    reserva_pqs_kg:                pqsKg,
-    nivel_eficiencia_estacion:     nivel,
-    concentracion_espuma_estacion: conc,
+    reserva_agua_litros:           parseFloat(document.getElementById('bq_agua_l').value)    || 0,
+    reserva_espuma_galones:        parseFloat(document.getElementById('bq_espuma_gal').value) || 0,
+    reserva_pqs_kg:                parseFloat(document.getElementById('bq_pqs_kg').value)    || 0,
+    nivel_eficiencia_estacion:     document.getElementById('bq_nivel').value,
+    concentracion_espuma_estacion: parseFloat(document.getElementById('bq_conc').value),
+    categoria_rac:                 parseInt(localStorage.getItem('arff_cat_aeropuerto')) || 0,
   };
-  if (catGuardada) payload.categoria_rac = catGuardada;
 
   const { error } = await supabaseClient
-    .from('estaciones_sei')                          // tabla, no la vista
+    .from('estaciones_sei')
     .update(payload)
-    .eq('oaci', currentOaci.toUpperCase().trim());   // normalizar para evitar fallos
+    .eq('oaci', oaci.toUpperCase().trim());
 
-  const svgIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+  const svgIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>';
   btn.classList.remove('saving');
   btn.innerHTML = svgIcon + ' Guardar en Supabase';
 
-  if (error) { toast('Error guardando bodega: ' + error.message, 'err'); return; }
-
-  localStorage.setItem('arff_oaci_codigo', currentOaci.toUpperCase().trim());
-  toast('✅ Bodega guardada' + (catGuardada ? ' · Cat ' + catGuardada : ''), 'ok');
-  dispararActualizacionSemaforo();
+  if (!error) {
+    toast('✅ Inventario y Espuma guardados');
+    localStorage.setItem('arff_oaci_codigo', oaci.toUpperCase().trim());
+    await cargarBodegaDesdeSupabase(oaci); // recarga para confirmar lo que quedó en BD
+  } else {
+    toast('Error: ' + error.message, 'err');
+  }
 }
+
 function dispararActualizacionSemaforo() {
   if (currentOaci) cargarCapacidadOperativa(currentOaci);
 }
