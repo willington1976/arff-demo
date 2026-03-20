@@ -521,16 +521,11 @@
   <div class="nav-sep"></div>
   <div class="nav-badge">Módulo <span>03</span></div>
   <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
-  <a href="#" class="btn-return"
+  <a href="gestion_flota_sei.html" class="btn-return"
      style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
      onmouseover="this.style.background='rgba(0,229,255,.08)'"
-     onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault();(function(){
-       var o=document.getElementById('nav-oaci')?.textContent||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
-       o=o.trim();
-       window.location.href='gestion_flota_sei.html'+(o&&o!=='—'?'?oaci='+encodeURIComponent(o):'');
-     })()">
-    ← 1 Inventario
+     onmouseout="this.style.background='transparent'">
+    ← Inventario
   </a>
   <a href="#" class="btn-return"
      style="border-color:rgba(247,103,7,.35);color:#f59f00;"
@@ -539,9 +534,14 @@
      onclick="event.preventDefault();(function(){
        var o=document.getElementById('nav-oaci')?.textContent||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
        o=o.trim();
-       window.location.href='arff_area_critica.html'+(o&&o!=='—'?'?oaci='+encodeURIComponent(o):'');
+       var L=localStorage.getItem('arff_ac_L')||'';
+       var Wf=localStorage.getItem('arff_ac_Wf')||'';
+       var params=[];
+       if(o&&o!=='—') params.push('oaci='+encodeURIComponent(o));
+       if(L&&Wf){ params.push('l='+encodeURIComponent(L)); params.push('wf='+encodeURIComponent(Wf)); }
+       window.location.href='arff_area_critica.html'+(params.length?'?'+params.join('&'):'');
      })()">
-    ← 2 Área Crítica
+    ← Área Crítica
   </a>
 </nav>
 
