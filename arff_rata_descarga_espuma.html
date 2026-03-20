@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0d1117">
-  <title>ARFF Colombia — Rata de Descarga de Espuma</title>
-  <meta name="description" content="Motor de Decisión Operativa ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
+  <title>ARFF Colombia — Motor de Decisión Operativa</title>
+  <meta name="description" content="Rata de Descarga ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -344,6 +344,7 @@
       transition:all .3s ease;
     }
     .verdict-banner.operativo   { background:rgba(47,158,68,.07); }
+    .verdict-banner.limitada    { background:rgba(245,159,0,.07); }
     .verdict-banner.degradada   { background:rgba(224,49,49,.07); }
     .verdict-icon { font-size:28px; flex-shrink:0; }
     .verdict-text-group { display:flex; flex-direction:column; gap:2px; flex:1; }
@@ -353,6 +354,7 @@
       transition:color .3s;
     }
     .verdict-main.operativo { color:var(--green-bright); }
+    .verdict-main.limitada  { color:var(--amber); }
     .verdict-main.degradada { color:var(--red); }
     .verdict-sub { font-size:12px; color:var(--text-dim); }
     .verdict-cat-badge {
@@ -506,7 +508,7 @@
 
 <!-- ═══════════════ NAV ═══════════════ -->
 <nav>
-  <a href="dashboard_principal.html" class="nav-logo">
+  <a href="#" class="nav-logo">
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="28" height="28" rx="7" fill="#161d2b"/>
       <path d="M7 21L14 7l7 14" stroke="#40c057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -515,28 +517,23 @@
     </svg>
     <div class="nav-brand">
       <span class="nav-brand-main">ARFF Colombia</span>
-      <span class="nav-brand-sub">Paso 3 / 3 · Rata de Descarga</span>
+      <span class="nav-brand-sub">Motor de Decisión</span>
     </div>
   </a>
   <div class="nav-sep"></div>
   <div class="nav-badge">Módulo <span>03</span></div>
   <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
-  <div class="nav-badge" id="nav-user-badge-m03" style="display:none"><span id="nav-user-txt-m03"></span></div>
-  <a href="#" class="btn-return"
-     style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(0,229,255,.35);color:#00e5ff;"
+  <a href="gestion_flota_sei.html" class="btn-return"
+     style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
      onmouseover="this.style.background='rgba(0,229,255,.08)'"
-     onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault();(function(){var oaci=document.getElementById('nav-oaci').textContent||localStorage.getItem('sei_estacion')||'';window.location.href='gestion_flota_sei.html'+(oaci&&oaci!='—'?'?oaci='+encodeURIComponent(oaci):'');})()">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    ← 1 Inventario
+     onmouseout="this.style.background='transparent'">
+    ← Inventario
   </a>
-  <a href="#" class="btn-return"
-     style="display:flex;align-items:center;height:32px;padding:0 12px;font-size:12px;border-color:rgba(247,103,7,.35);color:#f59f00;"
-     onmouseover="this.style.background='rgba(247,103,7,.08)'"
-     onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault();(function(){var oaci=document.getElementById('nav-oaci').textContent||localStorage.getItem('sei_estacion')||'';window.location.href='arff_area_critica.html'+(oaci&&oaci!='—'?'?oaci='+encodeURIComponent(oaci):'');})()">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polygon points="12 2 2 22 22 22"/></svg>
-    ← 2 Área Crítica
+  <a href="arff_area_critica.html" class="btn-return"
+     style="border-color:rgba(247,159,0,.35);color:#f59f00;"
+     onmouseover="this.style.background='rgba(247,159,0,.08)'"
+     onmouseout="this.style.background='transparent'">
+    ← Área Crítica
   </a>
 </nav>
 
@@ -547,7 +544,7 @@
     <div class="module-strip"></div>
     <div class="module-head-inner">
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
-      <h1 class="module-title">Rata de Descarga de Espuma</h1>
+      <h1 class="module-title">Motor de Decisión Operativa</h1>
       <p class="module-subtitle">
         Calcula la reserva obligatoria del 200% (Q₃), compara contra los mínimos de la categoría OACI
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
@@ -1165,16 +1162,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── Badge de usuario ──────────────────────────────────────
-  (function(){
-    var _n=window.SEI_NOMBRE||sessionStorage.getItem('sei_nombre')||'';
-    var _r=window.SEI_ROL||sessionStorage.getItem('sei_rol')||'';
-    var _e=(window.ROL_LABELS&&window.ROL_LABELS[_r])?window.ROL_LABELS[_r].emoji:'👤';
-    var el=document.getElementById('nav-user-badge-m03');
-    var tx=document.getElementById('nav-user-txt-m03');
-    if(el&&_n){el.style.display='inline-flex';if(tx)tx.textContent=_e+' '+_n.split(' ')[0];}
-  })();
-
   /* ── Sincronizar selectores al estado inicial ── */
   document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.eff === currentEff));
@@ -1316,52 +1303,127 @@ function calcular(silent) {
   const norma  = RAC14[cat];
   const volMin = norma.volMin;
 
-  /* ── Evaluación de cumplimiento ──────────────────────── */
-  const ataqueOk     = Qt     >= volMin;          // Qt cumple norma
-  const reservaOk    = Q3     >= volMin;          // Q3 cumple norma
-  const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
-  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
+  /* ══════════════════════════════════════════════════════════
+     JERARQUÍA DE 3 NIVELES — AGUA (Inventario total)
+     ─────────────────────────────────────────────────────────
+     Bodega = valor del input reserva_agua_litros
+     Flota  = agua en camiones operativos (calculada arriba)
+     ──────────────────────────────────────────────────────────
+     🟢 VERDE  : Total ≥ reqTotal  Y  bodega > 0
+     🟡 AMARILLO: Total ≥ reqTotal  Y  bodega == 0
+     🔴 ROJO   : Total <  reqTotal
+  ══════════════════════════════════════════════════════════ */
+  const aguaBodega   = parseFloat(document.getElementById('reserva_agua_litros')?.value) || 0;
+  const aguaFlota    = invDisp - aguaBodega;   // lo que aportan los camiones
+  const ataqueOk     = Qt  >= volMin;
+  const reservaOk    = Q3  >= volMin;
+  const totalAguaSuf = invDisp >= reqTotal;
 
-  /* Veredicto global: todos deben estar ok */
-  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
+  // Nivel semáforo agua
+  let nivelAgua, textoAgua, mensajeAgua;
+  if (totalAguaSuf && aguaBodega > 0) {
+    nivelAgua   = 'green';
+    textoAgua   = 'OPERACIÓN SEGURA';
+    mensajeAgua = `OPERACIÓN SEGURA: Capacidad de ataque y continuidad garantizada (${invDisp.toLocaleString('es-CO')} L disponibles).`;
+  } else if (totalAguaSuf && aguaBodega === 0) {
+    nivelAgua   = 'amber';
+    textoAgua   = 'AUTONOMÍA LIMITADA';
+    mensajeAgua = `OPERACIÓN LIMITADA: Capacidad de ataque inicial disponible, pero SIN RESERVA TÉCNICA para reabastecimiento.`;
+  } else {
+    nivelAgua   = 'red';
+    textoAgua   = 'RIESGO OPERACIONAL';
+    mensajeAgua = `CAPACIDAD DEGRADADA: Recursos insuficientes para cubrir el Área Crítica normada (${invDisp.toLocaleString('es-CO')} L < ${reqTotal.toFixed(0)} L requeridos).`;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     JERARQUÍA DE 3 NIVELES — ESPUMA (Concentrado AFFF)
+     ─────────────────────────────────────────────────────────
+     espumaBodega = valor del input reserva_espuma_galones (en L)
+     espumaFlota  = espuma en camiones operativos
+     ──────────────────────────────────────────────────────────
+     🟢 VERDE  : Total ≥ concLitros  Y  bodega > 0
+     🟡 AMARILLO: Total ≥ concLitros  Y  bodega == 0
+     🔴 ROJO   : Total <  concLitros
+  ══════════════════════════════════════════════════════════ */
+  const espumaBodegaL  = espumaDispL;   // ya incluye lo de bodega del input
+  const totalEspumaSuf = espumaDispL >= concLitros;
+
+  // Nivel semáforo espuma
+  let nivelEspuma, textoEspuma;
+  const _espumaBodegaGalInput = parseFloat(document.getElementById('reserva_espuma_galones')?.value) || 0;
+  if (totalEspumaSuf && _espumaBodegaGalInput > 0) {
+    nivelEspuma  = 'green';
+    textoEspuma  = 'ESPUMA OK';
+  } else if (totalEspumaSuf && _espumaBodegaGalInput === 0) {
+    nivelEspuma  = 'amber';
+    textoEspuma  = 'SIN RESERVA AFFF';
+  } else {
+    nivelEspuma  = 'red';
+    textoEspuma  = 'DÉFICIT ESPUMA';
+  }
+
+  /* ── Veredicto global (el peor de los niveles manda) ─── */
+  const niveles  = [nivelAgua, nivelEspuma, ataqueOk ? 'green' : 'red', reservaOk ? 'green' : 'red'];
+  const hayRojo  = niveles.includes('red');
+  const hayAmbar = niveles.includes('amber');
+  const nivelGlobal = hayRojo ? 'red' : hayAmbar ? 'amber' : 'green';
+
+  const allOk        = nivelGlobal === 'green';
+  const inventarioOk = nivelAgua   !== 'red';
+  const espumaOk     = nivelEspuma !== 'red';
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
     concLitros, concGalones,
     volMin, invDisp, espumaDispGal, espumaDispL,
     ataqueOk, reservaOk, inventarioOk, espumaOk, allOk,
+    nivelGlobal, nivelAgua, nivelEspuma,
   };
 
   /* ════ RENDER ════════════════════════════════════════════ */
   document.getElementById('dec-empty').style.display   = 'none';
   document.getElementById('dec-content').style.display = 'block';
 
-  /* ── Veredicto principal ──────────────────────────────── */
+  /* ── Veredicto principal (banner) ─────────────────────── */
   const vBanner = document.getElementById('verdict-banner');
   const vMain   = document.getElementById('verdict-main');
   const vSub    = document.getElementById('verdict-sub');
-  vBanner.className = 'verdict-banner ' + (allOk ? 'operativo' : 'degradada');
-  vMain.className   = 'verdict-main '   + (allOk ? 'operativo' : 'degradada');
-  vMain.textContent = allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA';
-  document.getElementById('verdict-icon').textContent = allOk ? '✅' : '🔴';
+  const claseVeredicto = nivelGlobal === 'green' ? 'operativo' : nivelGlobal === 'amber' ? 'limitada' : 'degradada';
+  vBanner.className = 'verdict-banner ' + claseVeredicto;
+  vMain.className   = 'verdict-main '   + claseVeredicto;
+
+  const iconoVeredicto = nivelGlobal === 'green' ? '✅' : nivelGlobal === 'amber' ? '⚠️' : '🔴';
+  const textoVeredicto = nivelGlobal === 'green' ? 'OPERACIÓN SEGURA'
+                       : nivelGlobal === 'amber' ? 'AUTONOMÍA LIMITADA'
+                       : 'CAPACIDAD DEGRADADA';
+
+  vMain.textContent = textoVeredicto;
+  document.getElementById('verdict-icon').textContent = iconoVeredicto;
   document.getElementById('verdict-cat').textContent  = cat;
 
-  if (!window.inventarioReal) {
+  // Mensaje descriptivo según nivel global
+  if (!window.inventarioReal && invDisp === 0) {
     vSub.innerHTML = '<span style="color:var(--amber)">⏳ Esperando datos de inventario desde Supabase…</span>';
-  } else if (allOk) {
-    vSub.textContent = `Bodega (${invDisp.toLocaleString('es-CO')} L) cubre el requerimiento total para Cat ${cat}`;
+  } else if (nivelGlobal === 'green') {
+    vSub.textContent = mensajeAgua;
+  } else if (nivelGlobal === 'amber') {
+    // Recopilar advertencias ámbar
+    const avisos = [];
+    if (nivelAgua   === 'amber') avisos.push('Sin reserva de agua en bodega');
+    if (nivelEspuma === 'amber') avisos.push('Sin concentrado AFFF en bodega');
+    vSub.innerHTML = `<span style="color:var(--amber)">⚠ OPERACIÓN LIMITADA: ${avisos.join(' · ')}. Capacidad de ataque disponible, SIN RESERVA TÉCNICA para reabastecimiento.</span>`;
   } else {
     const causas = [];
-    if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
-    if (!inventarioOk) causas.push(`Bodega (${invDisp.toLocaleString()} L) < req (${reqTotal.toFixed(0)} L)`);
-    if (!espumaOk)     causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
-    vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
+    if (!ataqueOk)    causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
+    if (nivelAgua === 'red')   causas.push(mensajeAgua);
+    if (nivelEspuma === 'red') causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
+    vSub.innerHTML = causas.map(x => `<span style="color:var(--red)">✗ ${x}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
   /* ── Semáforo: Ataque Inicial ────────────────────────── */
   _semaforo('ataque',
     fmtLmin(Qt), fmtGalMin(Qt),
-    ataqueOk,
+    ataqueOk ? 'green' : 'red',
     ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO',
     '🔥'
   );
@@ -1369,21 +1431,17 @@ function calcular(silent) {
   /* ── Semáforo: Reserva Q3 ────────────────────────────── */
   _semaforo('reserva',
     fmtLmin(Q3), fmtGalMin(Q3),
-    reservaOk,
+    reservaOk ? 'green' : 'red',
     reservaOk ? 'CUMPLE 200%' : 'INSUFICIENTE',
     '🚒'
   );
 
-  /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
-  // invDisp ahora viene SIEMPRE del input → nunca "Sin datos" si el campo tiene valor
-  const invLabel = invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos';
-  const invEstado = invDisp > 0
-    ? (inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT')
-    : 'SIN DATOS';
+  /* ── Semáforo: Inventario total de agua ──────────────── */
   _semaforo('total',
-    invLabel, fmtGal(invDisp),
-    inventarioOk,
-    invEstado,
+    invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos',
+    fmtGal(invDisp),
+    nivelAgua,
+    textoAgua,
     '💧'
   );
 
@@ -1397,12 +1455,17 @@ function calcular(silent) {
   document.getElementById('q3-formula-str').textContent =
     `Qt=${Qt.toFixed(1)} L/min  ×2  →  Q₃=${Q3.toFixed(1)} L/min  →  Req=${reqTotal.toFixed(1)} L`;
 
-  /* ── Concentrado espumante ────────────────────────────── */
+  /* ── Concentrado espumante con indicador de nivel ───────── */
   const concEl = document.getElementById('conc-result');
   if (concEl) {
+    const espColorNivel = nivelEspuma === 'green' ? 'var(--green-bright)'
+                        : nivelEspuma === 'amber' ? 'var(--amber)'
+                        : 'var(--red)';
     const dispStr = espumaDispL > 0
-      ? `<span style="color:var(--text-muted);font-size:10px"> · Bodega: <span style="color:${espumaOk?'var(--green-bright)':'var(--red)'}">${espumaDispL.toFixed(0)} L / ${espumaDispGal.toFixed(1)} Gal</span></span>`
-      : '';
+      ? `<span style="color:var(--text-muted);font-size:10px"> · Bodega: <span style="color:${espColorNivel}">${espumaDispL.toFixed(0)} L / ${espumaDispGal.toFixed(1)} Gal</span>`
+        + (_espumaBodegaGalInput === 0 && totalEspumaSuf ? ` <span style="color:var(--amber)">⚠ Sin bodega</span>` : '')
+        + `</span>`
+      : `<span style="color:var(--red);font-size:10px"> · Sin espuma registrada</span>`;
     concEl.innerHTML =
       `<span style="color:var(--amber)">${concLitros.toFixed(1)} L</span>`
       + ` <span style="color:var(--text-muted)">|</span> `
@@ -1417,20 +1480,23 @@ function calcular(silent) {
   /* ── Traza de cálculo ─────────────────────────────────── */
   _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGalones, invDisp);
 
-  if (!silent) showToast('✓ Motor ejecutado — ' + (allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA'));
+  if (!silent) showToast('✓ Motor ejecutado — ' + textoVeredicto);
 }
 
 /* ════════════════════════════════════════════════════════════
    _semaforo() — Renderiza un bloque semáforo
 ════════════════════════════════════════════════════════════ */
-function _semaforo(id, txtL, txtG, ok, statusTxt, icon) {
-  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + (ok ? 'green' : 'red');
+function _semaforo(id, txtL, txtG, nivel, statusTxt, icon) {
+  // nivel: 'green' | 'amber' | 'red'
+  const lampCls  = nivel === 'green' ? 'green' : nivel === 'amber' ? 'amber' : 'red';
+  const statCls  = nivel === 'green' ? 'ok'    : nivel === 'amber' ? 'warn'  : 'fail';
+  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + lampCls;
   document.getElementById('lamp-' + id).textContent    = icon;
   document.getElementById('sem-' + id + '-l').textContent = txtL;
   document.getElementById('sem-' + id + '-g').textContent = txtG;
   const st = document.getElementById('sem-' + id + '-status');
   st.textContent = statusTxt;
-  st.className   = 'sem-status ' + (ok ? 'ok' : 'fail');
+  st.className   = 'sem-status ' + statCls;
 }
 
 /* ════════════════════════════════════════════════════════════
