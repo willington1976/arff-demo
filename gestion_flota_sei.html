@@ -929,6 +929,10 @@ async function guardarBodega() {
     return;
   }
 
+  // Extraer el UUID de la fila encontrada — filtrar por id es más seguro que por oaci
+  const estacionId = checkData[0].id;
+  console.log('[guardarBodega] Estación encontrada → id:', estacionId, '| oaci:', checkData[0].oaci);
+
   // ── Paso 3: Construir payload ────────────────────────────
   window._bodegaGuardando = true;
   const btn     = document.getElementById('bodegaSaveBtn');
@@ -958,7 +962,7 @@ async function guardarBodega() {
   const { error: updErr } = await supabaseClient
     .from('estaciones_sei')
     .update(payload)
-    .eq('oaci', oaciLimpio);
+    .eq('id', estacionId);
 
   btn.classList.remove('saving');
   btn.innerHTML = svgIcon + ' Guardar en Supabase';
@@ -974,7 +978,7 @@ async function guardarBodega() {
   const { data: confirmData } = await supabaseClient
     .from('estaciones_sei')
     .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg')
-    .eq('oaci', oaciLimpio)
+    .eq('id', estacionId)
     .limit(1);
 
   console.log('[guardarBodega] Confirmación post-UPDATE:', confirmData);
