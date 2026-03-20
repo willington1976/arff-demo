@@ -1045,17 +1045,16 @@ async function obtenerInventarioReal() {
       agua:   aguaL,    // Litros de agua en bodega
       espuma: espumaG,  // Galones de concentrado en bodega
     };
-    // Si Supabase devolvió 0 agua pero Módulo 01 tiene datos, usar esos
-    if (aguaL === 0 && window._flota && window._flota.agua_litros > 0) {
-      window.inventarioReal.agua   = window._flota.agua_litros;
-      window.inventarioReal.espuma = window._flota.espuma_gal;
-      // Poblar también los inputs con los datos de flota
-      const ia = document.getElementById('reserva_agua_litros');
-      const ie = document.getElementById('reserva_espuma_galones');
-      if (ia && ia.value === '') ia.value = window._flota.agua_litros;
-      if (ie && ie.value === '') ie.value = window._flota.espuma_gal;
-      console.log('[M03] inventarioReal enriquecido con datos de flota');
-    }
+    // Guardar en inventarioReal para compatibilidad (agua de bodega Supabase)
+    window.inventarioReal.agua   = aguaL;
+    window.inventarioReal.espuma = espumaG;
+    // El input de bodega muestra el valor de Supabase (solo bodega, no flota)
+    // La suma flota+bodega se hace en calcular() leyendo localStorage para flota
+    const ia = document.getElementById('reserva_agua_litros');
+    const ie = document.getElementById('reserva_espuma_galones');
+    if (ia && (ia.value === '' || ia.value === '0')) ia.value = aguaL > 0 ? aguaL : '';
+    if (ie && (ie.value === '' || ie.value === '0')) ie.value = espumaG > 0 ? espumaG : '';
+    console.log('[M03] Bodega Supabase → agua:', aguaL, 'L | espuma:', espumaG, 'gal');
 
     _supaStatus('ok', oaciGuardado + ' · live');
     showToast('✓ Inventario cargado desde Supabase — ' + oaciGuardado);
@@ -1279,25 +1278,40 @@ function calcular(silent) {
   const concLitros = reqTotal * concFrac;      // L de concentrado puro
   const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
-  /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
-     Lee el valor actual del campo en pantalla para que cualquier
-     edición manual actualice los semáforos en tiempo real.
-     Prioridad: input editable > window.inventarioReal > window._flota > 0 */
-  const _inpAgua    = document.getElementById('reserva_agua_litros');
-  const _inpEspuma  = document.getElementById('reserva_espuma_galones');
+  /* ── Inventario disponible ─────────────────────────────────────────────
+     aguaFlota   = camiones operativos (Módulo 01 vía localStorage 'sei_agua_camiones_litros')
+     aguaBodega  = input editable en pantalla (reserva_agua_litros)
+     invDisp     = aguaFlota + aguaBodega  ← SIEMPRE la suma real
+     Así el Total Q₃ refleja ambas fuentes y el input de bodega
+     actualiza el veredicto en tiempo real.
+  ──────────────────────────────────────────────────────────────────────── */
+  const _inpAgua   = document.getElementById('reserva_agua_litros');
+  const _inpEspuma = document.getElementById('reserva_espuma_galones');
 
-  const invDisp = _inpAgua && _inpAgua.value !== ''
-                ? (parseFloat(_inpAgua.value) || 0)
-                : window.inventarioReal
-                  ? window.inventarioReal.agua
-                  : (window._flota ? window._flota.agua_litros : 0);
+  // Agua de camiones operativos: desde localStorage (escrito por Módulo 01)
+  // Intentar varias claves en orden de prioridad
+  const aguaFlota = parseFloat(localStorage.getItem('sei_agua_camiones_litros'))
+                 || parseFloat(localStorage.getItem('sei_agua_total_litros'))
+                 || (window.inventarioReal ? window.inventarioReal.agua : 0)
+                 || (window._flota ? window._flota.cam_litros : 0)
+                 || 0;
 
-  const espumaDispGal = _inpEspuma && _inpEspuma.value !== ''
-                      ? (parseFloat(_inpEspuma.value) || 0)
-                      : window.inventarioReal
-                        ? window.inventarioReal.espuma
-                        : (window._flota ? window._flota.espuma_gal : 0);
-  const espumaDispL = espumaDispGal * L_PER_GAL;
+  // Agua de bodega: input editable en pantalla
+  const aguaBodega = parseFloat(_inpAgua?.value) || 0;
+
+  // Total disponible = flota operativa + bodega
+  const invDisp = aguaFlota + aguaBodega;
+
+  // Espuma: mismo patrón — camiones (localStorage) + bodega (input)
+  const espumaFlotaGal = parseFloat(localStorage.getItem('sei_espuma_camiones_gal'))
+                      || (window._flota ? window._flota.espuma_gal : 0)
+                      || 0;
+  const espumaBodegaRaw = parseFloat(_inpEspuma?.value) || 0;
+  const espumaDispGal   = espumaFlotaGal + espumaBodegaRaw;
+  const espumaDispL     = espumaDispGal * L_PER_GAL;
+
+  console.log('[calcular] aguaFlota:', aguaFlota, 'L | aguaBodega:', aguaBodega,
+              'L | invDisp:', invDisp, 'L | espumaDisp:', espumaDispGal, 'gal');
 
   /* ── Norma RAC 14 ─────────────────────────────────────── */
   const norma  = RAC14[cat];
@@ -1313,8 +1327,7 @@ function calcular(silent) {
      🟡 AMARILLO: Total ≥ reqTotal  Y  bodega == 0
      🔴 ROJO   : Total <  reqTotal
   ══════════════════════════════════════════════════════════ */
-  const aguaBodega   = parseFloat(document.getElementById('reserva_agua_litros')?.value) || 0;
-  const aguaFlota    = invDisp - aguaBodega;   // lo que aportan los camiones
+  // aguaFlota y aguaBodega ya calculados arriba — reutilizar directamente
   const ataqueOk     = Qt  >= volMin;
   const reservaOk    = Q3  >= volMin;
   const totalAguaSuf = invDisp >= reqTotal;
@@ -1350,7 +1363,7 @@ function calcular(silent) {
 
   // Nivel semáforo espuma
   let nivelEspuma, textoEspuma;
-  const _espumaBodegaGalInput = parseFloat(document.getElementById('reserva_espuma_galones')?.value) || 0;
+  const _espumaBodegaGalInput = espumaBodegaRaw;  // ya calculado arriba
   if (totalEspumaSuf && _espumaBodegaGalInput > 0) {
     nivelEspuma  = 'green';
     textoEspuma  = 'ESPUMA OK';
