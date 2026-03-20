@@ -489,7 +489,7 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
       <div class="bodega-hsub">Inventario físico de bodega · UPDATE automático → estaciones_sei</div>
       <button class="bodega-save-btn" id="bodegaSaveBtn" onclick="guardarBodega()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Guardar en Supabase
+        Guardar 
       </button>
     </div>
     <div class="bodega-fields" style="grid-template-columns:1fr 1fr 1fr 1fr;">
@@ -695,9 +695,16 @@ const RAC14_REQ = {
 window.onSEIReady = async function(session) {
   currentRol   = session.rol;
   currentEstId = session.estacion_id;
-  currentOaci  = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
-  // Fallback: si la sesión no trajo OACI, leer ?oaci= de la URL
-  if (!currentOaci) { const _p = new URLSearchParams(window.location.search).get('oaci'); if (_p) currentOaci = _p.trim().toUpperCase(); }
+
+  // Paso 1: leer ?oaci= de la URL (viene cuando el usuario regresa desde otro módulo)
+  const urlParams    = new URLSearchParams(window.location.search);
+  const oaciDesdeUrl = urlParams.get('oaci');
+  if (oaciDesdeUrl) {
+    currentOaci = oaciDesdeUrl.toUpperCase();
+  } else {
+    // Sin parámetro en URL: usar el OACI del perfil de sesión
+    currentOaci = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
+  }
 
   if (currentOaci) {
     localStorage.setItem('currentOaci',       currentOaci);
@@ -710,6 +717,7 @@ window.onSEIReady = async function(session) {
   document.getElementById('adminBase').textContent = currentOaci || '—';
 
   if (currentOaci) {
+    // Disparo automático: carga la estación sin que el usuario haga nada
     document.getElementById('searchInput').value = currentOaci;
     actualizarEstacionBar(currentOaci);
     await cargarBodegaDesdeSupabase(currentOaci);
