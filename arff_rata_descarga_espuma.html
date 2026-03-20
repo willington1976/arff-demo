@@ -1317,120 +1317,109 @@ function calcular(silent) {
   const norma  = RAC14[cat];
   const volMin = norma.volMin;
 
-  /* ══════════════════════════════════════════════════════════
-     JERARQUÍA DE 3 NIVELES — AGUA (Inventario total)
-     ─────────────────────────────────────────────────────────
-     Bodega = valor del input reserva_agua_litros
-     Flota  = agua en camiones operativos (calculada arriba)
-     ──────────────────────────────────────────────────────────
-     🟢 VERDE  : Total ≥ reqTotal  Y  bodega > 0
-     🟡 AMARILLO: Total ≥ reqTotal  Y  bodega == 0
-     🔴 ROJO   : Total <  reqTotal
-  ══════════════════════════════════════════════════════════ */
-  // aguaFlota y aguaBodega ya calculados arriba — reutilizar directamente
-  const ataqueOk     = Qt  >= volMin;
-  const reservaOk    = Q3  >= volMin;
+  /* ════════════════════════════════════════════════════════
+     MOTOR DE ANÁLISIS DE RIESGOS
+     Array de alertas — se reconstruye en cada cálculo.
+     Cada alerta: { nivel: 'red'|'amber', texto: string }
+  ════════════════════════════════════════════════════════ */
+  const alertas = [];
+
+  /* ── Norma: Ataque y Reserva Q3 ─────────────────────── */
+  const ataqueOk  = Qt >= volMin;
+  const reservaOk = Q3 >= volMin;
+  if (!ataqueOk)  alertas.push({ nivel: 'red',
+    texto: `❌ Qt (${Qt.toFixed(0)} L/min) insuficiente — mínimo RAC 14 Cat ${cat}: ${volMin.toLocaleString('es-CO')} L/min` });
+  if (!reservaOk) alertas.push({ nivel: 'red',
+    texto: `❌ Reserva Q₃ (${Q3.toFixed(0)} L/min) < mínimo norma Cat ${cat}` });
+
+  /* ── Agua (Flota + Bodega) vs Requerimiento Q3 ──────── */
   const totalAguaSuf = invDisp >= reqTotal;
-
-  // Nivel semáforo agua
-  let nivelAgua, textoAgua, mensajeAgua;
-  if (totalAguaSuf && aguaBodega > 0) {
-    nivelAgua   = 'green';
-    textoAgua   = 'OPERACIÓN SEGURA';
-    mensajeAgua = `OPERACIÓN SEGURA: Capacidad de ataque y continuidad garantizada (${invDisp.toLocaleString('es-CO')} L disponibles).`;
-  } else if (totalAguaSuf && aguaBodega === 0) {
-    nivelAgua   = 'amber';
-    textoAgua   = 'AUTONOMÍA LIMITADA';
-    mensajeAgua = `OPERACIÓN LIMITADA: Capacidad de ataque inicial disponible, pero SIN RESERVA TÉCNICA para reabastecimiento.`;
-  } else {
-    nivelAgua   = 'red';
-    textoAgua   = 'RIESGO OPERACIONAL';
-    mensajeAgua = `CAPACIDAD DEGRADADA: Recursos insuficientes para cubrir el Área Crítica normada (${invDisp.toLocaleString('es-CO')} L < ${reqTotal.toFixed(0)} L requeridos).`;
+  if (!totalAguaSuf) {
+    alertas.push({ nivel: 'red',
+      texto: `❌ Déficit de Agua para Categoría ${cat}: ${invDisp.toLocaleString('es-CO')} L disponibles vs ${reqTotal.toFixed(0)} L requeridos` });
+  } else if (aguaBodega === 0) {
+    alertas.push({ nivel: 'amber',
+      texto: `⚠️ Sin Reserva de Agua en bodega (Sostenibilidad limitada) — ataque inicial con flota: ${aguaFlota.toLocaleString('es-CO')} L` });
   }
 
-  /* ══════════════════════════════════════════════════════════
-     JERARQUÍA DE 3 NIVELES — ESPUMA (Concentrado AFFF)
-     ─────────────────────────────────────────────────────────
-     espumaBodega = valor del input reserva_espuma_galones (en L)
-     espumaFlota  = espuma en camiones operativos
-     ──────────────────────────────────────────────────────────
-     🟢 VERDE  : Total ≥ concLitros  Y  bodega > 0
-     🟡 AMARILLO: Total ≥ concLitros  Y  bodega == 0
-     🔴 ROJO   : Total <  concLitros
-  ══════════════════════════════════════════════════════════ */
-  const espumaBodegaL  = espumaDispL;   // ya incluye lo de bodega del input
+  /* ── Espuma AFFF (Flota + Bodega) vs Requerimiento ──── */
   const totalEspumaSuf = espumaDispL >= concLitros;
-
-  // Nivel semáforo espuma
-  let nivelEspuma, textoEspuma;
-  const _espumaBodegaGalInput = espumaBodegaRaw;  // ya calculado arriba
-  if (totalEspumaSuf && _espumaBodegaGalInput > 0) {
-    nivelEspuma  = 'green';
-    textoEspuma  = 'ESPUMA OK';
-  } else if (totalEspumaSuf && _espumaBodegaGalInput === 0) {
-    nivelEspuma  = 'amber';
-    textoEspuma  = 'SIN RESERVA AFFF';
-  } else {
-    nivelEspuma  = 'red';
-    textoEspuma  = 'DÉFICIT ESPUMA';
+  if (!totalEspumaSuf) {
+    alertas.push({ nivel: 'red',
+      texto: `❌ Déficit de Espuma AFFF para Categoría ${cat}: ${espumaDispL.toFixed(0)} L disponibles vs ${concLitros.toFixed(0)} L requeridos (${currentConc}%)` });
+  } else if (espumaBodegaRaw === 0) {
+    alertas.push({ nivel: 'amber',
+      texto: `⚠️ Sin Reserva de Espuma en bodega (Sostenibilidad limitada) — concentrado solo en camiones` });
   }
 
-  /* ── Veredicto global (el peor de los niveles manda) ─── */
-  const niveles  = [nivelAgua, nivelEspuma, ataqueOk ? 'green' : 'red', reservaOk ? 'green' : 'red'];
-  const hayRojo  = niveles.includes('red');
-  const hayAmbar = niveles.includes('amber');
+  /* ── PQS (Polvo Químico Seco) ────────────────────────── */
+  // PQS mínimo según RAC 14 Cat (kg): Cat 1-2: 45 | Cat 3-5: 90 | Cat 6-9: 135 | Cat 10: 180
+  const PQS_MIN = { 1:45, 2:45, 3:90, 4:90, 5:90, 6:135, 7:135, 8:135, 9:135, 10:180 };
+  const pqsRequerido = PQS_MIN[cat] || 90;
+  const pqsDisponible = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
+                     || (window._flota ? window._flota.pqs_kg : 0)
+                     || 0;
+  if (pqsDisponible < pqsRequerido) {
+    alertas.push({ nivel: 'red',
+      texto: `❌ Déficit PQS en máquinas — ${pqsDisponible.toFixed(0)} kg vs ${pqsRequerido} kg requeridos (Cat ${cat})` });
+  }
+
+  /* ── Veredicto global ────────────────────────────────── */
+  const hayRojo  = alertas.some(a => a.nivel === 'red');
+  const hayAmbar = alertas.some(a => a.nivel === 'amber');
   const nivelGlobal = hayRojo ? 'red' : hayAmbar ? 'amber' : 'green';
 
+  // Variables de compatibilidad para el resto de la función
+  const nivelAgua    = !totalAguaSuf  ? 'red' : aguaBodega    === 0 ? 'amber' : 'green';
+  const nivelEspuma  = !totalEspumaSuf ? 'red' : espumaBodegaRaw === 0 ? 'amber' : 'green';
+  const textoAgua    = nivelAgua === 'green' ? 'OPERACIÓN SEGURA' : nivelAgua === 'amber' ? 'AUTONOMÍA LIMITADA' : 'RIESGO OPERACIONAL';
   const allOk        = nivelGlobal === 'green';
   const inventarioOk = nivelAgua   !== 'red';
   const espumaOk     = nivelEspuma !== 'red';
+  const _espumaBodegaGalInput = espumaBodegaRaw;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
     concLitros, concGalones,
     volMin, invDisp, espumaDispGal, espumaDispL,
     ataqueOk, reservaOk, inventarioOk, espumaOk, allOk,
-    nivelGlobal, nivelAgua, nivelEspuma,
+    nivelGlobal, nivelAgua, nivelEspuma, alertas,
   };
 
   /* ════ RENDER ════════════════════════════════════════════ */
   document.getElementById('dec-empty').style.display   = 'none';
   document.getElementById('dec-content').style.display = 'block';
 
-  /* ── Veredicto principal (banner) ─────────────────────── */
+  /* ── Banner de veredicto ─────────────────────────────── */
   const vBanner = document.getElementById('verdict-banner');
   const vMain   = document.getElementById('verdict-main');
   const vSub    = document.getElementById('verdict-sub');
-  const claseVeredicto = nivelGlobal === 'green' ? 'operativo' : nivelGlobal === 'amber' ? 'limitada' : 'degradada';
+
+  const claseVeredicto  = nivelGlobal === 'green' ? 'operativo' : nivelGlobal === 'amber' ? 'limitada' : 'degradada';
+  const iconoVeredicto  = nivelGlobal === 'green' ? '✅' : nivelGlobal === 'amber' ? '⚠️' : '🔴';
+  const textoVeredicto  = nivelGlobal === 'green' ? 'OPERACIÓN SEGURA'
+                        : nivelGlobal === 'amber' ? 'AUTONOMÍA LIMITADA'
+                        : 'CAPACIDAD DEGRADADA';
+
   vBanner.className = 'verdict-banner ' + claseVeredicto;
   vMain.className   = 'verdict-main '   + claseVeredicto;
-
-  const iconoVeredicto = nivelGlobal === 'green' ? '✅' : nivelGlobal === 'amber' ? '⚠️' : '🔴';
-  const textoVeredicto = nivelGlobal === 'green' ? 'OPERACIÓN SEGURA'
-                       : nivelGlobal === 'amber' ? 'AUTONOMÍA LIMITADA'
-                       : 'CAPACIDAD DEGRADADA';
-
   vMain.textContent = textoVeredicto;
   document.getElementById('verdict-icon').textContent = iconoVeredicto;
   document.getElementById('verdict-cat').textContent  = cat;
 
-  // Mensaje descriptivo según nivel global
-  if (!window.inventarioReal && invDisp === 0) {
+  /* ── Lista de alertas en el banner ──────────────────────
+     Cada alerta aparece en su propio renglón con color
+     según severidad: rojo para ❌, ámbar para ⚠️          */
+  if (!window.inventarioReal && invDisp === 0 && alertas.length === 0) {
     vSub.innerHTML = '<span style="color:var(--amber)">⏳ Esperando datos de inventario desde Supabase…</span>';
-  } else if (nivelGlobal === 'green') {
-    vSub.textContent = mensajeAgua;
-  } else if (nivelGlobal === 'amber') {
-    // Recopilar advertencias ámbar
-    const avisos = [];
-    if (nivelAgua   === 'amber') avisos.push('Sin reserva de agua en bodega');
-    if (nivelEspuma === 'amber') avisos.push('Sin concentrado AFFF en bodega');
-    vSub.innerHTML = `<span style="color:var(--amber)">⚠ OPERACIÓN LIMITADA: ${avisos.join(' · ')}. Capacidad de ataque disponible, SIN RESERVA TÉCNICA para reabastecimiento.</span>`;
+  } else if (alertas.length === 0) {
+    vSub.innerHTML = '<span style="color:var(--green-bright)">✓ Todos los parámetros cumplen el mínimo RAC 14 · Cat '
+      + cat + ' · ' + invDisp.toLocaleString('es-CO') + ' L disponibles</span>';
   } else {
-    const causas = [];
-    if (!ataqueOk)    causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
-    if (nivelAgua === 'red')   causas.push(mensajeAgua);
-    if (nivelEspuma === 'red') causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
-    vSub.innerHTML = causas.map(x => `<span style="color:var(--red)">✗ ${x}</span>`).join(' &nbsp;·&nbsp; ');
+    vSub.innerHTML = alertas.map(a => {
+      const col = a.nivel === 'red' ? 'var(--red)' : 'var(--amber)';
+      return `<div style="color:${col};line-height:1.6">${a.texto}</div>`;
+    }).join('');
   }
 
   /* ── Semáforo: Ataque Inicial ────────────────────────── */
