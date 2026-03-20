@@ -780,42 +780,72 @@ async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
 
 /* ═══════════════════════════════════════════════════════════
    BODEGA Q3 — CARGA DESDE SUPABASE
+   Orden de ejecución GARANTIZADO:
+     1. SELECT incluye categoria_rac + reserva_pqs_kg
+     2. Inputs rellenados en pantalla
+     3. localStorage escrito con la categoría → ANTES del semáforo
+     4. Conversiones visuales (sin re-disparar semáforo)
+     5. cargarCapacidadOperativa(oaci) llamado directamente con oaci
+        para que el "Requerido RAC14 (L)" aparezca de inmediato
 ═══════════════════════════════════════════════════════════ */
 async function cargarBodegaDesdeSupabase(oaci) {
   if (!oaci) return;
+
   const { data, error } = await supabaseClient
     .from('estaciones_sei')
     .select('reserva_agua_litros, reserva_espuma_galones, reserva_pqs_kg, nivel_eficiencia_estacion, concentracion_espuma_estacion, categoria_rac, categoria_oaci')
     .eq('oaci', oaci)
     .maybeSingle();
 
-  if (error) { console.error('Error bodega:', error.message); return; }
-  if (!data)  return;
-
-  /* ── Rellenar inputs de bodega ── */
-  document.getElementById('bq_agua_l').value    = data.reserva_agua_litros    ?? 0;
-  document.getElementById('bq_espuma_gal').value= data.reserva_espuma_galones ?? 0;
-  document.getElementById('bq_pqs_kg').value    = data.reserva_pqs_kg         ?? 0;
-  if (data.nivel_eficiencia_estacion)     document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
-  if (data.concentracion_espuma_estacion) document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
-
-  /* ── Persistir categoría RAC en localStorage ────────────────────────────────
-     'arff_cat_aeropuerto' es la clave canónica de la categoría leída desde
-     la BD (tabla estaciones_sei.categoria_rac).
-     'arff_cat' es la clave que consume cargarCapacidadOperativa() y el Motor
-     de Decisión — se actualiza con el valor más preciso disponible.          */
-  const catRac  = data.categoria_rac  ?? data.categoria_oaci ?? null;
-  if (catRac) {
-    localStorage.setItem('arff_cat_aeropuerto', String(catRac));
-    localStorage.setItem('arff_cat',            String(catRac));   // consumida por semáforo y Motor de Decisión
+  if (error) {
+    console.error('[Bodega] Error SELECT estaciones_sei:', error.message);
+    return;
+  }
+  if (!data) {
+    console.warn('[Bodega] Sin registro para OACI:', oaci);
+    return;
   }
 
-  /* ── Conversiones visuales + semáforo inmediato ── */
-  actualizarConversionBodega();   // actualiza los textos de conversión
-  dispararActualizacionSemaforo(); // → cargarCapacidadOperativa() con la cat ya en localStorage
+  /* ── PASO 1: Rellenar inputs ─────────────────────────── */
+  document.getElementById('bq_agua_l').value     = data.reserva_agua_litros    ?? 0;
+  document.getElementById('bq_espuma_gal').value = data.reserva_espuma_galones ?? 0;
+  document.getElementById('bq_pqs_kg').value     = data.reserva_pqs_kg         ?? 0;
+  if (data.nivel_eficiencia_estacion)
+    document.getElementById('bq_nivel').value = data.nivel_eficiencia_estacion;
+  if (data.concentracion_espuma_estacion)
+    document.getElementById('bq_conc').value  = String(data.concentracion_espuma_estacion);
+
+  /* ── PASO 2: Persistir categoría en localStorage ────────
+     CRÍTICO: debe ocurrir ANTES de llamar al semáforo.
+     - categoria_rac  (int4) → columna nueva, fuente canónica
+     - categoria_oaci          → columna legada, fallback       */
+  const catNum = (data.categoria_rac  != null) ? parseInt(data.categoria_rac)
+               : (data.categoria_oaci != null)  ? parseInt(data.categoria_oaci)
+               : null;
+
+  if (catNum && catNum >= 1 && catNum <= 10) {
+    localStorage.setItem('arff_cat_aeropuerto', String(catNum)); // clave canónica
+    localStorage.setItem('arff_cat',            String(catNum)); // compatibilidad Motor de Decisión
+    console.log('[Bodega] Categoría RAC persistida → Cat', catNum,
+                '| Req.', RAC14_REQ[catNum] ?? 'sin tabla', 'L');
+  } else {
+    console.warn('[Bodega] categoria_rac sin valor válido en Supabase:', data.categoria_rac);
+  }
+
+  /* ── PASO 3: Conversiones sin re-disparar semáforo ───── */
+  const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
+  const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
+  document.getElementById('bq_agua_conv').textContent   = (aguaL / L_PER_GAL).toFixed(0) + ' gal';
+  document.getElementById('bq_espuma_conv').textContent = (espumaG * L_PER_GAL).toFixed(0) + ' L';
+
+  /* ── PASO 4: Semáforo — ahora sí, con cat ya en localStorage ── */
+  cargarCapacidadOperativa(oaci);
 }
 
-/* ─── Actualizaciones de conversión visibles al usuario ────── */
+/* ─── Conversión en tiempo real al escribir en los inputs ───
+   Llamada por oninput/onchange de bq_agua_l y bq_espuma_gal.
+   No llama al semáforo directamente; usa dispararActualizacionSemaforo()
+   para respetar la guarda de currentOaci.                     */
 function actualizarConversionBodega() {
   const aguaL   = parseFloat(document.getElementById('bq_agua_l').value)    || 0;
   const espumaG = parseFloat(document.getElementById('bq_espuma_gal').value) || 0;
@@ -826,6 +856,9 @@ function actualizarConversionBodega() {
 
 /* ═══════════════════════════════════════════════════════════
    GUARDAR BODEGA → UPDATE Supabase estaciones_sei
+   Campos: reserva_agua_litros, reserva_espuma_galones,
+           reserva_pqs_kg, nivel_eficiencia_estacion,
+           concentracion_espuma_estacion, categoria_rac
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
   if (!currentOaci) { toast('No hay estación seleccionada', 'err'); return; }
@@ -839,34 +872,40 @@ async function guardarBodega() {
   const nivel   = document.getElementById('bq_nivel').value;
   const conc    = parseInt(document.getElementById('bq_conc').value);
 
+  /* Leer categoría del localStorage (puede venir del Módulo 01 o de esta misma carga) */
+  const catGuardada = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+                   || parseInt(localStorage.getItem('arff_cat'))
+                   || null;
+
+  const payload = {
+    reserva_agua_litros:           aguaL,
+    reserva_espuma_galones:        espumaG,
+    reserva_pqs_kg:                pqsKg,
+    nivel_eficiencia_estacion:     nivel,
+    concentracion_espuma_estacion: conc,
+  };
+  if (catGuardada) payload.categoria_rac = catGuardada; // sincroniza cat del Módulo 01 → Supabase
+
   const { error } = await supabaseClient
     .from('estaciones_sei')
-    .update({
-      reserva_agua_litros:           aguaL,
-      reserva_espuma_galones:        espumaG,
-      reserva_pqs_kg:                pqsKg,
-      nivel_eficiencia_estacion:     nivel,
-      concentracion_espuma_estacion: conc,
-    })
+    .update(payload)
     .eq('oaci', currentOaci);
 
+  const svgIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
   btn.classList.remove('saving');
-  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar en Supabase`;
+  btn.innerHTML = svgIcon + ' Guardar en Supabase';
 
   if (error) { toast('Error guardando bodega: ' + error.message, 'err'); return; }
 
-  /* Sincronizar localStorage para el Motor de Decisión */
-  localStorage.setItem('arff_ap', localStorage.getItem('arff_ap') || '0');
   localStorage.setItem('arff_oaci_codigo', currentOaci);
-
-  toast('✅ Reserva de bodega guardada en Supabase', 'ok');
+  toast('✅ Bodega guardada en Supabase' + (catGuardada ? ' · Cat ' + catGuardada : ''), 'ok');
   dispararActualizacionSemaforo();
 }
 
 /* ═══════════════════════════════════════════════════════════
-   EVENTO PERSONALIZADO — dispararActualizacionSemaforo()
-   Se lanza cada vez que cambia un valor que afecte al semáforo.
-   Así el semáforo refleja la realidad instantáneamente.
+   dispararActualizacionSemaforo()
+   Punto de entrada único para recalcular el semáforo.
+   Protegido por currentOaci para evitar ejecuciones vacías.
 ═══════════════════════════════════════════════════════════ */
 function dispararActualizacionSemaforo() {
   if (currentOaci) cargarCapacidadOperativa(currentOaci);
