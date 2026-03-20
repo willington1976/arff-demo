@@ -344,7 +344,6 @@
       transition:all .3s ease;
     }
     .verdict-banner.operativo   { background:rgba(47,158,68,.07); }
-    .verdict-banner.limitada    { background:rgba(245,159,0,.07); }
     .verdict-banner.degradada   { background:rgba(224,49,49,.07); }
     .verdict-icon { font-size:28px; flex-shrink:0; }
     .verdict-text-group { display:flex; flex-direction:column; gap:2px; flex:1; }
@@ -354,7 +353,6 @@
       transition:color .3s;
     }
     .verdict-main.operativo { color:var(--green-bright); }
-    .verdict-main.limitada  { color:var(--amber); }
     .verdict-main.degradada { color:var(--red); }
     .verdict-sub { font-size:12px; color:var(--text-dim); }
     .verdict-cat-badge {
@@ -523,17 +521,27 @@
   <div class="nav-sep"></div>
   <div class="nav-badge">Módulo <span>03</span></div>
   <div class="nav-badge" id="nav-oaci-badge">OACI: <span id="nav-oaci">—</span></div>
-  <a href="gestion_flota_sei.html" class="btn-return"
+  <a href="#" class="btn-return"
      style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
      onmouseover="this.style.background='rgba(0,229,255,.08)'"
-     onmouseout="this.style.background='transparent'">
-    ← Inventario
+     onmouseout="this.style.background='transparent'"
+     onclick="event.preventDefault();(function(){
+       var o=document.getElementById('nav-oaci')?.textContent||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
+       o=o.trim();
+       window.location.href='gestion_flota_sei.html'+(o&&o!=='—'?'?oaci='+encodeURIComponent(o):'');
+     })()">
+    ← 1 Inventario
   </a>
-  <a href="arff_area_critica.html" class="btn-return"
-     style="border-color:rgba(247,159,0,.35);color:#f59f00;"
-     onmouseover="this.style.background='rgba(247,159,0,.08)'"
-     onmouseout="this.style.background='transparent'">
-    ← Área Crítica
+  <a href="#" class="btn-return"
+     style="border-color:rgba(247,103,7,.35);color:#f59f00;"
+     onmouseover="this.style.background='rgba(247,103,7,.08)'"
+     onmouseout="this.style.background='transparent'"
+     onclick="event.preventDefault();(function(){
+       var o=document.getElementById('nav-oaci')?.textContent||localStorage.getItem('sei_estacion')||localStorage.getItem('currentOaci')||'';
+       o=o.trim();
+       window.location.href='arff_area_critica.html'+(o&&o!=='—'?'?oaci='+encodeURIComponent(o):'');
+     })()">
+    ← 2 Área Crítica
   </a>
 </nav>
 
@@ -1045,16 +1053,17 @@ async function obtenerInventarioReal() {
       agua:   aguaL,    // Litros de agua en bodega
       espuma: espumaG,  // Galones de concentrado en bodega
     };
-    // Guardar en inventarioReal para compatibilidad (agua de bodega Supabase)
-    window.inventarioReal.agua   = aguaL;
-    window.inventarioReal.espuma = espumaG;
-    // El input de bodega muestra el valor de Supabase (solo bodega, no flota)
-    // La suma flota+bodega se hace en calcular() leyendo localStorage para flota
-    const ia = document.getElementById('reserva_agua_litros');
-    const ie = document.getElementById('reserva_espuma_galones');
-    if (ia && (ia.value === '' || ia.value === '0')) ia.value = aguaL > 0 ? aguaL : '';
-    if (ie && (ie.value === '' || ie.value === '0')) ie.value = espumaG > 0 ? espumaG : '';
-    console.log('[M03] Bodega Supabase → agua:', aguaL, 'L | espuma:', espumaG, 'gal');
+    // Si Supabase devolvió 0 agua pero Módulo 01 tiene datos, usar esos
+    if (aguaL === 0 && window._flota && window._flota.agua_litros > 0) {
+      window.inventarioReal.agua   = window._flota.agua_litros;
+      window.inventarioReal.espuma = window._flota.espuma_gal;
+      // Poblar también los inputs con los datos de flota
+      const ia = document.getElementById('reserva_agua_litros');
+      const ie = document.getElementById('reserva_espuma_galones');
+      if (ia && ia.value === '') ia.value = window._flota.agua_litros;
+      if (ie && ie.value === '') ie.value = window._flota.espuma_gal;
+      console.log('[M03] inventarioReal enriquecido con datos de flota');
+    }
 
     _supaStatus('ok', oaciGuardado + ' · live');
     showToast('✓ Inventario cargado desde Supabase — ' + oaciGuardado);
@@ -1278,154 +1287,76 @@ function calcular(silent) {
   const concLitros = reqTotal * concFrac;      // L de concentrado puro
   const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
-  /* ── Inventario disponible ─────────────────────────────────────────────
-     aguaFlota   = camiones operativos (Módulo 01 vía localStorage 'sei_agua_camiones_litros')
-     aguaBodega  = input editable en pantalla (reserva_agua_litros)
-     invDisp     = aguaFlota + aguaBodega  ← SIEMPRE la suma real
-     Así el Total Q₃ refleja ambas fuentes y el input de bodega
-     actualiza el veredicto en tiempo real.
-  ──────────────────────────────────────────────────────────────────────── */
-  const _inpAgua   = document.getElementById('reserva_agua_litros');
-  const _inpEspuma = document.getElementById('reserva_espuma_galones');
+  /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
+     Lee el valor actual del campo en pantalla para que cualquier
+     edición manual actualice los semáforos en tiempo real.
+     Prioridad: input editable > window.inventarioReal > window._flota > 0 */
+  const _inpAgua    = document.getElementById('reserva_agua_litros');
+  const _inpEspuma  = document.getElementById('reserva_espuma_galones');
 
-  // Agua de camiones operativos: desde localStorage (escrito por Módulo 01)
-  // Intentar varias claves en orden de prioridad
-  const aguaFlota = parseFloat(localStorage.getItem('sei_agua_camiones_litros'))
-                 || parseFloat(localStorage.getItem('sei_agua_total_litros'))
-                 || (window.inventarioReal ? window.inventarioReal.agua : 0)
-                 || (window._flota ? window._flota.cam_litros : 0)
-                 || 0;
+  const invDisp = _inpAgua && _inpAgua.value !== ''
+                ? (parseFloat(_inpAgua.value) || 0)
+                : window.inventarioReal
+                  ? window.inventarioReal.agua
+                  : (window._flota ? window._flota.agua_litros : 0);
 
-  // Agua de bodega: input editable en pantalla
-  const aguaBodega = parseFloat(_inpAgua?.value) || 0;
-
-  // Total disponible = flota operativa + bodega
-  const invDisp = aguaFlota + aguaBodega;
-
-  // Espuma: mismo patrón — camiones (localStorage) + bodega (input)
-  const espumaFlotaGal = parseFloat(localStorage.getItem('sei_espuma_camiones_gal'))
-                      || (window._flota ? window._flota.espuma_gal : 0)
-                      || 0;
-  const espumaBodegaRaw = parseFloat(_inpEspuma?.value) || 0;
-  const espumaDispGal   = espumaFlotaGal + espumaBodegaRaw;
-  const espumaDispL     = espumaDispGal * L_PER_GAL;
-
-  console.log('[calcular] aguaFlota:', aguaFlota, 'L | aguaBodega:', aguaBodega,
-              'L | invDisp:', invDisp, 'L | espumaDisp:', espumaDispGal, 'gal');
+  const espumaDispGal = _inpEspuma && _inpEspuma.value !== ''
+                      ? (parseFloat(_inpEspuma.value) || 0)
+                      : window.inventarioReal
+                        ? window.inventarioReal.espuma
+                        : (window._flota ? window._flota.espuma_gal : 0);
+  const espumaDispL = espumaDispGal * L_PER_GAL;
 
   /* ── Norma RAC 14 ─────────────────────────────────────── */
   const norma  = RAC14[cat];
   const volMin = norma.volMin;
 
-  /* ════════════════════════════════════════════════════════
-     MOTOR DE ANÁLISIS DE RIESGOS
-     Array de alertas — se reconstruye en cada cálculo.
-     Cada alerta: { nivel: 'red'|'amber', texto: string }
-  ════════════════════════════════════════════════════════ */
-  const alertas = [];
+  /* ── Evaluación de cumplimiento ──────────────────────── */
+  const ataqueOk     = Qt     >= volMin;          // Qt cumple norma
+  const reservaOk    = Q3     >= volMin;          // Q3 cumple norma
+  const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
+  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
 
-  /* ── Norma: Ataque y Reserva Q3 ─────────────────────── */
-  const ataqueOk  = Qt >= volMin;
-  const reservaOk = Q3 >= volMin;
-  if (!ataqueOk)  alertas.push({ nivel: 'red',
-    texto: `❌ Qt (${Qt.toFixed(0)} L/min) insuficiente — mínimo RAC 14 Cat ${cat}: ${volMin.toLocaleString('es-CO')} L/min` });
-  if (!reservaOk) alertas.push({ nivel: 'red',
-    texto: `❌ Reserva Q₃ (${Q3.toFixed(0)} L/min) < mínimo norma Cat ${cat}` });
-
-  /* ── Agua (Flota + Bodega) vs Requerimiento Q3 ──────── */
-  const totalAguaSuf = invDisp >= reqTotal;
-  if (!totalAguaSuf) {
-    alertas.push({ nivel: 'red',
-      texto: `❌ Déficit de Agua para Categoría ${cat}: ${invDisp.toLocaleString('es-CO')} L disponibles vs ${reqTotal.toFixed(0)} L requeridos` });
-  } else if (aguaBodega === 0) {
-    alertas.push({ nivel: 'amber',
-      texto: `⚠️ Sin Reserva de Agua en bodega (Sostenibilidad limitada) — ataque inicial con flota: ${aguaFlota.toLocaleString('es-CO')} L` });
-  }
-
-  /* ── Espuma AFFF (Flota + Bodega) vs Requerimiento ──── */
-  const totalEspumaSuf = espumaDispL >= concLitros;
-  if (!totalEspumaSuf) {
-    alertas.push({ nivel: 'red',
-      texto: `❌ Déficit de Espuma AFFF para Categoría ${cat}: ${espumaDispL.toFixed(0)} L disponibles vs ${concLitros.toFixed(0)} L requeridos (${currentConc}%)` });
-  } else if (espumaBodegaRaw === 0) {
-    alertas.push({ nivel: 'amber',
-      texto: `⚠️ Sin Reserva de Espuma en bodega (Sostenibilidad limitada) — concentrado solo en camiones` });
-  }
-
-  /* ── PQS (Polvo Químico Seco) ────────────────────────── */
-  // PQS mínimo según RAC 14 Cat (kg): Cat 1-2: 45 | Cat 3-5: 90 | Cat 6-9: 135 | Cat 10: 180
-  const PQS_MIN = { 1:45, 2:45, 3:90, 4:90, 5:90, 6:135, 7:135, 8:135, 9:135, 10:180 };
-  const pqsRequerido = PQS_MIN[cat] || 90;
-  const pqsDisponible = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
-                     || (window._flota ? window._flota.pqs_kg : 0)
-                     || 0;
-  if (pqsDisponible < pqsRequerido) {
-    alertas.push({ nivel: 'red',
-      texto: `❌ Déficit PQS en máquinas — ${pqsDisponible.toFixed(0)} kg vs ${pqsRequerido} kg requeridos (Cat ${cat})` });
-  }
-
-  /* ── Veredicto global ────────────────────────────────── */
-  const hayRojo  = alertas.some(a => a.nivel === 'red');
-  const hayAmbar = alertas.some(a => a.nivel === 'amber');
-  const nivelGlobal = hayRojo ? 'red' : hayAmbar ? 'amber' : 'green';
-
-  // Variables de compatibilidad para el resto de la función
-  const nivelAgua    = !totalAguaSuf  ? 'red' : aguaBodega    === 0 ? 'amber' : 'green';
-  const nivelEspuma  = !totalEspumaSuf ? 'red' : espumaBodegaRaw === 0 ? 'amber' : 'green';
-  const textoAgua    = nivelAgua === 'green' ? 'OPERACIÓN SEGURA' : nivelAgua === 'amber' ? 'AUTONOMÍA LIMITADA' : 'RIESGO OPERACIONAL';
-  const allOk        = nivelGlobal === 'green';
-  const inventarioOk = nivelAgua   !== 'red';
-  const espumaOk     = nivelEspuma !== 'red';
-  const _espumaBodegaGalInput = espumaBodegaRaw;
+  /* Veredicto global: todos deben estar ok */
+  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
     concLitros, concGalones,
     volMin, invDisp, espumaDispGal, espumaDispL,
     ataqueOk, reservaOk, inventarioOk, espumaOk, allOk,
-    nivelGlobal, nivelAgua, nivelEspuma, alertas,
   };
 
   /* ════ RENDER ════════════════════════════════════════════ */
   document.getElementById('dec-empty').style.display   = 'none';
   document.getElementById('dec-content').style.display = 'block';
 
-  /* ── Banner de veredicto ─────────────────────────────── */
+  /* ── Veredicto principal ──────────────────────────────── */
   const vBanner = document.getElementById('verdict-banner');
   const vMain   = document.getElementById('verdict-main');
   const vSub    = document.getElementById('verdict-sub');
-
-  const claseVeredicto  = nivelGlobal === 'green' ? 'operativo' : nivelGlobal === 'amber' ? 'limitada' : 'degradada';
-  const iconoVeredicto  = nivelGlobal === 'green' ? '✅' : nivelGlobal === 'amber' ? '⚠️' : '🔴';
-  const textoVeredicto  = nivelGlobal === 'green' ? 'OPERACIÓN SEGURA'
-                        : nivelGlobal === 'amber' ? 'AUTONOMÍA LIMITADA'
-                        : 'CAPACIDAD DEGRADADA';
-
-  vBanner.className = 'verdict-banner ' + claseVeredicto;
-  vMain.className   = 'verdict-main '   + claseVeredicto;
-  vMain.textContent = textoVeredicto;
-  document.getElementById('verdict-icon').textContent = iconoVeredicto;
+  vBanner.className = 'verdict-banner ' + (allOk ? 'operativo' : 'degradada');
+  vMain.className   = 'verdict-main '   + (allOk ? 'operativo' : 'degradada');
+  vMain.textContent = allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA';
+  document.getElementById('verdict-icon').textContent = allOk ? '✅' : '🔴';
   document.getElementById('verdict-cat').textContent  = cat;
 
-  /* ── Lista de alertas en el banner ──────────────────────
-     Cada alerta aparece en su propio renglón con color
-     según severidad: rojo para ❌, ámbar para ⚠️          */
-  if (!window.inventarioReal && invDisp === 0 && alertas.length === 0) {
+  if (!window.inventarioReal) {
     vSub.innerHTML = '<span style="color:var(--amber)">⏳ Esperando datos de inventario desde Supabase…</span>';
-  } else if (alertas.length === 0) {
-    vSub.innerHTML = '<span style="color:var(--green-bright)">✓ Todos los parámetros cumplen el mínimo RAC 14 · Cat '
-      + cat + ' · ' + invDisp.toLocaleString('es-CO') + ' L disponibles</span>';
+  } else if (allOk) {
+    vSub.textContent = `Bodega (${invDisp.toLocaleString('es-CO')} L) cubre el requerimiento total para Cat ${cat}`;
   } else {
-    vSub.innerHTML = alertas.map(a => {
-      const col = a.nivel === 'red' ? 'var(--red)' : 'var(--amber)';
-      return `<div style="color:${col};line-height:1.6">${a.texto}</div>`;
-    }).join('');
+    const causas = [];
+    if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
+    if (!inventarioOk) causas.push(`Bodega (${invDisp.toLocaleString()} L) < req (${reqTotal.toFixed(0)} L)`);
+    if (!espumaOk)     causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
+    vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
   /* ── Semáforo: Ataque Inicial ────────────────────────── */
   _semaforo('ataque',
     fmtLmin(Qt), fmtGalMin(Qt),
-    ataqueOk ? 'green' : 'red',
+    ataqueOk,
     ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO',
     '🔥'
   );
@@ -1433,17 +1364,21 @@ function calcular(silent) {
   /* ── Semáforo: Reserva Q3 ────────────────────────────── */
   _semaforo('reserva',
     fmtLmin(Q3), fmtGalMin(Q3),
-    reservaOk ? 'green' : 'red',
+    reservaOk,
     reservaOk ? 'CUMPLE 200%' : 'INSUFICIENTE',
     '🚒'
   );
 
-  /* ── Semáforo: Inventario total de agua ──────────────── */
+  /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
+  // invDisp ahora viene SIEMPRE del input → nunca "Sin datos" si el campo tiene valor
+  const invLabel = invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos';
+  const invEstado = invDisp > 0
+    ? (inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT')
+    : 'SIN DATOS';
   _semaforo('total',
-    invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos',
-    fmtGal(invDisp),
-    nivelAgua,
-    textoAgua,
+    invLabel, fmtGal(invDisp),
+    inventarioOk,
+    invEstado,
     '💧'
   );
 
@@ -1457,17 +1392,12 @@ function calcular(silent) {
   document.getElementById('q3-formula-str').textContent =
     `Qt=${Qt.toFixed(1)} L/min  ×2  →  Q₃=${Q3.toFixed(1)} L/min  →  Req=${reqTotal.toFixed(1)} L`;
 
-  /* ── Concentrado espumante con indicador de nivel ───────── */
+  /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
   if (concEl) {
-    const espColorNivel = nivelEspuma === 'green' ? 'var(--green-bright)'
-                        : nivelEspuma === 'amber' ? 'var(--amber)'
-                        : 'var(--red)';
     const dispStr = espumaDispL > 0
-      ? `<span style="color:var(--text-muted);font-size:10px"> · Bodega: <span style="color:${espColorNivel}">${espumaDispL.toFixed(0)} L / ${espumaDispGal.toFixed(1)} Gal</span>`
-        + (_espumaBodegaGalInput === 0 && totalEspumaSuf ? ` <span style="color:var(--amber)">⚠ Sin bodega</span>` : '')
-        + `</span>`
-      : `<span style="color:var(--red);font-size:10px"> · Sin espuma registrada</span>`;
+      ? `<span style="color:var(--text-muted);font-size:10px"> · Bodega: <span style="color:${espumaOk?'var(--green-bright)':'var(--red)'}">${espumaDispL.toFixed(0)} L / ${espumaDispGal.toFixed(1)} Gal</span></span>`
+      : '';
     concEl.innerHTML =
       `<span style="color:var(--amber)">${concLitros.toFixed(1)} L</span>`
       + ` <span style="color:var(--text-muted)">|</span> `
@@ -1482,23 +1412,20 @@ function calcular(silent) {
   /* ── Traza de cálculo ─────────────────────────────────── */
   _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGalones, invDisp);
 
-  if (!silent) showToast('✓ Motor ejecutado — ' + textoVeredicto);
+  if (!silent) showToast('✓ Motor ejecutado — ' + (allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA'));
 }
 
 /* ════════════════════════════════════════════════════════════
    _semaforo() — Renderiza un bloque semáforo
 ════════════════════════════════════════════════════════════ */
-function _semaforo(id, txtL, txtG, nivel, statusTxt, icon) {
-  // nivel: 'green' | 'amber' | 'red'
-  const lampCls  = nivel === 'green' ? 'green' : nivel === 'amber' ? 'amber' : 'red';
-  const statCls  = nivel === 'green' ? 'ok'    : nivel === 'amber' ? 'warn'  : 'fail';
-  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + lampCls;
+function _semaforo(id, txtL, txtG, ok, statusTxt, icon) {
+  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + (ok ? 'green' : 'red');
   document.getElementById('lamp-' + id).textContent    = icon;
   document.getElementById('sem-' + id + '-l').textContent = txtL;
   document.getElementById('sem-' + id + '-g').textContent = txtG;
   const st = document.getElementById('sem-' + id + '-status');
   st.textContent = statusTxt;
-  st.className   = 'sem-status ' + statCls;
+  st.className   = 'sem-status ' + (ok ? 'ok' : 'fail');
 }
 
 /* ════════════════════════════════════════════════════════════
