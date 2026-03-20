@@ -1138,6 +1138,12 @@ function _exportarFlotaLocalStorage(aguaCamiones, aguaBodega, totalDisp) {
     const espumaGal = parseFloat(document.getElementById('bq_espuma_gal')?.value) || 0;
     const pqsKg     = parseFloat(document.getElementById('bq_pqs_kg')?.value)     || 0;
     localStorage.setItem('sei_espuma_bodega_gal', String(espumaGal));
+    // Exportar espuma de camiones por separado (leída por Módulo 03)
+    // Para camiones: la espuma está en los vehículos, no en bodega.
+    // Usamos sei_espuma_bodega_gal para bodega física.
+    // Módulo 03 busca 'sei_espuma_camiones_gal' como fallback → ponemos 0
+    // (la bodega física está en sei_espuma_bodega_gal)
+    localStorage.setItem('sei_espuma_camiones_gal', '0'); // bodega = bq_espuma_gal
     localStorage.setItem('sei_pqs_bodega_kg',     String(pqsKg));
 
     // Concentración y nivel de eficiencia de la estación
