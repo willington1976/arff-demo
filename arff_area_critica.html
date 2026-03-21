@@ -1484,7 +1484,7 @@
        style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
        onmouseover="this.style.background='rgba(0,229,255,.08)'"
        onmouseout="this.style.background='transparent'"
-       onclick="event.preventDefault(); var _o = sessionStorage.getItem('sei_estacion') || localStorage.getItem('sei_estacion') || localStorage.getItem('currentOaci') || ''; window.location.href = 'gestion_flota_sei.html' + (_o ? '?oaci=' + _o.trim().toUpperCase() : '');">
+       onclick="event.preventDefault(); var _o = sessionStorage.getItem('current_oaci') || ''; window.location.href = 'gestion_flota_sei.html' + (_o.trim() ? '?oaci=' + _o.trim().toUpperCase() : '');">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
       </svg>
@@ -2390,10 +2390,7 @@
         localStorage.setItem('catOaci',         String(window.lastCat));
         localStorage.setItem('categoria_oaci',  String(window.lastCat));
         // Preservar OACI en ambos almacenamientos (doble escritura)
-        const oaciSes = sessionStorage.getItem('sei_estacion')
-                     || localStorage.getItem('sei_estacion')
-                     || localStorage.getItem('arff_oaci_codigo')
-                     || localStorage.getItem('currentOaci')
+        const oaciSes = sessionStorage.getItem('current_oaci')
                      || '';
         if (oaciSes) {
           localStorage.setItem('arff_oaci_codigo', oaciSes);
