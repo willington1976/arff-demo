@@ -424,17 +424,19 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
   </div>
   <div class="topbar-right">
     <span class="badge-rol" id="badgeRol">— ROL —</span>
-    <a href="arff_rata_descarga_espuma.html" class="btn-back"
+    <a href="#" class="btn-back"
        style="border-color:rgba(64,192,87,.35);color:#40c057;"
        onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
-       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'">
+       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'"
+       onclick="event.preventDefault(); window.location.href='arff_rata_descarga_espuma.html' + (currentOaci ? '?oaci=' + currentOaci : '');">
       <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       Rata de Descarga
     </a>
-    <a href="arff_area_critica.html" class="btn-back"
+    <a href="#" class="btn-back"
        style="border-color:rgba(247,103,7,.35);color:#f59f00;"
        onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
-       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'">
+       onmouseout="this.style.borderColor='rgba(247,103,7,.35)';this.style.color='#f59f00';this.style.background='transparent'"
+       onclick="event.preventDefault(); window.location.href='arff_area_critica.html' + (currentOaci ? '?oaci=' + currentOaci : '');">
       <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="18" r=".5" fill="currentColor"/></svg>
       Área Crítica
     </a>
@@ -696,14 +698,26 @@ window.onSEIReady = async function(session) {
   currentRol   = session.rol;
   currentEstId = session.estacion_id;
 
-  // Paso 1: leer ?oaci= de la URL (viene cuando el usuario regresa desde otro módulo)
+  // Prioridad 1: ?oaci= en la URL (navegación desde otro módulo)
   const urlParams    = new URLSearchParams(window.location.search);
   const oaciDesdeUrl = urlParams.get('oaci');
-  if (oaciDesdeUrl) {
-    currentOaci = oaciDesdeUrl.toUpperCase();
+
+  // Prioridad 2: storage persistido por cualquier módulo
+  const oaciStorage  = sessionStorage.getItem('sei_estacion')
+                    || localStorage.getItem('sei_estacion')
+                    || localStorage.getItem('arff_oaci_codigo')
+                    || localStorage.getItem('currentOaci')
+                    || null;
+
+  if (oaciDesdeUrl && oaciDesdeUrl.trim().length === 4) {
+    // URL tiene prioridad absoluta — viene de navegación entre módulos
+    currentOaci = oaciDesdeUrl.trim().toUpperCase();
+  } else if (oaciStorage && oaciStorage.trim().length === 4) {
+    // Persistencia: el usuario ya había cargado una estación antes
+    currentOaci = oaciStorage.trim().toUpperCase();
   } else {
-    // Sin parámetro en URL: usar el OACI del perfil de sesión
-    currentOaci = session.oaci || window.seiUuidToOaci?.(session.estacion_id);
+    // Último recurso: perfil de sesión Supabase Auth
+    currentOaci = session.oaci || window.seiUuidToOaci?.(session.estacion_id) || null;
   }
 
   if (currentOaci) {
