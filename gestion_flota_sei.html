@@ -698,40 +698,28 @@ window.onSEIReady = async function(session) {
   currentRol   = session.rol;
   currentEstId = session.estacion_id;
 
-  // Prioridad 1: ?oaci= en la URL (navegación desde otro módulo)
-  const urlParams    = new URLSearchParams(window.location.search);
-  const oaciDesdeUrl = urlParams.get('oaci');
+  /* ── Contexto volátil de aeropuerto ─────────────────────────
+     Prioridad 1: ?oaci= en URL  (navegación entre módulos)
+     Prioridad 2: sessionStorage('current_oaci')  (misma sesión)
+     SIN localStorage → contexto limpio al abrir la PWA de nuevo
+     SIN perfil de sesión → selección manual obligatoria        */
+  const _urlOaci = new URLSearchParams(window.location.search).get('oaci');
+  const _sesOaci = sessionStorage.getItem('current_oaci');
 
-  // Prioridad 2: storage persistido por cualquier módulo
-  const oaciStorage  = sessionStorage.getItem('sei_estacion')
-                    || localStorage.getItem('sei_estacion')
-                    || localStorage.getItem('arff_oaci_codigo')
-                    || localStorage.getItem('currentOaci')
-                    || null;
-
-  if (oaciDesdeUrl && oaciDesdeUrl.trim().length === 4) {
-    // URL tiene prioridad absoluta — viene de navegación entre módulos
-    currentOaci = oaciDesdeUrl.trim().toUpperCase();
-  } else if (oaciStorage && oaciStorage.trim().length === 4) {
-    // Persistencia: el usuario ya había cargado una estación antes
-    currentOaci = oaciStorage.trim().toUpperCase();
+  if (_urlOaci && _urlOaci.trim()) {
+    currentOaci = _urlOaci.trim().toUpperCase();
+    sessionStorage.setItem('current_oaci', currentOaci);   // refrescar sesión
+  } else if (_sesOaci && _sesOaci.trim()) {
+    currentOaci = _sesOaci.trim().toUpperCase();
   } else {
-    // Último recurso: perfil de sesión Supabase Auth
-    currentOaci = session.oaci || window.seiUuidToOaci?.(session.estacion_id) || null;
+    currentOaci = null;   // acceso limpio — selección manual obligatoria
   }
 
-  if (currentOaci) {
-    localStorage.setItem('currentOaci',       currentOaci);
-    localStorage.setItem('sei_estacion',      currentOaci);
-    localStorage.setItem('arff_oaci_codigo',  currentOaci);
-    sessionStorage.setItem('sei_estacion',    currentOaci);
-  }
-
-  document.getElementById('badgeRol').textContent = currentRol?.toUpperCase() || 'USUARIO';
+  document.getElementById('badgeRol').textContent  = currentRol?.toUpperCase() || 'USUARIO';
   document.getElementById('adminBase').textContent = currentOaci || '—';
 
   if (currentOaci) {
-    // Disparo automático: carga la estación sin que el usuario haga nada
+    // Hay OACI en sesión o URL → cargar directamente
     document.getElementById('searchInput').value = currentOaci;
     actualizarEstacionBar(currentOaci);
     await cargarBodegaDesdeSupabase(currentOaci);
@@ -740,6 +728,7 @@ window.onSEIReady = async function(session) {
     document.getElementById('bodega-card').classList.add('visible');
     suscribirRealtime();
   } else {
+    // Sin OACI → pantalla vacía, el usuario debe buscar
     document.getElementById('cardsGrid').innerHTML = emptyAdminHTML();
     document.getElementById('estOaci').textContent   = '—';
     document.getElementById('estNombre').textContent = 'Busca una estación arriba';
@@ -785,10 +774,8 @@ function cerrarResultados() { document.getElementById('searchResults')?.classLis
 async function seleccionarEstacion(oaci, nombre, ciudad, estId) {
   currentOaci  = oaci.toUpperCase();
   currentEstId = estId || null;
-  localStorage.setItem('currentOaci', currentOaci);
-  localStorage.setItem('sei_estacion', currentOaci);
-  localStorage.setItem('arff_oaci_codigo', currentOaci);
-  sessionStorage.setItem('sei_estacion', currentOaci);
+  // Contexto volátil: solo sessionStorage — se borra al cerrar la PWA
+  sessionStorage.setItem('current_oaci', currentOaci);
 
   document.getElementById('searchInput').value     = oaci;
   document.getElementById('adminBase').textContent = oaci;
