@@ -525,14 +525,14 @@
      style="border-color:rgba(0,229,255,.35);color:#00e5ff;"
      onmouseover="this.style.background='rgba(0,229,255,.08)'"
      onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault(); var _o = sessionStorage.getItem('sei_estacion') || localStorage.getItem('sei_estacion') || localStorage.getItem('arff_oaci_codigo') || localStorage.getItem('currentOaci') || ''; window.location.href = 'gestion_flota_sei.html' + (_o.trim().length === 4 ? '?oaci=' + _o.trim().toUpperCase() : '');">
+     onclick="event.preventDefault(); var _o = sessionStorage.getItem('current_oaci') || ''; window.location.href = 'gestion_flota_sei.html' + (_o.trim() ? '?oaci=' + _o.trim().toUpperCase() : '');">
     ← Inventario
   </a>
   <a href="#" class="btn-return"
      style="border-color:rgba(247,159,0,.35);color:#f59f00;"
      onmouseover="this.style.background='rgba(247,159,0,.08)'"
      onmouseout="this.style.background='transparent'"
-     onclick="event.preventDefault(); var _o = sessionStorage.getItem('sei_estacion') || localStorage.getItem('sei_estacion') || localStorage.getItem('arff_oaci_codigo') || localStorage.getItem('currentOaci') || ''; window.location.href = 'arff_area_critica.html' + (_o.trim().length === 4 ? '?oaci=' + _o.trim().toUpperCase() : '');">
+     onclick="event.preventDefault(); var _o = sessionStorage.getItem('current_oaci') || ''; window.location.href = 'arff_area_critica.html' + (_o.trim() ? '?oaci=' + _o.trim().toUpperCase() : '');">
     ← Área Crítica
   </a>
 </nav>
@@ -975,10 +975,7 @@ window.inventarioReal = null;
 async function obtenerInventarioReal() {
   _supaStatus('loading');
 
-  const oaciGuardado = localStorage.getItem('arff_oaci_codigo')
-                    || localStorage.getItem('sei_estacion')
-                    || localStorage.getItem('currentOaci')
-                    || null;
+  const oaciGuardado = sessionStorage.getItem('current_oaci') || null;
 
   if (!oaciGuardado) {
     _supaStatus('warn', 'Sin código OACI en localStorage');
@@ -1105,10 +1102,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const _urlOaci = (_urlP.get('oaci') || '').trim().toUpperCase();
   if (_urlOaci.length === 4) {
     // URL tiene prioridad absoluta — guardarlo en ambos almacenamientos
-    localStorage.setItem('sei_estacion',     _urlOaci);
-    localStorage.setItem('arff_oaci_codigo', _urlOaci);
-    localStorage.setItem('currentOaci',      _urlOaci);
-    sessionStorage.setItem('sei_estacion',   _urlOaci);
+    sessionStorage.setItem('current_oaci', _urlOaci);
   }
 
   if (_urlAp)  { localStorage.setItem('arff_ap', _urlAp);  localStorage.setItem('areaCritica', _urlAp); }
