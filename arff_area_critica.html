@@ -2389,13 +2389,31 @@
         localStorage.setItem('arff_cat',        String(window.lastCat));
         localStorage.setItem('catOaci',         String(window.lastCat));
         localStorage.setItem('categoria_oaci',  String(window.lastCat));
-        // También preservar OACI si viene de sesión
-        const oaciSes = sessionStorage.getItem('sei_estacion') || localStorage.getItem('sei_estacion') || '';
-        if (oaciSes) localStorage.setItem('arff_oaci_codigo', oaciSes);
+        // Preservar OACI en ambos almacenamientos (doble escritura)
+        const oaciSes = sessionStorage.getItem('sei_estacion')
+                     || localStorage.getItem('sei_estacion')
+                     || localStorage.getItem('arff_oaci_codigo')
+                     || localStorage.getItem('currentOaci')
+                     || '';
+        if (oaciSes) {
+          localStorage.setItem('arff_oaci_codigo', oaciSes);
+          localStorage.setItem('sei_estacion',     oaciSes);
+          sessionStorage.setItem('sei_estacion',   oaciSes);
+        }
         console.log('[AC→LS] Exportado ap:', window.lastAc, 'cat:', window.lastCat, 'oaci:', oaciSes);
       } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
+      // Recuperar OACI para pasarlo en la URL destino
+      const oaciNav = (sessionStorage.getItem('sei_estacion')
+                    || localStorage.getItem('sei_estacion')
+                    || localStorage.getItem('arff_oaci_codigo')
+                    || localStorage.getItem('currentOaci')
+                    || urlParams.get('oaci')
+                    || '').trim().toUpperCase();
       let targetUrl = `arff_rata_descarga_espuma.html?cat=${window.lastCat}&ac=${window.lastAc}`;
+      if (oaciNav.length === 4) {
+        targetUrl += `&oaci=${oaciNav}`;
+      }
       if (urlParams.get('from')) {
         targetUrl += `&from=${urlParams.get('from')}`;
       } else {
@@ -2899,8 +2917,17 @@
       await loadAeronaves();
       initSearch();
 
-      // Persistencia desde URL (por ejemplo, desde el dashboard)
+      // Persistencia de OACI: leer desde URL y sincronizar a storage
       const urlParams = new URLSearchParams(window.location.search);
+      const _urlOaci  = (urlParams.get('oaci') || '').trim().toUpperCase();
+      if (_urlOaci.length === 4) {
+        localStorage.setItem('sei_estacion',     _urlOaci);
+        localStorage.setItem('arff_oaci_codigo', _urlOaci);
+        localStorage.setItem('currentOaci',      _urlOaci);
+        sessionStorage.setItem('sei_estacion',   _urlOaci);
+      }
+
+      // Persistencia de dimensiones de aeronave desde URL (por ejemplo, desde el dashboard)
       if (urlParams.get('l') && urlParams.get('wf')) {
         const inpL = document.getElementById('inp-L');
         const inpWf = document.getElementById('inp-Wf');
