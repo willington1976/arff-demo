@@ -75,6 +75,12 @@ body::after{
   padding:4px 10px;border-radius:4px;
   background:rgba(0,229,255,.1);border:1px solid var(--accent2);color:var(--accent);
 }
+.badge-usuario{
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;
+  padding:4px 10px;border-radius:4px;display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border2);color:var(--text2);
+}
+.badge-usuario .usr-icon{font-size:12px;opacity:.8;}
 .btn-back{
   display:flex;align-items:center;gap:6px;padding:7px 14px;
   background:transparent;border:1px solid var(--border2);border-radius:var(--radius);
@@ -423,15 +429,8 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
     </div>
   </div>
   <div class="topbar-right">
+    <span class="badge-usuario"><span class="usr-icon">👤</span><span id="badgeNombre">—</span></span>
     <span class="badge-rol" id="badgeRol">— ROL —</span>
-    <a href="#" class="btn-back"
-       style="border-color:rgba(64,192,87,.35);color:#40c057;"
-       onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
-       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'"
-       onclick="event.preventDefault(); window.location.href='arff_rata_descarga_espuma.html' + (currentOaci ? '?oaci=' + currentOaci : '');">
-      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      Rata de Descarga
-    </a>
     <a href="#" class="btn-back"
        style="border-color:rgba(247,103,7,.35);color:#f59f00;"
        onmouseover="this.style.borderColor='rgba(247,103,7,.7)';this.style.color='#f76707';this.style.background='rgba(247,103,7,.08)'"
@@ -439,6 +438,14 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
        onclick="event.preventDefault(); window.location.href='arff_area_critica.html' + (currentOaci ? '?oaci=' + currentOaci : '');">
       <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 22 22 22"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="18" r=".5" fill="currentColor"/></svg>
       Área Crítica
+    </a>
+    <a href="#" class="btn-back"
+       style="border-color:rgba(64,192,87,.35);color:#40c057;"
+       onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
+       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'"
+       onclick="event.preventDefault(); window.location.href='arff_rata_descarga_espuma.html' + (currentOaci ? '?oaci=' + currentOaci : '');">
+      <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Rata de Descarga
     </a>
     <a href="dashboard_principal.html" class="btn-back">
       <svg viewBox="0 0 24 24" width="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
@@ -715,8 +722,9 @@ window.onSEIReady = async function(session) {
     currentOaci = null;   // acceso limpio — selección manual obligatoria
   }
 
-  document.getElementById('badgeRol').textContent  = currentRol?.toUpperCase() || 'USUARIO';
-  document.getElementById('adminBase').textContent = currentOaci || '—';
+  document.getElementById('badgeRol').textContent    = currentRol?.toUpperCase() || 'USUARIO';
+  document.getElementById('badgeNombre').textContent = session.nombre || window.SEI_NOMBRE || '—';
+  document.getElementById('adminBase').textContent   = currentOaci || '—';
 
   if (currentOaci) {
     // Hay OACI en sesión o URL → cargar directamente
