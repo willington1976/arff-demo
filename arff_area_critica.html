@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -1497,6 +1498,14 @@
       </svg>
       Volver al Dashboard
     </a>
+    <a href="#" class="btn-return"
+       style="border-color:rgba(64,192,87,.35);color:#40c057;"
+       onmouseover="this.style.borderColor='rgba(64,192,87,.7)';this.style.color='#40c057';this.style.background='rgba(64,192,87,.08)'"
+       onmouseout="this.style.borderColor='rgba(64,192,87,.35)';this.style.color='#40c057';this.style.background='transparent'"
+       onclick="event.preventDefault(); continuarRataDescarga();">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Rata de Descarga
+    </a>
     <div class="nav-badge">MÓDULO <span>01</span> / ÁREA CRÍTICA</div>
     <div class="nav-badge">OACI <span>9137</span></div>
     <div class="nav-badge">RAC <span>COL</span></div>
@@ -1773,11 +1782,19 @@
 
       <!-- CONTINUAR A RATA DE DESCARGA -->
       <button onclick="continuarRataDescarga()"
-        style="width:100%;margin-top:16px;padding:12px;background:var(--teal);color:#000;border:none;border-radius:6px;font-family:var(--ff-m);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .2s">
+        style="width:100%;margin-top:18px;padding:14px 20px;
+               background:linear-gradient(135deg,var(--orange) 0%,var(--red) 100%);
+               color:#fff;border:none;border-radius:var(--radius);
+               font-family:var(--font-title);font-weight:700;font-size:13px;
+               text-transform:uppercase;letter-spacing:.08em;cursor:pointer;
+               display:flex;align-items:center;justify-content:center;gap:10px;
+               transition:opacity .18s ease,transform .18s ease,box-shadow .18s ease;
+               box-shadow:0 4px 20px rgba(247,103,7,.35);"
+        onmouseover="this.style.opacity='.9';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(247,103,7,.5)'"
+        onmouseout="this.style.opacity='1';this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(247,103,7,.35)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
         Continuar a Rata de Descarga
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
     </div>
 
