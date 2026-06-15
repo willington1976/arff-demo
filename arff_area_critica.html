@@ -2388,7 +2388,8 @@
         localStorage.setItem('catOaci',         String(window.lastCat));
         localStorage.setItem('categoria_oaci',  String(window.lastCat));
         // Preservar OACI en ambos almacenamientos (doble escritura)
-        const oaciSes = sessionStorage.getItem('sei_estacion')
+        const oaciSes = sessionStorage.getItem('current_oaci')
+                     || sessionStorage.getItem('sei_estacion')
                      || localStorage.getItem('sei_estacion')
                      || localStorage.getItem('arff_oaci_codigo')
                      || localStorage.getItem('currentOaci')
@@ -2402,7 +2403,8 @@
       } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
       // Recuperar OACI para pasarlo en la URL destino
-      const oaciNav = (sessionStorage.getItem('sei_estacion')
+      const oaciNav = (sessionStorage.getItem('current_oaci')
+                    || sessionStorage.getItem('sei_estacion')
                     || localStorage.getItem('sei_estacion')
                     || localStorage.getItem('arff_oaci_codigo')
                     || localStorage.getItem('currentOaci')
