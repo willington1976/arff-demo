@@ -19,8 +19,9 @@
 
   /* Paginas exclusivas por rol */
   const ROL_REQUERIDO = {
-    'sei_dashboard_nacional.html': ['admin', 'jefe_nacional'],
-    // gestion_flota_sei.html: accesible para TODOS los roles autenticados
+    'sei_dashboard_nacional.html':      ['admin', 'jefe_nacional'],
+    // Las siguientes páginas son accesibles para todos los roles autenticados:
+    // 'arff_rata_descarga_espuma.html': acceso libre para autenticados
   };
 
   /* Labels de rol */
@@ -42,9 +43,24 @@
     sessionStorage.removeItem('sei_rol');
     sessionStorage.removeItem('sei_nombre');
     sessionStorage.removeItem('sei_estacion');
+    sessionStorage.removeItem('sei_user_id');
+    sessionStorage.removeItem('current_oaci');
     window.location.href = 'index.html';
     return;
   }
+
+  /* 1b. Detectar cambio de usuario en la misma pestaña.
+         Si el user.id difiere del que habìa en sessionStorage,
+         el contexto de aeropuerto del usuario anterior se descarta. */
+  const _prevUserId = sessionStorage.getItem('sei_user_id');
+  if (_prevUserId && _prevUserId !== user.id) {
+    // Usuario diferente → limpiar contexto volátil del anterior
+    sessionStorage.removeItem('sei_rol');
+    sessionStorage.removeItem('sei_nombre');
+    sessionStorage.removeItem('sei_estacion');
+    sessionStorage.removeItem('current_oaci');
+  }
+  sessionStorage.setItem('sei_user_id', user.id);
 
   /* 2. Obtener rol + estacion (cache en sessionStorage) */
   let rol      = sessionStorage.getItem('sei_rol');
@@ -65,8 +81,9 @@
       nombre   = perfil.nombre_completo || user.email;
       estacion = perfil.estacion_id || null;
 
-      sessionStorage.setItem('sei_rol',    rol);
-      sessionStorage.setItem('sei_nombre', nombre);
+      sessionStorage.setItem('sei_rol',     rol);
+      sessionStorage.setItem('sei_nombre',  nombre);
+      sessionStorage.setItem('sei_user_id', user.id);
       if (estacion) sessionStorage.setItem('sei_estacion', estacion);
 
     } catch {
@@ -76,12 +93,15 @@
     }
   }
 
-  /* 3. Verificar permiso de rol para esta pagina */
+  /* 3. Verificar permiso de rol para esta pagina
+        Si la página no está en ROL_REQUERIDO, se permite el acceso
+        a cualquier usuario autenticado (no redirige). */
   const rolesPermitidos = ROL_REQUERIDO[paginaActual];
   if (rolesPermitidos && !rolesPermitidos.includes(rol)) {
     window.location.href = 'dashboard_principal.html';
     return;
   }
+  // Páginas no listadas en ROL_REQUERIDO: acceso libre para autenticados ✓
 
   /* 4. Exponer globalmente */
   window.SEI_USER     = user;
@@ -94,13 +114,25 @@
     sessionStorage.removeItem('sei_rol');
     sessionStorage.removeItem('sei_nombre');
     sessionStorage.removeItem('sei_estacion');
+    sessionStorage.removeItem('sei_user_id');
+    sessionStorage.removeItem('current_oaci');   // limpiar contexto de aeropuerto al cerrar sesion
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   };
 
-  /* 6. Callback de la pagina */
+  /* 6. Callback de la pagina
+        Resuelve UUID de estación → código OACI antes de llamar */
+  const oaciResuelto = window.seiUuidToOaci
+    ? window.seiUuidToOaci(window.SEI_ESTACION)
+    : window.SEI_ESTACION;
+
   if (typeof window.onSEIReady === 'function') {
-    window.onSEIReady(user, rol, window.SEI_NOMBRE, window.SEI_ESTACION);
+    window.onSEIReady(
+      { user, rol, nombre: window.SEI_NOMBRE, estacion_id: window.SEI_ESTACION, oaci: oaciResuelto },
+      rol,
+      window.SEI_NOMBRE,
+      oaciResuelto
+    );
   }
 
 })();

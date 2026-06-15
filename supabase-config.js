@@ -31,6 +31,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 window.supabaseClient = supabaseClient;
+window.supabase       = supabaseClient;
 
 /* ── Mapa UUID de estacion → codigo OACI ────────────────────────
  * IMPORTANTE: estacion_id en perfiles_usuarios es de tipo UUID.
