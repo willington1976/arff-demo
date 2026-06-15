@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0d1117">
   <title>ARFF Colombia — Motor de Decisión Operativa</title>
-  <meta name="description" content="Motor de Decisión Operativa ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
+  <meta name="description" content="Cálculo Rata de Descarga ARFF — Q₁ Control · Q₂ Extinción · Reserva AFFF §2.6.1 · RAC 14 Tabla 9.2">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -396,7 +396,7 @@
     .sem-status.warn{ color:var(--amber); }
     .sem-status.fail{ color:var(--red); }
 
-    /* Q3 200% ZONE */
+    /* DESGLOSE Q — AGUA OPERACIONAL */
     .q3-zone {
       padding:16px 18px; border-bottom:1px solid var(--border);
       background:rgba(247,103,7,.04);
@@ -546,13 +546,13 @@
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
       <h1 class="module-title">Cálculo Rata de Descarga</h1>
       <p class="module-subtitle">
-        Calcula la reserva obligatoria del 200% (Q₃), compara contra los mínimos de la categoría OACI
+        Calcula Q₁ (control) y Q₂ (extinción) por categoría OACI según Doc 9137, compara contra los mínimos
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
       </p>
       <div class="module-meta">
         <div class="meta-chip"><div class="dot" style="background:var(--green-bright)"></div> Eficiencia A/B/C — Doc 9137 §2.3.5</div>
         <div class="meta-chip"><div class="dot" style="background:var(--amber)"></div> Concentración 1 / 3 / 6 %</div>
-        <div class="meta-chip"><div class="dot" style="background:var(--cyan)"></div> Q₃ = 200% · (Q₁ + Q₂)</div>
+        <div class="meta-chip"><div class="dot" style="background:var(--cyan)"></div> Q₂ = Q₁ × Factor OACI (por categoría)</div>
         <div class="meta-chip"><div class="dot" style="background:var(--blue-bright)"></div> RAC 14 Tabla 9.2 — Comparativa automática</div>
       </div>
     </div>
@@ -599,7 +599,7 @@
             <label>
               Área Crítica
               <span class="var-pill" style="color:var(--amber)">Aₚ</span>
-              <span style="color:var(--text-muted);font-size:10.5px">— heredado del Módulo 01</span>
+              <span style="color:var(--text-muted);font-size:10.5px">— heredado del Módulo 02</span>
             </label>
             <div class="input-wrap">
               <input type="number" id="inp-ap" min="1" step="0.01" placeholder="0.00" oninput="calcularLive()">
@@ -724,27 +724,27 @@
           <!-- Ataque -->
           <div class="sem-cell" id="sem-ataque">
             <div class="sem-lamp" id="lamp-ataque">🔥</div>
-            <div class="sem-title">Ataque Inicial</div>
+            <div class="sem-title">Q₁ — Control inicial (1 min)</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-ataque-l">— L/min</span>
-              <span class="sv-g" id="sem-ataque-g">— gal/min</span>
+              <span class="sv-l" id="sem-ataque-l">— L</span>
+              <span class="sv-g" id="sem-ataque-g">— gal</span>
             </div>
             <div class="sem-status" id="sem-ataque-status">—</div>
           </div>
           <!-- Reserva -->
           <div class="sem-cell" id="sem-reserva">
             <div class="sem-lamp" id="lamp-reserva">🚒</div>
-            <div class="sem-title">Reserva (200%)</div>
+            <div class="sem-title">Q₂ — Extinción / Continuidad</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-reserva-l">— L/min</span>
-              <span class="sv-g" id="sem-reserva-g">— gal/min</span>
+              <span class="sv-l" id="sem-reserva-l">— L</span>
+              <span class="sv-g" id="sem-reserva-g">— gal</span>
             </div>
             <div class="sem-status" id="sem-reserva-status">—</div>
           </div>
           <!-- Total Q3 -->
           <div class="sem-cell" id="sem-total">
             <div class="sem-lamp" id="lamp-total">💧</div>
-            <div class="sem-title">Total Q₃</div>
+            <div class="sem-title">🌊 Q — Agua Total (Q₁ + Q₂)</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-total-l">— L/min</span>
               <span class="sv-g" id="sem-total-g">— gal/min</span>
@@ -756,22 +756,22 @@
         <!-- Q3 BREAKDOWN -->
         <div class="q3-zone">
           <div class="q3-header">
-            <div class="q3-title">Desglose Q₃ — Reserva Obligatoria 200%</div>
+            <div class="q3-title">● Desglose Q — Agua Operacional de Ataque (Doc 9137)</div>
             <div class="q3-formula" id="q3-formula-str"></div>
           </div>
           <div class="q3-grid">
             <div class="q3-card ataque">
-              <span class="q3-card-label">Q₁ + Q₂ (Ataque)</span>
+              <span class="q3-card-label">🔥 Q₁ — Control inicial</span>
               <span class="q3-card-val" id="q3-ataque-l">—</span>
               <span class="q3-card-gal" id="q3-ataque-g">—</span>
             </div>
             <div class="q3-card reserva">
-              <span class="q3-card-label">Reserva = Q₃ − Ataque</span>
+              <span class="q3-card-label">💧 Q₂ — Extinción</span>
               <span class="q3-card-val" id="q3-reserva-l">—</span>
               <span class="q3-card-gal" id="q3-reserva-g">—</span>
             </div>
             <div class="q3-card total">
-              <span class="q3-card-label">Q₃ Total (200%)</span>
+              <span class="q3-card-label">🌊 Q Total = Q₁ + Q₂</span>
               <span class="q3-card-val" id="q3-total-l">—</span>
               <span class="q3-card-gal" id="q3-total-g">—</span>
             </div>
@@ -790,9 +790,9 @@
                 <tr>
                   <th>Cat OACI</th>
                   <th style="text-align:right">Mín. RAC 14 (L) Nivel B</th>
-                  <th style="text-align:right">Qt Ataque (L/min)</th>
-                  <th style="text-align:right">Q₃ 200% (L/min)</th>
-                  <th style="text-align:right">Req. Total (L)</th>
+                  <th style="text-align:right">Q₁ Control (L)</th>
+                  <th style="text-align:right">Q₂ Extinción (L)</th>
+                  <th style="text-align:right">Q Total (L)</th>
                   <th>Cumplimiento</th>
                 </tr>
               </thead>
@@ -1107,8 +1107,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (_urlAp)  { localStorage.setItem('arff_ap', _urlAp);  localStorage.setItem('areaCritica', _urlAp); }
   if (_urlCat) { localStorage.setItem('arff_cat', _urlCat); localStorage.setItem('catOaci', _urlCat); }
-  // Si el OACI viene en URL, persistirlo en current_oaci para obtenerInventarioReal()
-  if (_urlOaci) { sessionStorage.setItem('current_oaci', _urlOaci); }
 
   /* ── Datos de flota exportados por Módulo 01 ─────────────────── */
   window._flota = {
@@ -1157,7 +1155,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const inpAp = document.getElementById('inp-ap');
       inpAp.value = ap.toFixed(2);
       inpAp.classList.add('locked');
-      inpAp.title = 'Valor heredado del Módulo 02 — Área Crítica Aₚ';
+      inpAp.title = 'Valor heredado del Módulo 01 — Área Crítica Aₚ';
     }
   }
 
@@ -1196,13 +1194,7 @@ window.addEventListener('DOMContentLoaded', () => {
      Si falla o no hay OACI, el motor igual corre con invDisp=0
      y mostrará CAPACIDAD DEGRADADA hasta recibir datos.          */
   if (oaci) {
-    // Con OACI: carga inventario Supabase → al terminar llama calcular(true)
     obtenerInventarioReal();
-    // Precalcular inmediatamente con ap/cat de URL sin esperar Supabase
-    // así el usuario ve resultados de caudal mientras llegan los datos de bodega
-    const _apPre  = parseFloat(document.getElementById('inp-ap').value);
-    const _catPre = parseInt(document.getElementById('sel-cat').value);
-    if (!isNaN(_apPre) && _apPre > 0 && _catPre >= 1) calcular(true);
   } else {
     /* Sin OACI: aplicar fallback de flota y calcular */
     _aplicarFallbackFlota();
@@ -1251,7 +1243,7 @@ function calcularLive() {
    │  Q₁     = Aₚ × Régimen            (L/min)               │
    │  Q₂     = Q₁ × 1.0               (100% adicional Q₁)   │
    │  Qt     = Q₁ + Q₂                (Ataque Inicial total) │
-   │  Q₃     = Qt × 2.0               (Reserva 200%)         │
+   │  Q₃     = Agentes complementarios PQS/CO₂ (kg)          │
    │  Req    = Qt + Q₃                (Requerimiento Total)  │
    │  Conc   = Req × % / 100 / 3.785  (gal concentrado puro) │
    └──────────────────────────────────────────────────────────┘
@@ -1284,7 +1276,7 @@ function calcular(silent) {
   const Q1       = ap * rate;
   const Q2       = Q1 * 1.0;                  // 100% adicional
   const Qt       = Q1 + Q2;                   // Ataque Inicial
-  const Q3       = Qt * 2.0;                  // Reserva 200%
+  const Q3       = Qt * 2.0;                  // legacy alias — no usado en UI
   const reqTotal = Qt + Q3;                   // Requerimiento total en bodega
 
   /* ── Concentrado espumante ─────────────────────────────── */
@@ -1358,20 +1350,20 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo: Ataque Inicial ────────────────────────── */
+  /* ── Semáforo 1: Q₁ Control inicial — en LITROS (volumen) ── */
   _semaforo('ataque',
-    fmtLmin(Qt), fmtGalMin(Qt),
+    fmtL(Q1), fmtGal(Q1),
     ataqueOk,
     ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO',
     '🔥'
   );
 
-  /* ── Semáforo: Reserva Q3 ────────────────────────────── */
+  /* ── Semáforo 2: Q₂ Extinción — en LITROS por categoría ─── */
   _semaforo('reserva',
-    fmtLmin(Q3), fmtGalMin(Q3),
+    fmtL(Q2) + ` (${(q2pct*100).toFixed(0)}%)`, fmtGal(Q2),
     reservaOk,
-    reservaOk ? 'CUMPLE 200%' : 'INSUFICIENTE',
-    '🚒'
+    reservaOk ? 'EXTINCIÓN OK' : 'INSUFICIENTE',
+    '💧'
   );
 
   /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
@@ -1388,14 +1380,15 @@ function calcular(silent) {
   );
 
   /* ── Desglose Q3 ──────────────────────────────────────── */
-  document.getElementById('q3-ataque-l').textContent  = fmtLmin(Qt);
-  document.getElementById('q3-ataque-g').textContent  = fmtGalMin(Qt);
-  document.getElementById('q3-reserva-l').textContent = fmtLmin(Q3);
-  document.getElementById('q3-reserva-g').textContent = fmtGalMin(Q3);
-  document.getElementById('q3-total-l').textContent   = fmtL(reqTotal);
-  document.getElementById('q3-total-g').textContent   = fmtGal(reqTotal);
+  // Cards desglose — Q1, Q2, Q en LITROS (volumen, no caudal)
+  document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
+  document.getElementById('q3-ataque-g').textContent  = fmtGal(Q1);
+  document.getElementById('q3-reserva-l').textContent = fmtL(Q2);
+  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% Cat ${cat}`;
+  document.getElementById('q3-total-l').textContent   = fmtL(Qt);
+  document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
-    `Qt=${Qt.toFixed(1)} L/min  ×2  →  Q₃=${Q3.toFixed(1)} L/min  →  Req=${reqTotal.toFixed(1)} L`;
+    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Q=${Qt.toFixed(1)} L`;
 
   /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
@@ -1483,15 +1476,11 @@ function _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGal, invDisp) {
     <span class="ts-op">×</span>
     <span class="ts hi-r">R = ${rate} L/min/m²</span>
     <span class="ts-op">=</span>
-    <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L/min</span>
+    <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L  (Control 1 min)</span>
     <span class="ts-op">+</span>
-    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L/min (100% Q₁)</span>
+    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L  (${(q2pct*100).toFixed(0)}% · Cat ${cat})</span>
     <span class="ts-op">=</span>
-    <span class="ts hi-qt">Qt = ${Qt.toFixed(1)} L/min</span>
-    <span class="ts-op">× 2</span>
-    <span class="ts hi-q3">Q₃ = ${Q3.toFixed(1)} L/min (Reserva 200%)</span>
-    <span class="ts-op">→</span>
-    <span class="ts" style="color:var(--text);border-color:rgba(255,255,255,.15)">Req = ${reqTotal.toFixed(1)} L</span>
+    <span class="ts hi-qt">Q = ${Qt.toFixed(1)} L  (Agua total)</span>
     <span class="ts-op">|</span>
     <span class="ts" style="color:var(--purple);border-color:rgba(112,72,232,.3);background:rgba(112,72,232,.06)">Conc = ${concGal.toFixed(1)} gal (${currentConc}%)</span>
     <span class="ts-op">|</span>
