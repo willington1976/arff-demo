@@ -741,32 +741,22 @@
             </div>
             <div class="sem-status" id="sem-reserva-status">—</div>
           </div>
-          <!-- Reserva AFFF §2.6.1 -->
+          <!-- Total Q3 -->
           <div class="sem-cell" id="sem-total">
-            <div class="sem-lamp" id="lamp-total">🧯</div>
-            <div class="sem-title">Reserva AFFF</div>
+            <div class="sem-lamp" id="lamp-total">💧</div>
+            <div class="sem-title">Total Q₃</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-total-l">— L disp.</span>
-              <span class="sv-g" id="sem-total-g">— Req 200%</span>
+              <span class="sv-l" id="sem-total-l">— L/min</span>
+              <span class="sv-g" id="sem-total-g">— gal/min</span>
             </div>
             <div class="sem-status" id="sem-total-status">—</div>
-          </div>
-          <!-- PQS -->
-          <div class="sem-cell" id="sem-pqs">
-            <div class="sem-lamp" id="lamp-pqs">🔶</div>
-            <div class="sem-title">PQS</div>
-            <div class="sem-val">
-              <span class="sv-l" id="sem-pqs-l">— kg disp.</span>
-              <span class="sv-g" id="sem-pqs-g">— kg mín</span>
-            </div>
-            <div class="sem-status" id="sem-pqs-status">—</div>
           </div>
         </div>
 
         <!-- Q3 BREAKDOWN -->
         <div class="q3-zone">
           <div class="q3-header">
-            <div class="q3-title">Desglose Q — Agua de Ataque Doc 9137</div>
+            <div class="q3-title">Desglose Q₃ — Reserva Obligatoria 200%</div>
             <div class="q3-formula" id="q3-formula-str"></div>
           </div>
           <div class="q3-grid">
@@ -800,8 +790,8 @@
                 <tr>
                   <th>Cat OACI</th>
                   <th style="text-align:right">Mín. RAC 14 (L) Nivel B</th>
-                  <th style="text-align:right">Q₁ Ataque (L/min)</th>
-                  <th style="text-align:right">Q₂ Continuidad (L/min)</th>
+                  <th style="text-align:right">Qt Ataque (L/min)</th>
+                  <th style="text-align:right">Q₃ 200% (L/min)</th>
                   <th style="text-align:right">Req. Total (L)</th>
                   <th>Cumplimiento</th>
                 </tr>
@@ -947,33 +937,6 @@ const RAC14 = {
   9:  { volMin:  24300, ref: '61 < L ≤ 76 m' },
   10: { volMin:  32300, ref: 'L > 76 m' },
 };
-
-/* ── Q₂ multiplicadores por categoría — Doc 9137 Tabla 2-1 ── */
-const Q2_PCT = {
-  1: 0.00, 2: 0.27, 3: 0.30, 4: 0.58, 5: 0.75,
-  6: 1.00, 7: 1.29, 8: 1.52, 9: 1.70, 10: 1.90,
-};
-
-/* ── Conversiones ft/m ── */
-const M2_TO_FT2  = 10.7639;    // 1 m²  = 10.7639 ft²
-const L_TO_GAL   = 1 / L_PER_GAL;
-const LMIN_TO_GMIN = L_TO_GAL; // misma razón
-
-function fmtDual(valL, suffix = '') {
-  // Muestra "X L  (Y gal)" o "X m²  (Y ft²)" según suffix
-  if (suffix === 'm²')
-    return `${valL.toLocaleString('es-CO', {maximumFractionDigits:1})} m²`
-         + ` <span style="color:var(--text-muted);font-size:.85em">`
-         + `(${(valL * M2_TO_FT2).toLocaleString('es-CO', {maximumFractionDigits:0})} ft²)</span>`;
-  if (suffix === 'L/min')
-    return `${valL.toFixed(1)} L/min`
-         + ` <span style="color:var(--text-muted);font-size:.85em">`
-         + `(${(valL * L_TO_GAL).toFixed(1)} gal/min)</span>`;
-  // default: litros
-  return `${valL.toLocaleString('es-CO', {maximumFractionDigits:1})} L`
-       + ` <span style="color:var(--text-muted);font-size:.85em">`
-       + `(${(valL * L_TO_GAL).toFixed(1)} gal)</span>`;
-}
 
 /* ─── Regímenes de aplicación ──────────────────────────────── */
 const EFF_RATE = { A: 8.2, B: 5.5, C: 3.7 };
@@ -1144,16 +1107,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (_urlAp)  { localStorage.setItem('arff_ap', _urlAp);  localStorage.setItem('areaCritica', _urlAp); }
   if (_urlCat) { localStorage.setItem('arff_cat', _urlCat); localStorage.setItem('catOaci', _urlCat); }
+  // Si el OACI viene en URL, persistirlo en current_oaci para obtenerInventarioReal()
+  if (_urlOaci) { sessionStorage.setItem('current_oaci', _urlOaci); }
 
   /* ── Datos de flota exportados por Módulo 01 ─────────────────── */
   window._flota = {
-    agua_litros:      parseFloat(localStorage.getItem('sei_agua_total_litros'))    || 0,
-    cam_litros:       parseFloat(localStorage.getItem('sei_agua_camiones_litros')) || 0,
-    bodega_litros:    parseFloat(localStorage.getItem('sei_agua_bodega_litros'))   || 0,
-    espuma_gal:       parseFloat(localStorage.getItem('sei_espuma_bodega_gal'))    || 0,
-    espuma_cam_gal:   parseFloat(localStorage.getItem('sei_espuma_camiones_gal'))  || 0,
-    pqs_kg:           parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))        || 0,
-    conc_pct:         parseFloat(localStorage.getItem('sei_concentracion_pct'))    || 3,
+    agua_litros:  parseFloat(localStorage.getItem('sei_agua_total_litros'))    || 0,
+    cam_litros:   parseFloat(localStorage.getItem('sei_agua_camiones_litros')) || 0,
+    bodega_litros:parseFloat(localStorage.getItem('sei_agua_bodega_litros'))   || 0,
+    espuma_gal:   parseFloat(localStorage.getItem('sei_espuma_bodega_gal'))    || 0,
+    pqs_kg:       parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))        || 0,
+    conc_pct:     parseFloat(localStorage.getItem('sei_concentracion_pct'))    || 3,
     nivel:        localStorage.getItem('sei_nivel_eficiencia')                 || 'B',
     q_lpm:        parseFloat(localStorage.getItem('sei_q_flota_total_lpm'))    || 0,
   };
@@ -1193,7 +1157,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const inpAp = document.getElementById('inp-ap');
       inpAp.value = ap.toFixed(2);
       inpAp.classList.add('locked');
-      inpAp.title = 'Valor heredado del Módulo 01 — Área Crítica Aₚ';
+      inpAp.title = 'Valor heredado del Módulo 02 — Área Crítica Aₚ';
     }
   }
 
@@ -1232,7 +1196,13 @@ window.addEventListener('DOMContentLoaded', () => {
      Si falla o no hay OACI, el motor igual corre con invDisp=0
      y mostrará CAPACIDAD DEGRADADA hasta recibir datos.          */
   if (oaci) {
+    // Con OACI: carga inventario Supabase → al terminar llama calcular(true)
     obtenerInventarioReal();
+    // Precalcular inmediatamente con ap/cat de URL sin esperar Supabase
+    // así el usuario ve resultados de caudal mientras llegan los datos de bodega
+    const _apPre  = parseFloat(document.getElementById('inp-ap').value);
+    const _catPre = parseInt(document.getElementById('sel-cat').value);
+    if (!isNaN(_apPre) && _apPre > 0 && _catPre >= 1) calcular(true);
   } else {
     /* Sin OACI: aplicar fallback de flota y calcular */
     _aplicarFallbackFlota();
@@ -1309,44 +1279,18 @@ function calcular(silent) {
     return;
   }
 
-  /* ══════════════════════════════════════════════════════════
-     CADENA DE CÁLCULO — Doc 9137 Parte 1 Sección 2
-     Q₁ = Ap × R × T    (T = 1 min implícito en R [L/min/m²])
-     Q₂ = Q₁ × Q2_PCT[cat]  (porcentaje variable por categoría)
-     Q  = Q₁ + Q₂            (agua total requerida para el evento)
-  ══════════════════════════════════════════════════════════ */
-  const rate = EFF_RATE[currentEff];
-  const T    = 1;                              // minuto — Doc 9137 §2.3
-  const Q1   = ap * rate * T;                 // L — Ataque inicial
-  const q2pct= Q2_PCT[cat] ?? 0;
-  const Q2   = Q1 * q2pct;                    // L — Continuidad por categoría
-  const Q    = Q1 + Q2;                       // L — Agua total requerida
+  /* ── Cálculo escalonado ─────────────────────────────────── */
+  const rate     = EFF_RATE[currentEff];
+  const Q1       = ap * rate;
+  const Q2       = Q1 * 1.0;                  // 100% adicional
+  const Qt       = Q1 + Q2;                   // Ataque Inicial
+  const Q3       = Qt * 2.0;                  // Reserva 200%
+  const reqTotal = Qt + Q3;                   // Requerimiento total en bodega
 
-  /* ── Concentrado espumante §2.6.1 ─────────────────────────
-     agua_normativa  = volumen mínimo RAC14 para la categoría
-     carga_normativa = concentrado necesario para UNA carga completa
-     reserva_req     = carga_normativa × 200% (2 recargas post-incidente)
-  ──────────────────────────────────────────────────────────── */
-  const concFrac        = currentConc / 100;
-  const agua_normativa  = RAC14[cat].volMin;                 // L (Cat del aeródromo)
-  const carga_normativa = agua_normativa * concFrac;         // L concentrado / carga
-  const reserva_req     = carga_normativa * 2;               // L — 200% §2.6.1
-
-  // Concentrado en camiones operativos (exportado por M01)
-  const conc_cam_gal    = parseFloat(localStorage.getItem('sei_espuma_camiones_gal')) || 0;
-  const conc_cam_L      = conc_cam_gal * L_PER_GAL;
-
-  // Excedente de camiones sobre la carga normativa → computa como reserva
-  const excedente_cam   = Math.max(0, conc_cam_L - carga_normativa);
-
-  // Concentrado para mostrar en UI (requerido para UN evento)
-  const concLitros      = Q * concFrac;        // L — solo para mostrar en UI
-  const concGalones     = concLitros / L_PER_GAL;
-
-  // Alias de compatibilidad — Qt y reqTotal para funciones legacy
-  const Qt       = Q;
-  const Q3       = Q2;                         // Q₂ es la continuidad (renombrado)
-  const reqTotal  = Q;
+  /* ── Concentrado espumante ─────────────────────────────── */
+  const concFrac   = currentConc / 100;
+  const concLitros = reqTotal * concFrac;      // L de concentrado puro
+  const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
   /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
      Lee el valor actual del campo en pantalla para que cualquier
@@ -1372,39 +1316,14 @@ function calcular(silent) {
   const norma  = RAC14[cat];
   const volMin = norma.volMin;
 
-  /* ── SEMÁFORO 1: Ataque Q₁ ──────────────────────────── */
-  const ataqueOk  = Q1 >= volMin;
+  /* ── Evaluación de cumplimiento ──────────────────────── */
+  const ataqueOk     = Qt     >= volMin;          // Qt cumple norma
+  const reservaOk    = Q3     >= volMin;          // Q3 cumple norma
+  const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
+  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
 
-  /* ── SEMÁFORO 2: Continuidad Q₁+Q₂ ─────────────────── */
-  const totalAguaSuf  = invDisp >= Q;
-  const nivelAgua     = !totalAguaSuf ? 'red'
-                      : aguaBodega === 0 ? 'amber' : 'green';
-
-  /* ── SEMÁFORO 3: Reserva AFFF §2.6.1 ───────────────────
-     Concentrado bodega + excedente camiones vs 200% carga  */
-  const reserva_efectiva  = espumaDispL + excedente_cam;
-  const espumaNivel       = reserva_efectiva >= reserva_req  ? 'green'
-                          : reserva_efectiva >= carga_normativa ? 'amber' : 'red';
-
-  /* ── SEMÁFORO 4: PQS ─────────────────────────────────── */
-  const PQS_MIN  = { 1:45, 2:45, 3:90, 4:90, 5:90, 6:135, 7:135, 8:135, 9:135, 10:180 };
-  const pqsReq   = PQS_MIN[cat] || 90;
-  const pqsDisp  = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
-                || (window._flota ? window._flota.pqs_kg : 0) || 0;
-  const pqsNivel = pqsDisp >= pqsReq * 2 ? 'green'    // carga + reserva 100%
-                 : pqsDisp >= pqsReq     ? 'amber'    // solo carga mínima
-                 : 'red';
-
-  /* ── Veredicto global ────────────────────────────────── */
-  const niveles     = [ataqueOk ? 'green' : 'red', nivelAgua, espumaNivel, pqsNivel];
-  const hayRojo     = niveles.includes('red');
-  const hayAmbar    = niveles.includes('amber');
-  const nivelGlobal = hayRojo ? 'red' : hayAmbar ? 'amber' : 'green';
-  const allOk       = nivelGlobal === 'green';
-  // Alias legacy
-  const inventarioOk = nivelAgua !== 'red';
-  const espumaOk     = espumaNivel !== 'red';
-  const reservaOk    = ataqueOk;
+  /* Veredicto global: todos deben estar ok */
+  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
@@ -1504,20 +1423,14 @@ function calcular(silent) {
 /* ════════════════════════════════════════════════════════════
    _semaforo() — Renderiza un bloque semáforo
 ════════════════════════════════════════════════════════════ */
-function _semaforo(id, txtL, txtG, nivel, statusTxt, icon) {
-  // nivel: 'green' | 'amber' | 'red'  (o boolean legacy: true=green, false=red)
-  if (typeof nivel === 'boolean') nivel = nivel ? 'green' : 'red';
-  const stCls  = nivel === 'green' ? 'ok' : nivel === 'amber' ? 'warn' : 'fail';
-  const lampEl = document.getElementById('lamp-' + id);
-  const lEl    = document.getElementById('sem-' + id + '-l');
-  const gEl    = document.getElementById('sem-' + id + '-g');
-  const stEl   = document.getElementById('sem-' + id + '-status');
-  if (!lampEl) return;
-  lampEl.className   = 'sem-lamp ' + nivel;
-  lampEl.textContent = icon;
-  if (lEl) lEl.textContent = txtL;
-  if (gEl) gEl.innerHTML   = txtG;
-  if (stEl) { stEl.textContent = statusTxt; stEl.className = 'sem-status ' + stCls; }
+function _semaforo(id, txtL, txtG, ok, statusTxt, icon) {
+  document.getElementById('lamp-' + id).className      = 'sem-lamp ' + (ok ? 'green' : 'red');
+  document.getElementById('lamp-' + id).textContent    = icon;
+  document.getElementById('sem-' + id + '-l').textContent = txtL;
+  document.getElementById('sem-' + id + '-g').textContent = txtG;
+  const st = document.getElementById('sem-' + id + '-status');
+  st.textContent = statusTxt;
+  st.className   = 'sem-status ' + (ok ? 'ok' : 'fail');
 }
 
 /* ════════════════════════════════════════════════════════════
