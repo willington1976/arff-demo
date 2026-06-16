@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0d1117">
   <title>ARFF Colombia — Motor de Decisión Operativa</title>
-  <meta name="description" content="Cálculo Rata de Descarga ARFF — Q₁ Control · Q₂ Extinción · RAC 14 Tabla 9.2 · Doc 9137 §2áforos de operatividad">
+  <meta name="description" content="Motor de Decisión Operativa ARFF — Cálculo Q3 200%, comparativa RAC 14 Tabla 9.2 y semáforos de operatividad">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -396,7 +396,7 @@
     .sem-status.warn{ color:var(--amber); }
     .sem-status.fail{ color:var(--red); }
 
-    /* DESGLOSE Q — AGUA OPERACIONAL */
+    /* Q3 200% ZONE */
     .q3-zone {
       padding:16px 18px; border-bottom:1px solid var(--border);
       background:rgba(247,103,7,.04);
@@ -546,7 +546,7 @@
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
       <h1 class="module-title">Cálculo Rata de Descarga</h1>
       <p class="module-subtitle">
-        Calcula Q₁ (control) y Q₂ (extinción) según Doc 9137 por categoría OACI, compara contra los mínimos
+        Calcula Q₁ (control) y Q₂ (extinción) según Doc 9137, compara contra los mínimos
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
       </p>
       <div class="module-meta">
@@ -743,17 +743,27 @@
           </div>
           <!-- Total Q3 -->
           <div class="sem-cell" id="sem-total">
-            <div class="sem-lamp" id="lamp-total">💧</div>
-            <div class="sem-title">Q — Agua Total (Q₁ + Q₂)</div>
+            <div class="sem-lamp" id="lamp-total">🌊</div>
+            <div class="sem-title">Q — Agua Total (Q₁+Q₂)</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-total-l">— L/min</span>
               <span class="sv-g" id="sem-total-g">— gal/min</span>
             </div>
             <div class="sem-status" id="sem-total-status">—</div>
+          <!-- Q₃ Agentes Complementarios (PQS/CO₂) -->
+          <div class="sem-cell" id="sem-pqs">
+            <div class="sem-lamp" id="lamp-pqs">🧯</div>
+            <div class="sem-title">Q₃ — Agentes Comp.</div>
+            <div class="sem-val">
+              <span class="sv-l" id="sem-pqs-l">— kg</span>
+              <span class="sv-g" id="sem-pqs-g">— req.</span>
+            </div>
+            <div class="sem-status" id="sem-pqs-status">—</div>
+          </div>
           </div>
         </div>
 
-        <!-- Q3 BREAKDOWN -->
+        <!-- Q BREAKDOWN -->
         <div class="q3-zone">
           <div class="q3-header">
             <div class="q3-title">Desglose Q — Agua Operacional · Doc 9137</div>
@@ -925,12 +935,6 @@
    Volumen mínimo de agente extintor en Litros por categoría OACI.
    Fuente: RAC 14 Tabla 9.2, columna Nivel B.
 ─────────────────────────────────────────────────────────────── */
-/* Q2 factores por categoría — Doc 9137 Tabla 2-1 */
-const Q2_PCT = {
-  1:0.00, 2:0.27, 3:0.30, 4:0.58, 5:0.75,
-  6:1.00, 7:1.29, 8:1.52, 9:1.70, 10:1.90,
-};
-
 const RAC14 = {
   1:  { volMin:    230, ref: 'L ≤ 9 m' },
   2:  { volMin:    670, ref: '9 < L ≤ 12 m' },
@@ -1099,53 +1103,22 @@ function _supaStatus(state, label) {
 ════════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
 
-  /* ── PASO 1: URL params (prioridad máxima) ── */
-  const _urlP    = new URLSearchParams(window.location.search);
-  const _urlAp   = _urlP.get('ac')  || '';
-  const _urlCat  = _urlP.get('cat') || '';
+  /* ── URLSearchParams — vienen de Módulo 02 (continuarRataDescarga) ── */
+  const _urlP   = new URLSearchParams(window.location.search);
+  const _urlAp  = _urlP.get('ac');
+  const _urlCat = _urlP.get('cat');
+
+  /* ── Persistencia de OACI: leer desde URL y sincronizar a storage ── */
   const _urlOaci = (_urlP.get('oaci') || '').trim().toUpperCase();
-
-  if (_urlAp)   { localStorage.setItem('arff_ap',    _urlAp);
-                  localStorage.setItem('areaCritica', _urlAp); }
-  if (_urlCat)  { localStorage.setItem('arff_cat',   _urlCat);
-                  localStorage.setItem('catOaci',     _urlCat); }
-  if (_urlOaci) { sessionStorage.setItem('current_oaci', _urlOaci); }
-
-  /* ── PASO 2: Resolver valores efectivos ── */
-  const oaci = _urlOaci
-            || sessionStorage.getItem('current_oaci')
-            || sessionStorage.getItem('sei_estacion')
-            || localStorage.getItem('sei_estacion')
-            || null;
-
-  const apRaw  = _urlAp  || localStorage.getItem('arff_ap')
-              || localStorage.getItem('areaCritica') || '';
-  const catRaw = _urlCat || localStorage.getItem('arff_cat')
-              || localStorage.getItem('catOaci') || '';
-
-  /* ── PASO 3: Poblar DOM — ANTES de cualquier selector/cálculo ── */
-  const apNum  = parseFloat(apRaw);
-  const catNum = parseInt(catRaw);
-
-  if (!isNaN(apNum) && apNum > 0) {
-    const inpAp = document.getElementById('inp-ap');
-    inpAp.value = apNum.toFixed(2);
-    inpAp.classList.add('locked');
-    document.getElementById('inh-ap').textContent = apNum.toFixed(2) + ' m²';
+  if (_urlOaci.length === 4) {
+    // URL tiene prioridad absoluta — guardarlo en ambos almacenamientos
+    sessionStorage.setItem('current_oaci', _urlOaci);
   }
-  if (!isNaN(catNum) && catNum >= 1 && catNum <= 10) {
-    document.getElementById('sel-cat').value = String(catNum);
-    document.getElementById('inh-cat').textContent = 'Cat ' + catNum;
-  }
-  if (oaci) {
-    document.getElementById('inh-oaci').textContent = oaci;
-    document.getElementById('nav-oaci').textContent = oaci;
-  }
-  const hayDatos = oaci || apRaw;
-  document.getElementById('inherit-ok').style.display      = hayDatos ? 'flex' : 'none';
-  document.getElementById('inherit-missing').style.display = hayDatos ? 'none' : 'block';
 
-  /* ── PASO 4: Flota y selectores SIN disparar calcularLive ── */
+  if (_urlAp)  { localStorage.setItem('arff_ap', _urlAp);  localStorage.setItem('areaCritica', _urlAp); }
+  if (_urlCat) { localStorage.setItem('arff_cat', _urlCat); localStorage.setItem('catOaci', _urlCat); }
+
+  /* ── Datos de flota exportados por Módulo 01 ─────────────────── */
   window._flota = {
     agua_litros:  parseFloat(localStorage.getItem('sei_agua_total_litros'))    || 0,
     cam_litros:   parseFloat(localStorage.getItem('sei_agua_camiones_litros')) || 0,
@@ -1157,32 +1130,87 @@ window.addEventListener('DOMContentLoaded', () => {
     q_lpm:        parseFloat(localStorage.getItem('sei_q_flota_total_lpm'))    || 0,
   };
 
-  // Actualizar botones sin llamar selectEff/selectConc (evita calcularLive prematuro)
-  const effActivo = (window._flota.nivel && EFF_RATE[window._flota.nivel])
-                  ? window._flota.nivel : currentEff;
-  currentEff = effActivo;
-  document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.eff === effActivo));
-  updateEffInfo();
+  /* ── Lectura de claves heredadas ── */
+  const oaci = sessionStorage.getItem('sei_estacion')
+            || localStorage.getItem('sei_estacion')
+            || localStorage.getItem('arff_oaci_codigo')
+            || localStorage.getItem('currentOaci')
+            || null;
 
-  const concActivo = [1,3,6].includes(parseInt(window._flota.conc_pct))
-                   ? parseInt(window._flota.conc_pct) : currentConc;
-  currentConc = concActivo;
-  document.querySelectorAll('#conc-group .seg-btn').forEach(b =>
-    b.classList.toggle('active', parseInt(b.dataset.conc) === concActivo));
+  const apRaw  = _urlAp
+              || localStorage.getItem('arff_ap')
+              || localStorage.getItem('areaCritica')
+              || localStorage.getItem('ap_m2')
+              || null;
 
-  _renderFlotaPanel();
+  const catRaw = _urlCat
+              || localStorage.getItem('arff_cat')
+              || localStorage.getItem('catOaci')
+              || localStorage.getItem('categoria_oaci')
+              || null;
 
-  /* ── PASO 5: Calcular con todos los valores ya en el DOM ── */
-  const apFinal  = parseFloat(document.getElementById('inp-ap').value);
-  const catFinal = parseInt(document.getElementById('sel-cat').value);
+  const hayDatos = oaci || apRaw;
+  document.getElementById('inherit-ok').style.display      = hayDatos ? 'flex' : 'none';
+  document.getElementById('inherit-missing').style.display = hayDatos ? 'none' : 'block';
 
   if (oaci) {
-    if (!isNaN(apFinal) && apFinal > 0 && catFinal >= 1) calcular(true);
+    document.getElementById('inh-oaci').textContent = oaci;
+    document.getElementById('nav-oaci').textContent = oaci;
+  }
+
+  if (apRaw) {
+    const ap = parseFloat(apRaw);
+    if (!isNaN(ap) && ap > 0) {
+      document.getElementById('inh-ap').textContent = ap.toFixed(2) + ' m²';
+      const inpAp = document.getElementById('inp-ap');
+      inpAp.value = ap.toFixed(2);
+      inpAp.classList.add('locked');
+      inpAp.title = 'Valor heredado del Módulo 01 — Área Crítica Aₚ';
+    }
+  }
+
+  if (catRaw) {
+    const cat = parseInt(catRaw);
+    if (cat >= 1 && cat <= 10) {
+      document.getElementById('inh-cat').textContent = 'Cat ' + cat;
+      document.getElementById('sel-cat').value = String(cat);
+    }
+  }
+
+  /* ── Sincronizar selectores al estado inicial ── */
+  document.querySelectorAll('#eff-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.eff === currentEff));
+  document.querySelectorAll('#conc-group .seg-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.conc) === currentConc));
+  updateEffInfo();
+
+  /* ── Pre-sincronizar con nivel/conc de la estación (Módulo 01) ──
+     Solo si aún no llegaron datos de Supabase; selectEff/selectConc
+     se llamarán de nuevo en obtenerInventarioReal() si llegan datos. */
+  if (window._flota.nivel && EFF_RATE[window._flota.nivel]) {
+    selectEff(window._flota.nivel);
+  }
+  const _flotaConcNum = parseInt(window._flota.conc_pct);
+  if ([1, 3, 6].includes(_flotaConcNum)) {
+    selectConc(_flotaConcNum);
+  }
+
+  /* ── Renderizar panel de agentes de flota ─── */
+  _renderFlotaPanel();
+
+  /* ── Lanzar consulta a Supabase ─────────────────────────────
+     Si hay OACI guardado, intentamos cargar inventario real.
+     Esto también llamará a calcular() al finalizar.
+     Si falla o no hay OACI, el motor igual corre con invDisp=0
+     y mostrará CAPACIDAD DEGRADADA hasta recibir datos.          */
+  if (oaci) {
     obtenerInventarioReal();
   } else {
+    /* Sin OACI: aplicar fallback de flota y calcular */
     _aplicarFallbackFlota();
-    if (!isNaN(apFinal) && apFinal > 0 && catFinal >= 1) calcular(true);
+    const apVal  = parseFloat(document.getElementById('inp-ap').value);
+    const catVal = parseInt(document.getElementById('sel-cat').value);
+    if (!isNaN(apVal) && apVal > 0 && catVal >= 1) calcular(true);
   }
 });
 
@@ -1225,7 +1253,7 @@ function calcularLive() {
    │  Q₁     = Aₚ × Régimen            (L/min)               │
    │  Q₂     = Q₁ × 1.0               (100% adicional Q₁)   │
    │  Qt     = Q₁ + Q₂                (Ataque Inicial total) │
-   │  Q₃     = Agentes complementarios PQS/CO₂ (kg)          │
+   │  Q₃     = Agentes complementarios PQS/CO₂ (en kg)       │
    │  Req    = Qt + Q₃                (Requerimiento Total)  │
    │  Conc   = Req × % / 100 / 3.785  (gal concentrado puro) │
    └──────────────────────────────────────────────────────────┘
@@ -1253,29 +1281,18 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Motor de cálculo — Doc 9137 ────────────────────────────
-     Q1 = Ap × R × T   (T=1min implícito en R [L/min/m²])
-     Q2 = Q1 × Q2_PCT[cat]  (factor variable por categoría)
-     Q  = Q1 + Q2            (agua total requerida — LITROS)
-  ──────────────────────────────────────────────────────────── */
-  const rate   = EFF_RATE[currentEff];
-  const Q1     = ap * rate;                       // L — Control inicial 1 min
-  const q2pct  = Q2_PCT[cat] ?? 0;               // Factor OACI por categoría
-  const Q2     = Q1 * q2pct;                     // L — Extinción/Continuidad
-  const Qt     = Q1 + Q2;                        // L — Agua total requerida
-  // Alias legacy para compatibilidad con código existente
-  const Q3       = Q2;
-  const reqTotal = Qt;
+  /* ── Cálculo escalonado ─────────────────────────────────── */
+  const rate     = EFF_RATE[currentEff];
+  const Q1       = ap * rate;
+  const Q2       = Q1 * 1.0;                  // 100% adicional
+  const Qt       = Q1 + Q2;                   // Ataque Inicial
+  const Q3       = Qt * 2.0;                  // alias legacy
+  const reqTotal = Qt + Q3;                   // Requerimiento total en bodega
 
-  /* ── Concentrado espumante §2.6.1 ────────────────────────
-     carga_normativa = agua mínima RAC14[cat] × concentración
-     reserva_req     = carga_normativa × 200% (2 recargas)   */
-  const concFrac        = currentConc / 100;
-  const agua_normativa  = RAC14[cat].volMin;
-  const carga_normativa = agua_normativa * concFrac;
-  const reserva_req     = carga_normativa * 2;
-  const concLitros      = Qt * concFrac;          // L — para display UI
-  const concGalones     = concLitros / L_PER_GAL;
+  /* ── Concentrado espumante ─────────────────────────────── */
+  const concFrac   = currentConc / 100;
+  const concLitros = reqTotal * concFrac;      // L de concentrado puro
+  const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
 
   /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
      Lee el valor actual del campo en pantalla para que cualquier
@@ -1343,7 +1360,7 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo 1: Q₁ Control inicial — LITROS ────────── */
+  /* ── Semáforo: Ataque Inicial ────────────────────────── */
   _semaforo('ataque',
     fmtL(Q1), fmtGal(Q1),
     ataqueOk,
@@ -1351,7 +1368,7 @@ function calcular(silent) {
     '🔥'
   );
 
-  /* ── Semáforo 2: Q₂ Extinción — LITROS por categoría ── */
+  /* ── Semáforo: Reserva Q3 ────────────────────────────── */
   _semaforo('reserva',
     fmtL(Q2) + ` (${(q2pct*100).toFixed(0)}%)`, fmtGal(Q2),
     reservaOk,
@@ -1360,23 +1377,35 @@ function calcular(silent) {
   );
 
   /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
-  // invDisp ahora viene SIEMPRE del input → nunca "Sin datos" si el campo tiene valor
-  const invLabel = invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos';
-  const invEstado = invDisp > 0
-    ? (inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT')
-    : 'SIN DATOS';
+  const invEstado = inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT';
   _semaforo('total',
-    invLabel, fmtGal(invDisp),
+    fmtL(Qt), fmtGal(Qt),
     inventarioOk,
     invEstado,
-    '💧'
+    '🌊'
   );
 
-  /* ── Desglose Q3 ──────────────────────────────────────── */
+  /* ── Semáforo 4: Q₃ PQS/CO₂ ───────────────────────────── */
+  const PQS_MIN  = {1:45,2:45,3:90,4:90,5:90,6:135,7:135,8:135,9:135,10:180};
+  const pqsReq   = PQS_MIN[cat] || 90;
+  const pqsDisp  = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
+                || (window._flota ? window._flota.pqs_kg : 0) || 0;
+  const pqsOk    = pqsDisp >= pqsReq;
+  if (document.getElementById('lamp-pqs')) {
+    _semaforo('pqs',
+      pqsDisp > 0 ? `${pqsDisp.toFixed(0)} kg` : 'Sin datos',
+      `Mín: ${pqsReq} kg`,
+      pqsOk,
+      pqsOk ? 'PQS OK' : 'DÉFICIT PQS',
+      '🧯'
+    );
+  }
+
+  /* ── Desglose Q ─────────────────────────────────────── */
   document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
   document.getElementById('q3-ataque-g').textContent  = fmtGal(Q1);
   document.getElementById('q3-reserva-l').textContent = fmtL(Q2);
-  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% Cat ${cat}`;
+  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% · Cat ${cat}`;
   document.getElementById('q3-total-l').textContent   = fmtL(Qt);
   document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
