@@ -925,6 +925,11 @@
    Volumen mínimo de agente extintor en Litros por categoría OACI.
    Fuente: RAC 14 Tabla 9.2, columna Nivel B.
 ─────────────────────────────────────────────────────────────── */
+const Q2_PCT = {
+  1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,
+  6:1.00,7:1.29,8:1.52,9:1.70,10:1.90,
+};
+
 const RAC14 = {
   1:  { volMin:    230, ref: 'L ≤ 9 m' },
   2:  { volMin:    670, ref: '9 < L ≤ 12 m' },
@@ -948,12 +953,6 @@ const EFF_INFO = {
 
 /* ─── Conversión ────────────────────────────────────────────── */
 const L_PER_GAL = 3.785411784;
-
-/* Q2 factores por categoría — Doc 9137 Tabla 2-1 */
-const Q2_PCT = {
-  1:0.00, 2:0.27, 3:0.30, 4:0.58, 5:0.75,
-  6:1.00, 7:1.29, 8:1.52, 9:1.70, 10:1.90,
-};
 function lToGal(l)    { return l / L_PER_GAL; }
 function fmtL(l)      { return l.toFixed(1) + ' L'; }
 function fmtGal(l)    { return lToGal(l).toFixed(1) + ' gal'; }
@@ -1127,9 +1126,10 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   /* ── Lectura de claves heredadas ── */
-  const oaci = sessionStorage.getItem('current_oaci')
-            || sessionStorage.getItem('sei_estacion')
+  const oaci = sessionStorage.getItem('sei_estacion')
             || localStorage.getItem('sei_estacion')
+            || localStorage.getItem('arff_oaci_codigo')
+            || localStorage.getItem('currentOaci')
             || null;
 
   const apRaw  = _urlAp
@@ -1276,14 +1276,25 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Cálculo escalonado ─────────────────────────────────── */
-  const rate     = EFF_RATE[currentEff];
-  const Q1       = ap * rate;                    // L — Control 1 min
-  const q2pct    = Q2_PCT[cat] ?? 0;            // Factor por categoría Doc 9137
-  const Q2       = Q1 * q2pct;                  // L — Extinción
-  const Qt       = Q1 + Q2;                     // L — Agua total
-  const Q3       = Q2;                          // alias legacy
+  /* ── Doc 9137 §2.4.7-2.4.10 ────────────────────────────────
+     ap  = Ap (Área Crítica Práctica = 2/3 AT) — viene de M02
+     Q1  = Ap × R × T(1min)  — control del incendio §2.4.8
+     Q2  = Q1 × Q2_PCT[cat]  — extinción post-control §2.4.9
+     Qt  = Q1 + Q2            — AGUA TOTAL para espuma (litros)
+     Q3  = agentes complementarios en kg — Tabla 2-3 §2.3.1
+           ⚠ NO es agua · NO se suma a Qt
+  ─────────────────────────────────────────────────────────── */
+  const rate  = EFF_RATE[currentEff];
+  const Q1    = ap * rate;                    // L — Control 1 min
+  const q2pct = Q2_PCT[cat] ?? 0;
+  const Q2    = Q1 * q2pct;                  // L — Extinción
+  const Qt    = Q1 + Q2;                     // L — Agua total
   const reqTotal = Qt;
+
+  // Q3 — Agentes complementarios (PQS/CO₂) kg — Tabla 2-3 Doc 9137
+  const Q3_KG_TABLE = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
+  const Q3_kg = Q3_KG_TABLE[cat] || 0;
+  const Q3    = Q3_kg; // kg — solo para compatibilidad de variables
 
   /* ── Concentrado espumante ─────────────────────────────── */
   const concFrac    = currentConc / 100;
@@ -1413,7 +1424,7 @@ function calcular(silent) {
   _buildRacTable(Qt, Q3, reqTotal, cat);
 
   /* ── Traza de cálculo ─────────────────────────────────── */
-  _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGalones, invDisp, cat);
+  _buildTrace(ap, rate, Q1, Q2, Qt, Q3_kg, reqTotal, concGalones, invDisp, cat);
 
   if (!silent) showToast('✓ Motor ejecutado — ' + (allOk ? 'OPERATIVO' : 'CAPACIDAD DEGRADADA'));
 }
@@ -1474,19 +1485,24 @@ function _buildRacTable(Qt, Q3, reqTotal, activeCat) {
 /* ════════════════════════════════════════════════════════════
    _buildTrace() — Barra de trazabilidad del cálculo
 ════════════════════════════════════════════════════════════ */
-function _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGal, invDisp, cat) {
+function _buildTrace(ap, rate, Q1, Q2, Qt, Q3_kg, reqTotal, concGal, invDisp, cat) {
   document.getElementById('trace-bar').classList.add('show');
-  const _q2pct = Q2_PCT[cat] ?? 0;
   document.getElementById('trace-steps').innerHTML = `
     <span class="ts hi-ap">Aₚ = ${ap} m²</span>
     <span class="ts-op">×</span>
     <span class="ts hi-r">R = ${rate} L/min/m²</span>
     <span class="ts-op">=</span>
+    <span class="ts hi-ap">Ap = ${ap} m²</span>
+    <span class="ts-op">×</span>
+    <span class="ts hi-r">R = ${rate} L/min/m²</span>
+    <span class="ts-op">=</span>
     <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L</span>
     <span class="ts-op">+</span>
-    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L (${(_q2pct*100).toFixed(0)}% Cat ${cat})</span>
+    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat})</span>
     <span class="ts-op">=</span>
-    <span class="ts hi-qt">Q = ${Qt.toFixed(1)} L</span>
+    <span class="ts hi-qt">Qt = ${Qt.toFixed(1)} L</span>
+    <span class="ts-op">·</span>
+    <span class="ts hi-q3">Q₃ = ${Q3_kg} kg PQS (Tabla 2-3)</span>
     <span class="ts-op">|</span>
     <span class="ts" style="color:var(--purple);border-color:rgba(112,72,232,.3);background:rgba(112,72,232,.06)">Conc = ${concGal.toFixed(1)} gal (${currentConc}%)</span>
     <span class="ts-op">|</span>

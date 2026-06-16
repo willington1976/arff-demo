@@ -1556,7 +1556,7 @@
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--blue-bright);border:1px solid #1971c2">f</span>
-          <span class="legend-desc">Factor K — <strong style="color:#339af0">Doc 9137 §2.3.2</strong>: L&lt;12m→12m(39ft) · 12≤L&lt;18m→14m(46ft) · 18≤L&lt;24m→17m(56ft) · L≥24m→30m(100ft)</span>
+          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si L &lt; 28 m · <strong style="color:#339af0">30 m</strong> si L ≥ 28 m — prioridad longitud (OACI Doc 9137 §2.3.2)</span>
         </div>
       </div>
     </div>
@@ -1635,10 +1635,9 @@
               </label>
               <div class="input-wrap">
                 <input type="number" id="inp-L" min="1" max="90" step="0.1" placeholder="ej. 63.73"
-                  oninput="autoCalcF(); clearResult(); _updFtL()">
+                  oninput="autoCalcF(); clearResult()">
                 <span class="input-unit">m</span>
               </div>
-              <div id="ft-L" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:3px;padding-left:2px;"></div>
             </div>
 
             <div class="field">
@@ -1652,7 +1651,6 @@
                 <span class="input-unit">m</span>
               </div>
             </div>
-              <div id="ft-Wf" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:3px;padding-left:2px;"></div>
 
             <div class="field">
               <label>
@@ -2187,13 +2185,10 @@
       // Regla normativa OACI Doc 9137, Parte 1 §2.3.2 — PRIORIDAD: longitud L
       //   L >= 28 m  →  f = 30 m (15 m por lado) — aeronave comercial / fuselaje ancho
       //   L <  28 m  →  f = 12 m (6 m por lado)  — aviación general / regional
-      if (typeof L === 'number' && !isNaN(L) && L > 0) {
-        if (L < 12) return 12;
-        if (L < 18) return 14;
-        if (L < 24) return 17;
-        return 30;
+      if (typeof L === 'number' && !isNaN(L)) {
+        return L >= 28 ? 30 : 12;
       }
-      // Fallback (solo si L no está disponible)
+      // Fallback legacy (solo si L no está disponible)
       return Wf < 12 ? 12 : 30;
     }
 
@@ -2218,16 +2213,21 @@
 
       const lValid = !isNaN(L) && L > 0;
       if (lValid) {
-        let kLabel, kNote;
-        if (L < 12)      { kLabel = 'L < 12 m → K = 12 m (39 ft)'; kNote = `L = ${L} m (< 12 m) → K = 12 m (39 ft) · 6 m por lado`; }
-        else if (L < 18) { kLabel = '12 ≤ L < 18 m → K = 14 m (46 ft)'; kNote = `L = ${L} m (12–18 m) → K = 14 m (46 ft) · 7 m por lado`; }
-        else if (L < 24) { kLabel = '18 ≤ L < 24 m → K = 17 m (56 ft)'; kNote = `L = ${L} m (18–24 m) → K = 17 m (56 ft) · 8.5 m por lado`; }
-        else             { kLabel = 'L ≥ 24 m → K = 30 m (100 ft)'; kNote = `L = ${L} m (≥ 24 m) → K = 30 m (100 ft) · 15 m por lado`; }
-        badge.innerHTML = '✓ ' + kLabel;
-        noteText.textContent = kNote;
+        if (L >= 28) {
+          badge.innerHTML = '✓ L ≥ 28 m → f = 30 m';
+          noteText.textContent = `L = ${L} m (≥ 28 m) → Factor K obligatorio: f = 30 m (15 m por lado)`;
+        } else {
+          badge.innerHTML = '✓ L &lt; 28 m → f = 12 m';
+          noteText.textContent = `L = ${L} m (< 28 m) → Factor K obligatorio: f = 12 m (6 m por lado)`;
+        }
       } else {
-        if (Wf < 12) { badge.innerHTML = '✓ Wf < 12 m → K = 12 m (39 ft)'; noteText.textContent = `Wf = ${Wf} m → K = 12 m (39 ft)`; }
-        else { badge.innerHTML = '✓ Wf ≥ 12 m → K = 30 m (100 ft)'; noteText.textContent = `Wf = ${Wf} m → K = 30 m (100 ft)`; }
+        if (Wf < 12) {
+          badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
+          noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
+        } else {
+          badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
+          noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
+        }
       }
       badge.style.color = '#2f9e44';
       badge.style.background = 'rgba(47,158,68,.10)';
@@ -2285,37 +2285,48 @@
       document.getElementById('inp-f').value = f;
       autoCalcF();
 
-      const Ac = L * (Wf + f);
-      const AcRound = Math.round(Ac * 100) / 100;
+      // Doc 9137 §2.4.5 — Área Crítica Teórica
+      const AT = L * (Wf + f);
+      const ATRound = Math.round(AT * 100) / 100;
+      // Doc 9137 §2.4.6 — Área Crítica Práctica = 2/3 × AT
+      const Ap = AT * (2 / 3);
+      const ApRound = Math.round(Ap * 100) / 100;
+      // Alias de compatibilidad
+      const Ac = AT;
+      const AcRound = ATRound;
 
-      // Store globals for next calculator
-      window.lastAc = AcRound;
+      window.lastAc = ApRound; // M03 usa Ap para Q1 = Ap × R × T
 
-      // ── Exportar a localStorage para Módulo 03 ───────────────
+      // Exportar Ap a Módulo 03 (§2.4.8: Q1 = Ap × R × T)
       try {
-        localStorage.setItem('arff_ap',           String(AcRound));
-        localStorage.setItem('areaCritica',        String(AcRound));
-        localStorage.setItem('ap_m2',              String(AcRound));
-        // categoria se escribe después de catRef
+        localStorage.setItem('arff_ap',           String(ApRound));
+        localStorage.setItem('areaCritica',        String(ApRound));
+        localStorage.setItem('ap_m2',              String(ApRound));
+        localStorage.setItem('arff_at',            String(ATRound));
       } catch(e) {}
 
       // Show result
-      const FT=3.28084, FT2=10.7639;
       const valAc = document.getElementById('val-ac');
-      if (valAc) valAc.innerHTML = `${AcRound.toFixed(2)}<span class="unit"> m²</span><span style="font-size:.55em;color:var(--text-muted);margin-left:8px;font-family:var(--font-mono)">(${(AcRound*FT2).toFixed(0)} ft²)</span>`;
+      if (valAc) valAc.innerHTML =
+        `<span style="font-size:.75em;color:var(--text-muted);font-family:var(--font-mono)">AT = ${ATRound.toFixed(2)} m²</span><br>`
+        + `${ApRound.toFixed(2)}<span class="unit"> m²</span>`
+        + `<span style="font-size:.65em;color:var(--text-muted);margin-left:6px;font-family:var(--font-mono)">(Ap = ⅔AT · §2.4.6)</span>`;
       const breakL = document.getElementById('break-L');
-      if (breakL) breakL.textContent = `${L} m  (${(L*FT).toFixed(1)} ft)`;
+      if (breakL) breakL.textContent = `${L} m`;
       const breakWf = document.getElementById('break-Wf');
-      if (breakWf) breakWf.textContent = `${Wf} m  (${(Wf*FT).toFixed(2)} ft)`;
+      if (breakWf) breakWf.textContent = `${Wf} m`;
       const breakF = document.getElementById('break-f');
-      if (breakF) breakF.textContent = `${f} m  (${(f*FT).toFixed(1)} ft)`;
+      if (breakF) breakF.textContent = `${f} m`;
 
-      let fRule, normText;
-      if (L < 12)      { fRule = 'L < 12 m → K = 12 m (39 ft)'; normText = `L = ${L} m (${(L*3.28084).toFixed(1)} ft) — K = 12 m (39 ft)`; }
-      else if (L < 18) { fRule = '12 ≤ L < 18 m → K = 14 m (46 ft)'; normText = `L = ${L} m (${(L*3.28084).toFixed(1)} ft) — K = 14 m (46 ft)`; }
-      else if (L < 24) { fRule = '18 ≤ L < 24 m → K = 17 m (56 ft)'; normText = `L = ${L} m (${(L*3.28084).toFixed(1)} ft) — K = 17 m (56 ft)`; }
-      else             { fRule = 'L ≥ 24 m → K = 30 m (100 ft)'; normText = `L = ${L} m (${(L*3.28084).toFixed(1)} ft) — K = 30 m (100 ft)`; }
+      // Normative rule display — prioridad L >= 28 m
+      const fRule = L >= 28
+        ? 'L ≥ 28 m → f = 30 m (norma)'
+        : 'L < 28 m → f = 12 m (norma)';
       document.getElementById('res-f-rule').textContent = fRule;
+
+      const normText = L >= 28
+        ? `L = ${L} m (≥ 28 m) — Factor K asignado: f = 30 m (15 m por lado).`
+        : `L = ${L} m (< 28 m) — Factor K asignado: f = 12 m (6 m por lado).`;
       document.getElementById('res-norm-text').textContent = normText;
       document.getElementById('res-norm-note').style.display = 'block';
 
@@ -2353,7 +2364,7 @@
       if (history.length > 20) history.pop();
       renderHistory();
 
-      showToast(`✓ Ac = ${AcRound.toFixed(2)} m² · f = ${f} m (OACI §2.3.2)`);
+      showToast(`✓ AT=${ATRound.toFixed(2)} m² → Ap=${ApRound.toFixed(2)} m² · K=${f} m (§2.4.5-6)`);
     }
 
     function detectCat(L) {
@@ -2388,8 +2399,7 @@
         localStorage.setItem('catOaci',         String(window.lastCat));
         localStorage.setItem('categoria_oaci',  String(window.lastCat));
         // Preservar OACI en ambos almacenamientos (doble escritura)
-        const oaciSes = sessionStorage.getItem('current_oaci')
-                     || sessionStorage.getItem('sei_estacion')
+        const oaciSes = sessionStorage.getItem('sei_estacion')
                      || localStorage.getItem('sei_estacion')
                      || localStorage.getItem('arff_oaci_codigo')
                      || localStorage.getItem('currentOaci')
@@ -2403,8 +2413,7 @@
       } catch(e) {}
       const urlParams = new URLSearchParams(window.location.search);
       // Recuperar OACI para pasarlo en la URL destino
-      const oaciNav = (sessionStorage.getItem('current_oaci')
-                    || sessionStorage.getItem('sei_estacion')
+      const oaciNav = (sessionStorage.getItem('sei_estacion')
                     || localStorage.getItem('sei_estacion')
                     || localStorage.getItem('arff_oaci_codigo')
                     || localStorage.getItem('currentOaci')
@@ -2430,7 +2439,7 @@
       const centerX = 150, centerY = 125;
 
       // ── Factor K binario por longitud ──
-      const factorK    = L < 12 ? 12 : L < 18 ? 14 : L < 24 ? 17 : 30;
+      const factorK    = (L >= 28) ? 30 : 12;
       const metrosCota = factorK / 2;          // exactamente 6 o 15
 
       // ── Escala DINÁMICA — garantiza que el ACT siempre sea legible ──
@@ -2654,7 +2663,7 @@
     /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
     function _svgBN(L, Wf, f, Ac) {
       var cx=150, cy=125;
-      var factorK    = L < 12 ? 12 : L < 18 ? 14 : L < 24 ? 17 : 30;
+      var factorK    = (L >= 28) ? 30 : 12;
       var metrosCota = factorK / 2;
 
       // Escala dinámica — mismo criterio que drawDiagram
@@ -2940,17 +2949,6 @@
         setTimeout(calcular, 300);
       }
     };
-    /* ── Conversiones ft en tiempo real para inputs L y Wf ── */
-    function _updFtL() {
-      const v = parseFloat(document.getElementById('inp-L').value);
-      const el = document.getElementById('ft-L');
-      if (el) el.textContent = (!isNaN(v) && v > 0) ? `(${(v*3.28084).toFixed(1)} ft)` : '';
-    }
-    function _updFtWf() {
-      const v = parseFloat(document.getElementById('inp-Wf').value);
-      const el = document.getElementById('ft-Wf');
-      if (el) el.textContent = (!isNaN(v) && v > 0) ? `(${(v*3.28084).toFixed(2)} ft)` : '';
-    }
   </script>
 </body>
 
