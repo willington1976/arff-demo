@@ -734,7 +734,7 @@
           <!-- Reserva -->
           <div class="sem-cell" id="sem-reserva">
             <div class="sem-lamp" id="lamp-reserva">🚒</div>
-            <div class="sem-title">Reserva (200%)</div>
+            <div class="sem-title">Tasa Descarga §2.5</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-reserva-l">— L/min</span>
               <span class="sv-g" id="sem-reserva-g">— gal/min</span>
@@ -927,8 +927,8 @@
 ─────────────────────────────────────────────────────────────── */
 /* Q2 por categoría — Doc 9137 §2.4.10 */
 const Q2_PCT = {
-  1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,
-  6:1.00,7:1.29,8:1.52,9:1.70,10:1.90,
+  1:0.00, 2:0.27, 3:0.30, 4:0.58, 5:0.75,
+  6:1.00, 7:1.29, 8:1.52, 9:1.70, 10:1.90,
 };
 
 const RAC14 = {
@@ -1276,24 +1276,22 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Doc 9137 §2.4.7-2.4.10 ───────────────────────────────
-     ap   = Ap (Área Crítica Práctica = ⅔AT) — viene de M02
-     Q1   = Ap × R    — volumen control 1 min §2.4.8
-     Q2   = Q1 × Q2_PCT[cat]  — extinción post-control §2.4.9
-     Qt   = Q1 + Q2   — AGUA TOTAL para espuma (litros)
-     Q3   = agentes sólidos en kg — Tabla 2-3 §2.3.1 (no agua)
+  /* ── Doc 9137 §2.4.7-2.4.10 ────────────────────────────────
+     ap  = Ap (Área Crítica Práctica = ⅔AT) — viene de M02
+     Q1  = Ap × R × T(1min)   — control del incendio §2.4.8
+     Q2  = Q1 × Q2_PCT[cat]   — extinción post-control §2.4.9
+     Qt  = Q1 + Q2             — AGUA TOTAL para espuma (L)
+     Q3  = agentes sólidos kg  — Tabla 2-3 §2.3.1, NO es agua
   ─────────────────────────────────────────────────────────── */
   const rate   = EFF_RATE[currentEff];
-  const Q1     = ap * rate;                   // L — control 1 min
+  const Q1     = ap * rate;                    // L
   const q2pct  = Q2_PCT[cat] ?? 0;
-  const Q2     = Q1 * q2pct;                 // L — extinción
-  const Qt     = Q1 + Q2;                    // L — agua total
+  const Q2     = Q1 * q2pct;                  // L
+  const Qt     = Q1 + Q2;                     // L — agua total
   const reqTotal = Qt;
-
-  // Q3 = agentes complementarios kg — Tabla 2-3 Doc 9137 (NO es agua)
   const Q3_KG  = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
-  const Q3_kg  = Q3_KG[cat] || 0;
-  const Q3     = Q3_kg; // alias legacy — kg
+  const Q3_kg  = Q3_KG[cat] || 0;             // kg PQS — NO se suma a Qt
+  const Q3     = Q3_kg;
 
   /* ── Concentrado espumante ─────────────────────────────── */
   const concFrac    = currentConc / 100;
@@ -1331,7 +1329,9 @@ function calcular(silent) {
   const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
 
   /* Veredicto global: todos deben estar ok */
-  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
+  const qFlotaLpmCheck = window._flota ? (window._flota.q_lpm || 0) : 0;
+  const tasaOkCheck    = qFlotaLpmCheck === 0 || qFlotaLpmCheck >= Q1;
+  const allOk = ataqueOk && inventarioOk && espumaOk && tasaOkCheck;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
@@ -1366,7 +1366,7 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo 1: Q₁ Control — litros, no L/min ─────────── */
+  /* ── Semáforo 1: Q₁ Control — volumen L ─────────────── */
   _semaforo('ataque',
     fmtL(Q1), fmtGal(Q1),
     ataqueOk,
@@ -1374,15 +1374,20 @@ function calcular(silent) {
     '🔥'
   );
 
-  /* ── Semáforo 2: Q₂ Extinción ───────────────────────── */
+  /* ── Semáforo 2: Tasa de descarga — §2.5 Doc 9137 ───────
+     La tasa real de la flota (L/min) debe ser >= Q1
+     para aplicar Q1 en exactamente 1 minuto normativo.     */
+  const qFlotaLpm = window._flota ? (window._flota.q_lpm || 0) : 0;
+  const tasaOk    = qFlotaLpm >= Q1;
   _semaforo('reserva',
-    fmtL(Q2) + ` (${(q2pct*100).toFixed(0)}%)`, fmtGal(Q2),
-    reservaOk,
-    reservaOk ? 'EXTINCIÓN OK' : 'INSUFICIENTE',
-    '💧'
+    qFlotaLpm > 0 ? `${qFlotaLpm.toLocaleString('es-CO')} L/min` : '— L/min',
+    `Req: ${Q1.toFixed(0)} L/min`,
+    tasaOk,
+    tasaOk ? 'TASA OK' : 'TASA INSUFICIENTE',
+    '⚡'
   );
 
-  /* ── Semáforo 3: Q Total requerido ─────────────────────── */
+  /* ── Semáforo 3: Q Total vs Inventario ──────────────── */
   _semaforo('total',
     fmtL(Qt), fmtGal(Qt),
     inventarioOk,
@@ -1398,7 +1403,7 @@ function calcular(silent) {
   document.getElementById('q3-total-l').textContent   = fmtL(Qt);
   document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
-    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Qt=${Qt.toFixed(1)} L · Q₃=${Q3_kg} kg PQS`;
+    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Qt=${Qt.toFixed(1)} L  ·  Q₃=${Q3_kg} kg PQS`;
 
   /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
