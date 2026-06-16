@@ -220,6 +220,7 @@
       margin-bottom: 20px;
     }
     @media(max-width:860px) { .main-grid { grid-template-columns:1fr; } }
+    @media(max-width:860px) { .sem-row { grid-template-columns:repeat(2,1fr); } }
 
     /* ═══════════════════════════════════════════
        PANELS
@@ -366,7 +367,7 @@
 
     /* SEMAPHORES ROW */
     .sem-row {
-      display:grid; grid-template-columns:repeat(3,1fr);
+      display:grid; grid-template-columns:repeat(4,1fr);
       border-bottom:1px solid var(--border);
     }
     .sem-cell {
@@ -721,49 +722,49 @@
 
         <!-- SEMAPHORES -->
         <div class="sem-row">
-          <!-- Ataque -->
+          <!-- Q₁ Control -->
           <div class="sem-cell" id="sem-ataque">
             <div class="sem-lamp" id="lamp-ataque">🔥</div>
-            <div class="sem-title">Q₁ — Control inicial (1 min)</div>
+            <div class="sem-title">Q₁ — Control (1 min)</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-ataque-l">— L/min</span>
-              <span class="sv-g" id="sem-ataque-g">— gal/min</span>
+              <span class="sv-l" id="sem-ataque-l">— L</span>
+              <span class="sv-g" id="sem-ataque-g">— gal</span>
             </div>
             <div class="sem-status" id="sem-ataque-status">—</div>
           </div>
-          <!-- Reserva -->
+          <!-- Q₂ Extinción -->
           <div class="sem-cell" id="sem-reserva">
-            <div class="sem-lamp" id="lamp-reserva">🚒</div>
-            <div class="sem-title">Q₂ — Extinción / Continuidad</div>
+            <div class="sem-lamp" id="lamp-reserva">💧</div>
+            <div class="sem-title">Q₂ — Extinción</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-reserva-l">— L/min</span>
-              <span class="sv-g" id="sem-reserva-g">— gal/min</span>
+              <span class="sv-l" id="sem-reserva-l">— L</span>
+              <span class="sv-g" id="sem-reserva-g">— %</span>
             </div>
             <div class="sem-status" id="sem-reserva-status">—</div>
           </div>
-          <!-- Total Q3 -->
+          <!-- Q Agua Total -->
           <div class="sem-cell" id="sem-total">
             <div class="sem-lamp" id="lamp-total">🌊</div>
             <div class="sem-title">Q — Agua Total (Q₁+Q₂)</div>
             <div class="sem-val">
-              <span class="sv-l" id="sem-total-l">— L/min</span>
-              <span class="sv-g" id="sem-total-g">— gal/min</span>
+              <span class="sv-l" id="sem-total-l">— L</span>
+              <span class="sv-g" id="sem-total-g">— gal</span>
             </div>
             <div class="sem-status" id="sem-total-status">—</div>
-          <!-- Q₃ Agentes Complementarios (PQS/CO₂) -->
+          </div>
+          <!-- Q₃ Agentes Complementarios -->
           <div class="sem-cell" id="sem-pqs">
             <div class="sem-lamp" id="lamp-pqs">🧯</div>
-            <div class="sem-title">Q₃ — Agentes Comp.</div>
+            <div class="sem-title">Q₃ — PQS/CO₂</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-pqs-l">— kg</span>
               <span class="sv-g" id="sem-pqs-g">— req.</span>
             </div>
             <div class="sem-status" id="sem-pqs-status">—</div>
           </div>
-          </div>
         </div>
 
-        <!-- Q BREAKDOWN -->
+        <!-- Q3 BREAKDOWN -->
         <div class="q3-zone">
           <div class="q3-header">
             <div class="q3-title">Desglose Q — Agua Operacional · Doc 9137</div>
@@ -1253,7 +1254,7 @@ function calcularLive() {
    │  Q₁     = Aₚ × Régimen            (L/min)               │
    │  Q₂     = Q₁ × 1.0               (100% adicional Q₁)   │
    │  Qt     = Q₁ + Q₂                (Ataque Inicial total) │
-   │  Q₃     = Agentes complementarios PQS/CO₂ (en kg)       │
+   │  Q₃     = Qt × 2.0               (Reserva 200%)         │
    │  Req    = Qt + Q₃                (Requerimiento Total)  │
    │  Conc   = Req × % / 100 / 3.785  (gal concentrado puro) │
    └──────────────────────────────────────────────────────────┘
@@ -1281,18 +1282,21 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Cálculo escalonado ─────────────────────────────────── */
+  /* ── Motor Doc 9137: Q1=Control · Q2=Extinción · Q=Total ── */
+  const Q2_PCT   = {1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,
+                    6:1.00,7:1.29,8:1.52,9:1.70,10:1.90};
   const rate     = EFF_RATE[currentEff];
-  const Q1       = ap * rate;
-  const Q2       = Q1 * 1.0;                  // 100% adicional
-  const Qt       = Q1 + Q2;                   // Ataque Inicial
-  const Q3       = Qt * 2.0;                  // alias legacy
-  const reqTotal = Qt + Q3;                   // Requerimiento total en bodega
+  const Q1       = ap * rate;                    // L — Control 1 min
+  const q2pct    = Q2_PCT[cat] ?? 0;
+  const Q2       = Q1 * q2pct;                   // L — Extinción por cat
+  const Qt       = Q1 + Q2;                      // L — Agua total
+  const Q3       = Q2;                           // alias legacy
+  const reqTotal = Qt;
 
   /* ── Concentrado espumante ─────────────────────────────── */
-  const concFrac   = currentConc / 100;
-  const concLitros = reqTotal * concFrac;      // L de concentrado puro
-  const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
+  const concFrac    = currentConc / 100;
+  const concLitros  = Qt * concFrac;             // L de concentrado puro
+  const concGalones = concLitros / L_PER_GAL;
 
   /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
      Lee el valor actual del campo en pantalla para que cualquier
@@ -1360,7 +1364,7 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo: Ataque Inicial ────────────────────────── */
+  /* ── Semáforo 1: Q₁ Control (L) ────────────────────── */
   _semaforo('ataque',
     fmtL(Q1), fmtGal(Q1),
     ataqueOk,
@@ -1368,44 +1372,41 @@ function calcular(silent) {
     '🔥'
   );
 
-  /* ── Semáforo: Reserva Q3 ────────────────────────────── */
+  /* ── Semáforo 2: Q₂ Extinción (L + %) ──────────────── */
   _semaforo('reserva',
-    fmtL(Q2) + ` (${(q2pct*100).toFixed(0)}%)`, fmtGal(Q2),
+    fmtL(Q2),
+    `${(q2pct*100).toFixed(0)}% Cat ${cat}`,
     reservaOk,
     reservaOk ? 'EXTINCIÓN OK' : 'INSUFICIENTE',
     '💧'
   );
 
-  /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
-  const invEstado = inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT';
+  /* ── Semáforo 3: Q Agua Total — requerimiento ────────── */
   _semaforo('total',
     fmtL(Qt), fmtGal(Qt),
     inventarioOk,
-    invEstado,
+    inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT',
     '🌊'
   );
 
-  /* ── Semáforo 4: Q₃ PQS/CO₂ ───────────────────────────── */
-  const PQS_MIN  = {1:45,2:45,3:90,4:90,5:90,6:135,7:135,8:135,9:135,10:180};
-  const pqsReq   = PQS_MIN[cat] || 90;
-  const pqsDisp  = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
-                || (window._flota ? window._flota.pqs_kg : 0) || 0;
-  const pqsOk    = pqsDisp >= pqsReq;
-  if (document.getElementById('lamp-pqs')) {
-    _semaforo('pqs',
-      pqsDisp > 0 ? `${pqsDisp.toFixed(0)} kg` : 'Sin datos',
-      `Mín: ${pqsReq} kg`,
-      pqsOk,
-      pqsOk ? 'PQS OK' : 'DÉFICIT PQS',
-      '🧯'
-    );
-  }
+  /* ── Semáforo 4: Q₃ PQS/CO₂ ─────────────────────────── */
+  const PQS_MIN = {1:45,2:45,3:90,4:90,5:90,6:135,7:135,8:135,9:135,10:180};
+  const pqsReq  = PQS_MIN[cat] || 90;
+  const pqsDisp = parseFloat(localStorage.getItem('sei_pqs_bodega_kg'))
+               || (window._flota ? window._flota.pqs_kg : 0) || 0;
+  _semaforo('pqs',
+    pqsDisp > 0 ? `${pqsDisp.toFixed(0)} kg` : '— kg',
+    `Mín: ${pqsReq} kg`,
+    pqsDisp >= pqsReq,
+    pqsDisp >= pqsReq ? 'PQS OK' : 'DÉFICIT PQS',
+    '🧯'
+  );
 
-  /* ── Desglose Q ─────────────────────────────────────── */
+  /* ── Desglose Q3 ──────────────────────────────────────── */
   document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
   document.getElementById('q3-ataque-g').textContent  = fmtGal(Q1);
   document.getElementById('q3-reserva-l').textContent = fmtL(Q2);
-  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% · Cat ${cat}`;
+  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% Cat ${cat}`;
   document.getElementById('q3-total-l').textContent   = fmtL(Qt);
   document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
@@ -1497,11 +1498,11 @@ function _buildTrace(ap, rate, Q1, Q2, Qt, Q3, reqTotal, concGal, invDisp) {
     <span class="ts-op">×</span>
     <span class="ts hi-r">R = ${rate} L/min/m²</span>
     <span class="ts-op">=</span>
-    <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L  (Control · 1 min)</span>
+    <span class="ts hi-q1">Q₁ = ${Q1.toFixed(1)} L (Control · 1 min)</span>
     <span class="ts-op">+</span>
-    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L  (${(q2pct*100).toFixed(0)}% · Cat ${cat})</span>
+    <span class="ts hi-q2">Q₂ = ${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% · Cat ${cat})</span>
     <span class="ts-op">=</span>
-    <span class="ts hi-qt">Q = ${Qt.toFixed(1)} L  (Agua total requerida)</span>
+    <span class="ts hi-qt">Q = ${Qt.toFixed(1)} L (Agua total)</span>
     <span class="ts-op">|</span>
     <span class="ts" style="color:var(--purple);border-color:rgba(112,72,232,.3);background:rgba(112,72,232,.06)">Conc = ${concGal.toFixed(1)} gal (${currentConc}%)</span>
     <span class="ts-op">|</span>
