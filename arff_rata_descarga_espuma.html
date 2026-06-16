@@ -625,7 +625,7 @@
                 <span class="seg-desc">Nivel B</span>
               </button>
               <button class="seg-btn active" data-eff="C" onclick="selectEff('C')">
-                <span class="seg-val">3.7</span>
+                <span class="seg-val">3.75</span>
                 <span class="seg-sub">L/min/m²</span>
                 <span class="seg-desc">Nivel C</span>
               </button>
@@ -945,11 +945,11 @@ const RAC14 = {
 };
 
 /* ─── Regímenes de aplicación ──────────────────────────────── */
-const EFF_RATE = { A: 8.2, B: 5.5, C: 3.7 };
+const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 }; // §2.3.5 Doc 9137
 const EFF_INFO = {
   A: 'Nivel A — 8.2 L/min/m² · AFFF 1%. Categorías 7-10. Máxima protección.',
   B: 'Nivel B — 5.5 L/min/m² · AFFF 3%. Categorías 4-9. Estándar RAC 14.',
-  C: 'Nivel C — 3.7 L/min/m² · Espuma proteínica 6%. Categorías 1-6. Mínimo Doc 9137.',
+  C: 'Nivel C — 3.75 L/min/m² · Espuma proteínica 6%. Categorías 1-6. Doc 9137 §2.3.5.',
 };
 
 /* ─── Conversión ────────────────────────────────────────────── */
