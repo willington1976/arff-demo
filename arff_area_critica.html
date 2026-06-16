@@ -2185,10 +2185,12 @@
       // Regla normativa OACI Doc 9137, Parte 1 §2.3.2 — PRIORIDAD: longitud L
       //   L >= 28 m  →  f = 30 m (15 m por lado) — aeronave comercial / fuselaje ancho
       //   L <  28 m  →  f = 12 m (6 m por lado)  — aviación general / regional
-      if (typeof L === 'number' && !isNaN(L)) {
-        return L >= 28 ? 30 : 12;
+      if (typeof L === 'number' && !isNaN(L) && L > 0) {
+        if (L < 12) return 12;
+        if (L < 18) return 14;
+        if (L < 24) return 17;
+        return 30;            // L >= 24 → K = 30 m (§2.4.5)
       }
-      // Fallback legacy (solo si L no está disponible)
       return Wf < 12 ? 12 : 30;
     }
 
@@ -2285,48 +2287,46 @@
       document.getElementById('inp-f').value = f;
       autoCalcF();
 
-      // Doc 9137 §2.4.5 — Área Crítica Teórica
-      const AT = L * (Wf + f);
-      const ATRound = Math.round(AT * 100) / 100;
-      // Doc 9137 §2.4.6 — Área Crítica Práctica = 2/3 × AT
-      const Ap = AT * (2 / 3);
-      const ApRound = Math.round(Ap * 100) / 100;
-      // Alias de compatibilidad
+      const AT = L * (Wf + f);                      // §2.4.5 Área Crítica Teórica
+      const Ap = Math.round(AT * (2/3) * 100)/100;  // §2.4.6 Área Crítica Práctica
+      const AcRound = Math.round(AT * 100) / 100;   // AT — alias para SVG/display
       const Ac = AT;
-      const AcRound = ATRound;
 
-      window.lastAc = ApRound; // M03 usa Ap para Q1 = Ap × R × T
+      window.lastAc = Ap;   // M03 usa Ap para Q1 = Ap × R
 
-      // Exportar Ap a Módulo 03 (§2.4.8: Q1 = Ap × R × T)
       try {
-        localStorage.setItem('arff_ap',           String(ApRound));
-        localStorage.setItem('areaCritica',        String(ApRound));
-        localStorage.setItem('ap_m2',              String(ApRound));
-        localStorage.setItem('arff_at',            String(ATRound));
+        localStorage.setItem('arff_ap',    String(Ap));    // Ap → M03
+        localStorage.setItem('areaCritica',String(Ap));
+        localStorage.setItem('ap_m2',      String(Ap));
+        localStorage.setItem('arff_at',    String(AcRound)); // AT referencia
       } catch(e) {}
 
       // Show result
       const valAc = document.getElementById('val-ac');
       if (valAc) valAc.innerHTML =
-        `<span style="font-size:.75em;color:var(--text-muted);font-family:var(--font-mono)">AT = ${ATRound.toFixed(2)} m²</span><br>`
-        + `${ApRound.toFixed(2)}<span class="unit"> m²</span>`
-        + `<span style="font-size:.65em;color:var(--text-muted);margin-left:6px;font-family:var(--font-mono)">(Ap = ⅔AT · §2.4.6)</span>`;
+        `<span style="font-size:.72em;color:var(--text-muted);font-family:var(--font-mono)">AT = ${AcRound.toFixed(2)} m²  (${(AcRound*FT2).toFixed(0)} ft²)</span><br>`
+        + `${Ap.toFixed(2)}<span class="unit"> m²</span>`
+        + `<span style="font-size:.65em;color:var(--green-bright);margin-left:6px;font-family:var(--font-mono)">(${(Ap*FT2).toFixed(0)} ft²  ·  Ap = ⅔AT · §2.4.6)</span>`;
+      const FT = 3.28084, FT2 = 10.7639;
       const breakL = document.getElementById('break-L');
-      if (breakL) breakL.textContent = `${L} m`;
+      if (breakL) breakL.textContent = `${L} m  (${(L*FT).toFixed(1)} ft)`;
       const breakWf = document.getElementById('break-Wf');
-      if (breakWf) breakWf.textContent = `${Wf} m`;
+      if (breakWf) breakWf.textContent = `${Wf} m  (${(Wf*FT).toFixed(2)} ft)`;
       const breakF = document.getElementById('break-f');
-      if (breakF) breakF.textContent = `${f} m`;
+      if (breakF) breakF.textContent = `${f} m  (${(f*FT).toFixed(1)} ft)`;
 
       // Normative rule display — prioridad L >= 28 m
-      const fRule = L >= 28
-        ? 'L ≥ 28 m → f = 30 m (norma)'
-        : 'L < 28 m → f = 12 m (norma)';
+      // 4 tramos §2.4.5 con equivalencia ft
+      let fRule, normText;
+      if (L < 12)      { fRule = `L < 12 m → K = 12 m (39 ft)`;
+                         normText = `L = ${L} m (${(L*FT).toFixed(1)} ft) — K = 12 m (39 ft) · 6 m por lado`; }
+      else if (L < 18) { fRule = `12 ≤ L < 18 m → K = 14 m (46 ft)`;
+                         normText = `L = ${L} m (${(L*FT).toFixed(1)} ft) — K = 14 m (46 ft) · 7 m por lado`; }
+      else if (L < 24) { fRule = `18 ≤ L < 24 m → K = 17 m (56 ft)`;
+                         normText = `L = ${L} m (${(L*FT).toFixed(1)} ft) — K = 17 m (56 ft) · 8.5 m por lado`; }
+      else             { fRule = `L ≥ 24 m → K = 30 m (100 ft)`;
+                         normText = `L = ${L} m (${(L*FT).toFixed(1)} ft) — K = 30 m (100 ft) · 15 m por lado`; }
       document.getElementById('res-f-rule').textContent = fRule;
-
-      const normText = L >= 28
-        ? `L = ${L} m (≥ 28 m) — Factor K asignado: f = 30 m (15 m por lado).`
-        : `L = ${L} m (< 28 m) — Factor K asignado: f = 12 m (6 m por lado).`;
       document.getElementById('res-norm-text').textContent = normText;
       document.getElementById('res-norm-note').style.display = 'block';
 
@@ -2364,7 +2364,7 @@
       if (history.length > 20) history.pop();
       renderHistory();
 
-      showToast(`✓ AT=${ATRound.toFixed(2)} m² → Ap=${ApRound.toFixed(2)} m² · K=${f} m (§2.4.5-6)`);
+      showToast(`✓ AT=${AcRound.toFixed(2)} m² → Ap=${Ap.toFixed(2)} m² · K=${f} m (§2.4.5-6)`);
     }
 
     function detectCat(L) {

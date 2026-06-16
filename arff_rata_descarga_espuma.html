@@ -925,6 +925,7 @@
    Volumen mínimo de agente extintor en Litros por categoría OACI.
    Fuente: RAC 14 Tabla 9.2, columna Nivel B.
 ─────────────────────────────────────────────────────────────── */
+/* Q2 por categoría — Doc 9137 §2.4.10 */
 const Q2_PCT = {
   1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,
   6:1.00,7:1.29,8:1.52,9:1.70,10:1.90,
@@ -1126,10 +1127,9 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   /* ── Lectura de claves heredadas ── */
-  const oaci = sessionStorage.getItem('sei_estacion')
+  const oaci = sessionStorage.getItem('current_oaci')
+            || sessionStorage.getItem('sei_estacion')
             || localStorage.getItem('sei_estacion')
-            || localStorage.getItem('arff_oaci_codigo')
-            || localStorage.getItem('currentOaci')
             || null;
 
   const apRaw  = _urlAp
@@ -1276,25 +1276,24 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Doc 9137 §2.4.7-2.4.10 ────────────────────────────────
-     ap  = Ap (Área Crítica Práctica = 2/3 AT) — viene de M02
-     Q1  = Ap × R × T(1min)  — control del incendio §2.4.8
-     Q2  = Q1 × Q2_PCT[cat]  — extinción post-control §2.4.9
-     Qt  = Q1 + Q2            — AGUA TOTAL para espuma (litros)
-     Q3  = agentes complementarios en kg — Tabla 2-3 §2.3.1
-           ⚠ NO es agua · NO se suma a Qt
+  /* ── Doc 9137 §2.4.7-2.4.10 ───────────────────────────────
+     ap   = Ap (Área Crítica Práctica = ⅔AT) — viene de M02
+     Q1   = Ap × R    — volumen control 1 min §2.4.8
+     Q2   = Q1 × Q2_PCT[cat]  — extinción post-control §2.4.9
+     Qt   = Q1 + Q2   — AGUA TOTAL para espuma (litros)
+     Q3   = agentes sólidos en kg — Tabla 2-3 §2.3.1 (no agua)
   ─────────────────────────────────────────────────────────── */
-  const rate  = EFF_RATE[currentEff];
-  const Q1    = ap * rate;                    // L — Control 1 min
-  const q2pct = Q2_PCT[cat] ?? 0;
-  const Q2    = Q1 * q2pct;                  // L — Extinción
-  const Qt    = Q1 + Q2;                     // L — Agua total
+  const rate   = EFF_RATE[currentEff];
+  const Q1     = ap * rate;                   // L — control 1 min
+  const q2pct  = Q2_PCT[cat] ?? 0;
+  const Q2     = Q1 * q2pct;                 // L — extinción
+  const Qt     = Q1 + Q2;                    // L — agua total
   const reqTotal = Qt;
 
-  // Q3 — Agentes complementarios (PQS/CO₂) kg — Tabla 2-3 Doc 9137
-  const Q3_KG_TABLE = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
-  const Q3_kg = Q3_KG_TABLE[cat] || 0;
-  const Q3    = Q3_kg; // kg — solo para compatibilidad de variables
+  // Q3 = agentes complementarios kg — Tabla 2-3 Doc 9137 (NO es agua)
+  const Q3_KG  = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
+  const Q3_kg  = Q3_KG[cat] || 0;
+  const Q3     = Q3_kg; // alias legacy — kg
 
   /* ── Concentrado espumante ─────────────────────────────── */
   const concFrac    = currentConc / 100;
@@ -1367,44 +1366,39 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo: Ataque Inicial ────────────────────────── */
+  /* ── Semáforo 1: Q₁ Control — litros, no L/min ─────────── */
   _semaforo('ataque',
-    fmtLmin(Qt), fmtGalMin(Qt),
+    fmtL(Q1), fmtGal(Q1),
     ataqueOk,
     ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO',
     '🔥'
   );
 
-  /* ── Semáforo: Reserva Q3 ────────────────────────────── */
+  /* ── Semáforo 2: Q₂ Extinción ───────────────────────── */
   _semaforo('reserva',
-    fmtLmin(Q3), fmtGalMin(Q3),
+    fmtL(Q2) + ` (${(q2pct*100).toFixed(0)}%)`, fmtGal(Q2),
     reservaOk,
-    reservaOk ? 'CUMPLE 200%' : 'INSUFICIENTE',
-    '🚒'
-  );
-
-  /* ── Semáforo: Inventario bodega vs Requerimiento ─────── */
-  // invDisp ahora viene SIEMPRE del input → nunca "Sin datos" si el campo tiene valor
-  const invLabel = invDisp > 0 ? fmtL(invDisp) + ' disp.' : 'Sin datos';
-  const invEstado = invDisp > 0
-    ? (inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT')
-    : 'SIN DATOS';
-  _semaforo('total',
-    invLabel, fmtGal(invDisp),
-    inventarioOk,
-    invEstado,
+    reservaOk ? 'EXTINCIÓN OK' : 'INSUFICIENTE',
     '💧'
   );
 
+  /* ── Semáforo 3: Q Total requerido ─────────────────────── */
+  _semaforo('total',
+    fmtL(Qt), fmtGal(Qt),
+    inventarioOk,
+    inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT',
+    '🌊'
+  );
+
   /* ── Desglose Q3 ──────────────────────────────────────── */
-  document.getElementById('q3-ataque-l').textContent  = fmtLmin(Qt);
-  document.getElementById('q3-ataque-g').textContent  = fmtGalMin(Qt);
-  document.getElementById('q3-reserva-l').textContent = fmtLmin(Q3);
-  document.getElementById('q3-reserva-g').textContent = fmtGalMin(Q3);
-  document.getElementById('q3-total-l').textContent   = fmtL(reqTotal);
-  document.getElementById('q3-total-g').textContent   = fmtGal(reqTotal);
+  document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
+  document.getElementById('q3-ataque-g').textContent  = fmtGal(Q1);
+  document.getElementById('q3-reserva-l').textContent = fmtL(Q2);
+  document.getElementById('q3-reserva-g').textContent = `${(q2pct*100).toFixed(0)}% Cat ${cat}`;
+  document.getElementById('q3-total-l').textContent   = fmtL(Qt);
+  document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
-    `Qt=${Qt.toFixed(1)} L/min  ×2  →  Q₃=${Q3.toFixed(1)} L/min  →  Req=${reqTotal.toFixed(1)} L`;
+    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Qt=${Qt.toFixed(1)} L · Q₃=${Q3_kg} kg PQS`;
 
   /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
