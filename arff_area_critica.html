@@ -2287,6 +2287,7 @@
       document.getElementById('inp-f').value = f;
       autoCalcF();
 
+      const FT = 3.28084, FT2 = 10.7639;           // conversión ft/m²
       const AT = L * (Wf + f);                      // §2.4.5 Área Crítica Teórica
       const Ap = Math.round(AT * (2/3) * 100)/100;  // §2.4.6 Área Crítica Práctica
       const AcRound = Math.round(AT * 100) / 100;   // AT — alias para SVG/display
@@ -2295,10 +2296,10 @@
       window.lastAc = Ap;   // M03 usa Ap para Q1 = Ap × R
 
       try {
-        localStorage.setItem('arff_ap',    String(Ap));    // Ap → M03
+        localStorage.setItem('arff_ap',    String(Ap));
         localStorage.setItem('areaCritica',String(Ap));
         localStorage.setItem('ap_m2',      String(Ap));
-        localStorage.setItem('arff_at',    String(AcRound)); // AT referencia
+        localStorage.setItem('arff_at',    String(AcRound));
       } catch(e) {}
 
       // Show result
@@ -2307,7 +2308,6 @@
         `<span style="font-size:.72em;color:var(--text-muted);font-family:var(--font-mono)">AT = ${AcRound.toFixed(2)} m²  (${(AcRound*FT2).toFixed(0)} ft²)</span><br>`
         + `${Ap.toFixed(2)}<span class="unit"> m²</span>`
         + `<span style="font-size:.65em;color:var(--green-bright);margin-left:6px;font-family:var(--font-mono)">(${(Ap*FT2).toFixed(0)} ft²  ·  Ap = ⅔AT · §2.4.6)</span>`;
-      const FT = 3.28084, FT2 = 10.7639;
       const breakL = document.getElementById('break-L');
       if (breakL) breakL.textContent = `${L} m  (${(L*FT).toFixed(1)} ft)`;
       const breakWf = document.getElementById('break-Wf');
