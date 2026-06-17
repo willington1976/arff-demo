@@ -546,7 +546,7 @@
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
       <h1 class="module-title">Cálculo Rata de Descarga</h1>
       <p class="module-subtitle">
-        Calcula Q₁ (ataque inicial), Q₂ (agua adicional) y ΣQ según Doc 9137 §2.4.8-§2.4.10, compara contra los mínimos OACI
+        Calcula Q₁ (ataque), Q₂ (agua adicional) y ΣQ según Doc 9137 §2.4.8-§2.4.10
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
       </p>
       <div class="module-meta">
@@ -925,7 +925,6 @@
    Volumen mínimo de agente extintor en Litros por categoría OACI.
    Fuente: RAC 14 Tabla 9.2, columna Nivel B.
 ─────────────────────────────────────────────────────────────── */
-/* Q2 multiplicadores por categoría — Doc 9137 §2.4.10 */
 const Q2_PCT={1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,6:1.00,7:1.29,8:1.52,9:1.70,10:1.90};
 
 const RAC14 = {
@@ -942,7 +941,7 @@ const RAC14 = {
 };
 
 /* ─── Regímenes de aplicación ──────────────────────────────── */
-const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 }; // Doc 9137 §2.3.5
+const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 };
 const EFF_INFO = {
   A: 'Nivel A — 8.2 L/min/m² · AFFF 1%. Categorías 7-10. Máxima protección.',
   B: 'Nivel B — 5.5 L/min/m² · AFFF 3%. Categorías 4-9. Estándar RAC 14.',
@@ -1273,29 +1272,19 @@ function calcular(silent) {
     return;
   }
 
-  /* ── Doc 9137 §2.4.8-2.4.10 ────────────────────────────
-     Q1  = Ap × R × T(1min)  — Ataque inicial
-     Q2  = Q1 × Q2_PCT[cat] — Agua adicional por categoría
-     ΣQ  = Q1 + Q2           — Requerimiento total de agua
-     Q3  = kg PQS/CO₂       — Tabla 2-3, NO es agua
-  ────────────────────────────────────────────────────── */
-  const rate   = EFF_RATE[currentEff];       // L/min/m² §2.3.5
-  const Q1     = ap * rate;                  // L — Ataque inicial
-  const q2pct  = Q2_PCT[cat] ?? 0;           // factor por categoría
-  const Q2     = Q1 * q2pct;                 // L — Agua adicional
-  const Qt     = Q1 + Q2;                    // L — ΣQ requerimiento
+  const rate   = EFF_RATE[currentEff];
+  const Q1     = ap * rate;
+  const q2pct  = Q2_PCT[cat] ?? 0;
+  const Q2     = Q1 * q2pct;
+  const Qt     = Q1 + Q2;
   const reqTotal = Qt;
-  // Agente complementario PQS — Tabla 2-3 Doc 9137 (kg, NO litros)
-  const PQS_KG  = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
-  const pqs_kg  = PQS_KG[cat] || 0;
-  // alias legacy para compatibilidad
+  const PQS_KG = {1:45,2:90,3:135,4:135,5:180,6:225,7:225,8:450,9:450,10:450};
+  const pqs_kg = PQS_KG[cat] || 0;
   const Q3_kg  = pqs_kg;
   const Q3     = Q3_kg;
-
-  /* ── Concentrado espumante ─────────────────────────────── */
   const concFrac    = currentConc / 100;
-  const concLitros  = Qt * concFrac;          // L de concentrado puro
-  const concGalones = concLitros / L_PER_GAL; // gal de concentrado puro
+  const concLitros  = Qt * concFrac;
+  const concGalones = concLitros / L_PER_GAL;
 
   /* ── Inventario disponible — SIEMPRE desde los inputs editables ────────
      Lee el valor actual del campo en pantalla para que cualquier
@@ -1353,32 +1342,26 @@ function calcular(silent) {
 
   if (allOk) {
     vSub.textContent = invDisp > 0
-      ? `Inventario: ${invDisp.toLocaleString('es-CO')} L ≥ ΣQ: ${Qt.toFixed(0)} L · Cat ${cat}`
+      ? `Inventario: ${invDisp.toLocaleString('es-CO')} L · ΣQ: ${Qt.toFixed(0)} L · Cat ${cat}`
       : `Norma cumplida · Cat ${cat}`;
   } else {
     const causas = [];
-    if (!ataqueOk)     causas.push(`ΣQ (${Qt.toFixed(0)} L) < mínimo RAC14 Cat ${cat}: ${volMin.toLocaleString()} L`);
-    if (!inventarioOk) causas.push(`Inventario agua (${invDisp.toLocaleString()} L) insuficiente · ΣQ requerido: ${Qt.toFixed(0)} L`);
-    if (!espumaOk)     causas.push(`Concentrado espuma (${espumaDispL.toFixed(0)} L disp.) < requerido: ${concLitros.toFixed(0)} L`);
+    if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
+    if (!inventarioOk) causas.push(`Bodega (${invDisp.toLocaleString()} L) < req (${reqTotal.toFixed(0)} L)`);
+    if (!espumaOk)     causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  /* ── Semáforo 1: Q₁ Ataque Inicial — L ─────────────── */
   _semaforo('ataque', fmtL(Q1), fmtGal(Q1),
     ataqueOk, ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO', '🔥');
-
-  /* ── Semáforo 2: Tasa de descarga flota — L/min ──────
-     Caudal real de torretas vs Q1 para cubrir Ap en 1 min */
   const qFlotaLpm = window._flota ? (window._flota.q_lpm || 0) : 0;
   const tasaOk    = qFlotaLpm === 0 || qFlotaLpm >= Q1;
   _semaforo('reserva',
     qFlotaLpm > 0 ? `${qFlotaLpm.toLocaleString('es-CO')} L/min` : '— L/min',
     `Req: ${Q1.toFixed(0)} L/min`, tasaOk,
-    tasaOk ? 'CAUDAL OK' : 'CAUDAL INSUFICIENTE', '⚡');
-
-  /* ── Semáforo 3: ΣQ requerido vs inventario ─────────── */
+    tasaOk ? 'CAUDAL OK' : 'CAUDAL INSUF.', '⚡');
   _semaforo('total', fmtL(Qt), fmtGal(Qt),
-    inventarioOk, inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT INVENTARIO', '🌊');
+    inventarioOk, inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT', '🌊');
 
   /* ── Desglose Q3 ──────────────────────────────────────── */
   document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
@@ -1388,7 +1371,7 @@ function calcular(silent) {
   document.getElementById('q3-total-l').textContent   = fmtL(Qt);
   document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
-    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = ΣQ=${Qt.toFixed(1)} L  ·  PQS=${pqs_kg} kg`;
+    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = ΣQ=${Qt.toFixed(1)} L · PQS=${pqs_kg} kg`;
 
   /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
@@ -1405,7 +1388,7 @@ function calcular(silent) {
   }
 
   /* ── Tabla RAC 14 ─────────────────────────────────────── */
-  _buildRacTable(Qt, Q3, reqTotal, cat);
+  _buildRacTable(Q1, Q2, Qt, cat);
 
   /* ── Traza de cálculo ─────────────────────────────────── */
   _buildTrace(ap, rate, Q1, Q2, Qt, pqs_kg, reqTotal, concGalones, invDisp, cat);
@@ -1429,7 +1412,7 @@ function _semaforo(id, txtL, txtG, ok, statusTxt, icon) {
 /* ════════════════════════════════════════════════════════════
    _buildRacTable() — Tabla comparativa RAC 14 completa
 ════════════════════════════════════════════════════════════ */
-function _buildRacTable(Qt, Q3, reqTotal, activeCat) {
+function _buildRacTable(Q1, Q2, Qt, activeCat) {
   const tbody = document.getElementById('rac-tbody');
   tbody.innerHTML = '';
 
@@ -1470,7 +1453,7 @@ function _buildRacTable(Qt, Q3, reqTotal, activeCat) {
    _buildTrace() — Barra de trazabilidad del cálculo
 ════════════════════════════════════════════════════════════ */
 function _buildTrace(ap, rate, Q1, Q2, Qt, pqs_kg, reqTotal, concGal, invDisp, cat) {
-  const q2pct = Q2_PCT[cat] ?? 0; // factor para mostrar en traza
+  const q2pct = Q2_PCT[cat] ?? 0;
   document.getElementById('trace-bar').classList.add('show');
   document.getElementById('trace-steps').innerHTML = `
     <span class="ts hi-ap">Aₚ = ${ap} m²</span>
