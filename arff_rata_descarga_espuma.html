@@ -1339,10 +1339,10 @@ function calcular(silent) {
   document.getElementById('verdict-icon').textContent = allOk ? '✅' : '🔴';
   document.getElementById('verdict-cat').textContent  = cat;
 
-  if (!window.inventarioReal) {
-    vSub.innerHTML = '<span style="color:var(--amber)">⏳ Esperando datos de inventario desde Supabase…</span>';
-  } else if (allOk) {
-    vSub.textContent = `Bodega (${invDisp.toLocaleString('es-CO')} L) cubre el requerimiento total para Cat ${cat}`;
+  if (allOk) {
+    vSub.textContent = invDisp > 0
+      ? `Inventario: ${invDisp.toLocaleString('es-CO')} L · Qt requerido: ${Qt.toFixed(0)} L · Cat ${cat}`
+      : `Norma cumplida · Cat ${cat}`;
   } else {
     const causas = [];
     if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
