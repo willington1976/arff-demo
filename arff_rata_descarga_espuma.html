@@ -941,7 +941,7 @@ const RAC14 = {
 };
 
 /* ─── Regímenes de aplicación ──────────────────────────────── */
-const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 }; // §2.3.5
+const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 };
 const EFF_INFO = {
   A: 'Nivel A — 8.2 L/min/m² · AFFF 1%. Categorías 7-10. Máxima protección.',
   B: 'Nivel B — 5.5 L/min/m² · AFFF 3%. Categorías 4-9. Estándar RAC 14.',
@@ -1340,9 +1340,7 @@ function calcular(silent) {
   document.getElementById('verdict-cat').textContent  = cat;
 
   if (allOk) {
-    vSub.textContent = invDisp > 0
-      ? `Inventario disponible: ${invDisp.toLocaleString('es-CO')} L ≥ Req: ${Qt.toFixed(0)} L — Cat ${cat}`
-      : `Parámetros normativos cumplidos — Cat ${cat}`;
+    vSub.textContent = invDisp > 0 ? `Inventario: ${invDisp.toLocaleString('es-CO')} L ≥ Qt: ${Qt.toFixed(0)} L · Cat ${cat}` : `Parámetros normativos cumplidos · Cat ${cat}`;
   } else {
     const causas = [];
     if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
@@ -1351,20 +1349,11 @@ function calcular(silent) {
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
   }
 
-  _semaforo('ataque',
-    fmtL(Q1), fmtGal(Q1),
-    ataqueOk, ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO', '🔥');
-
+  _semaforo('ataque', fmtL(Q1), fmtGal(Q1), ataqueOk, ataqueOk ? 'CUMPLE NORMA' : 'BAJO MÍNIMO', '🔥');
   const qFlotaLpm = window._flota ? (window._flota.q_lpm || 0) : 0;
   const tasaOk    = qFlotaLpm === 0 || qFlotaLpm >= Q1;
-  _semaforo('reserva',
-    qFlotaLpm > 0 ? `${qFlotaLpm.toLocaleString('es-CO')} L/min` : '— L/min',
-    `Req: ${Q1.toFixed(0)} L/min`,
-    tasaOk, tasaOk ? 'TASA OK' : 'TASA INSUF.', '⚡');
-
-  _semaforo('total',
-    fmtL(Qt), fmtGal(Qt),
-    inventarioOk, inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT', '🌊');
+  _semaforo('reserva', qFlotaLpm > 0 ? `${qFlotaLpm.toLocaleString('es-CO')} L/min` : '— L/min', `Req: ${Q1.toFixed(0)} L/min`, tasaOk, tasaOk ? 'TASA OK' : 'TASA INSUF.', '⚡');
+  _semaforo('total', fmtL(Qt), fmtGal(Qt), inventarioOk, inventarioOk ? 'INVENTARIO OK' : 'DÉFICIT', '🌊');
 
   /* ── Desglose Q3 ──────────────────────────────────────── */
   document.getElementById('q3-ataque-l').textContent  = fmtL(Q1);
@@ -1374,7 +1363,7 @@ function calcular(silent) {
   document.getElementById('q3-total-l').textContent   = fmtL(Qt);
   document.getElementById('q3-total-g').textContent   = fmtGal(Qt);
   document.getElementById('q3-formula-str').textContent =
-    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Qt=${Qt.toFixed(1)} L  ·  Q₃=${Q3_kg} kg PQS`;
+    `Q₁=${Q1.toFixed(1)} L + Q₂=${Q2.toFixed(1)} L (${(q2pct*100).toFixed(0)}% Cat ${cat}) = Qt=${Qt.toFixed(1)} L · Q₃=${Q3_kg} kg PQS`;
 
   /* ── Concentrado espumante ────────────────────────────── */
   const concEl = document.getElementById('conc-result');
