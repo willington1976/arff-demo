@@ -19,6 +19,7 @@
 
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="oaci-9137.js"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
 
@@ -1733,7 +1734,7 @@
     <div class="result-box" id="result-box">
       <div class="result-header">
         <div>
-          <div class="result-label">Área Crítica Calculada (Ac)</div>
+          <div class="result-label">Área Crítica — AT y Aₚ (§2.4.5 / §2.4.6)</div>
           <div class="result-value" id="val-ac">—<span class="unit">m²</span></div>
         </div>
         <div style="text-align:right">
@@ -2290,8 +2291,8 @@
       const FT = 3.28084, FT2 = 10.7639;           // conversión ft/m²
       const AT = L * (Wf + f);                      // §2.4.5 Área Crítica Teórica
       const Ap = Math.round(AT * (2/3) * 100)/100;  // §2.4.6 Área Crítica Práctica
-      const AcRound = Math.round(AT * 100) / 100;   // AT — alias para SVG/display
-      const Ac = AT;
+      const AcRound = Math.round(AT * 100) / 100;   // §2.4.5 AT — Área Crítica Teórica
+      const Ac = AT;   // alias histórico para SVG — representa AT (no Ap)
 
       window.lastAc = Ap;   // M03 usa Ap para Q1 = Ap × R
 
@@ -2367,7 +2368,11 @@
       showToast(`✓ AT=${AcRound.toFixed(2)} m² → Ap=${Ap.toFixed(2)} m² · K=${f} m (§2.4.5-6)`);
     }
 
-    function detectCat(L) {
+    /* detectCat(L, Wf) — §2.1.2 Tabla 2-1
+       Paso 1: categoría por longitud. Paso 2: elevar si Wf > Wf_max col.3
+       Delega a OACI9137.detectCat() de oaci-9137.js             */
+    function detectCat(L, Wf) {
+      if (typeof OACI9137 !== 'undefined') return String(OACI9137.detectCat(L, Wf));
       if (L < 9) return '1';
       if (L < 12) return '2';
       if (L < 18) return '3';
@@ -2432,6 +2437,9 @@
     }
 
     /* ─── SVG DIAGRAM — Vista de Planta OACI: ACT / ACP / Avión ── */
+    /* drawDiagram(L, Wf, f, Ac) — OACI Doc 9137 §2.4.5 / §2.4.6
+       Diagrama vista de planta: ACT(rojo) > ACP(naranja) > Avión
+       factorK = OACI9137.getK1(L) — 4 tramos §2.4.5             */
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
 
@@ -2661,6 +2669,8 @@
     }
 
     /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
+    /* _svgBN(L, Wf, f, Ac) — versión B&N para PDF
+       Misma lógica que drawDiagram. §2.4.5 / §2.4.6            */
     function _svgBN(L, Wf, f, Ac) {
       var cx=150, cy=125;
       var factorK    = (L >= 28) ? 30 : 12;
