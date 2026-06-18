@@ -692,11 +692,47 @@ let novedadesMap = {};
 let editandoId   = null;
 let estadoTarget = null;
 
-/* RAC 14 Tabla 9.2 Nivel B — requerimiento por categoría OACI */
-const RAC14_REQ = {
-  1:230, 2:670, 3:1200, 4:2400, 5:5400,
-  6:7900, 7:12100, 8:18200, 9:24300, 10:32300,
-};
+/* ─── calcularRequerimiento() ─────────────────────────────────
+   H-16: el requerimiento depende de Ap, nivel Y categoría.
+   No es un valor fijo por categoría — es Qt = Q₁ + Q₂.
+
+   Fuente primaria: OACI9137.calcQ(Ap, nivel, cat) de oaci-9137.js
+   Fuente fallback: TABLE_2_3_B[cat].volAgua (Nivel B, §2.3.1 Tabla 2-3)
+
+   OACI Doc 9137 §2.4.7 + §2.4.8 + §2.4.10
+   Qt = Ap × R(nivel) × (1 + k₂(cat))                              */
+function calcularRequerimiento() {
+  const nivel = (document.getElementById('bq_nivel')?.value || 'B').toUpperCase();
+  const cat   = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+             || parseInt(localStorage.getItem('arff_cat'))
+             || 0;
+  const Ap    = parseFloat(localStorage.getItem('arff_ap'))
+             || parseFloat(localStorage.getItem('area_practica'))
+             || 0;
+
+  if (!cat || cat < 1 || cat > 10) return 0;
+
+  if (Ap > 0 && typeof OACI9137 !== 'undefined') {
+    // Cálculo exacto §2.4.8: usa Ap real de la aeronave crítica
+    const { Qt } = OACI9137.calcQ(Ap, nivel, cat);
+    return Qt;
+  }
+
+  // Fallback §2.3.1 Tabla 2-3 Nivel B — volumen mínimo por categoría
+  if (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B[cat]) {
+    return OACI9137.TABLE_2_3_B[cat].volAgua;
+  }
+
+  // Fallback último recurso — valores hardcoded Nivel B Tabla 2-3
+  const _fb = {1:230,2:670,3:1200,4:2400,5:5400,6:7900,7:12100,8:18200,9:24300,10:32300};
+  return _fb[cat] || 0;
+}
+
+/* RAC14_REQ mantenido por compatibilidad con funciones que aún lo referencian
+   Apunta a los valores de Nivel B Tabla 2-3 — mismos números que el fallback */
+const RAC14_REQ = (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B)
+  ? Object.fromEntries(Object.entries(OACI9137.TABLE_2_3_B).map(([k,v])=>[k, v.volAgua]))
+  : {1:230,2:670,3:1200,4:2400,5:5400,6:7900,7:12100,8:18200,9:24300,10:32300};
 
 /* ═══════════════════════════════════════════════════════════
    INIT
@@ -1048,23 +1084,34 @@ function cargarCapacidadOperativa(oaci) {
   const aguaBodega = parseFloat(document.getElementById('bq_agua_l').value) || 0;
   const totalDisp  = aguaCamiones + aguaBodega;
 
-  /* ─── Requerimiento RAC 14 ───────────────────────────────
-     Fuente 1: vista Supabase (ya escrita en DOM y _reqVistaLitros)
-     Fuente 2: localStorage + tabla RAC14_REQ hardcoded
-     Fuente 3: leer el DOM actual (lo que sea que haya)        */
+  /* ─── Requerimiento Qt = Q₁ + Q₂ — OACI Doc 9137 §2.4.7 ────
+     H-16: ahora reactivo a Ap, nivel (#bq_nivel) y categoría.
+     Prioridad:
+       1. calcularRequerimiento() — frontend puro, usa Ap real + nivel
+       2. vista Supabase (_reqVistaLitros) — validación cruzada
+       3. RAC14_REQ[cat] — fallback por categoría (Nivel B fijo)     */
   let requerimiento = 0;
-  let catLocal = 0;
 
-  if (window._reqDesdeVista && window._reqVistaLitros > 0) {
-    // La vista ya calculó el requerimiento — usarlo directamente
+  // Fuente 1: calcularRequerimiento() — usa OACI9137.calcQ() §2.4.8
+  requerimiento = calcularRequerimiento();
+
+  // Fuente 2: si no hay Ap disponible, intentar vista Supabase
+  if (requerimiento <= 0 && window._reqDesdeVista && window._reqVistaLitros > 0) {
     requerimiento = window._reqVistaLitros;
-  } else {
-    // Fallback: tabla local RAC14_REQ
-    catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-            || parseInt(localStorage.getItem('arff_cat'))
-            || 0;
+  }
+
+  // Fuente 3: fallback tabla fija si todo lo anterior falla
+  if (requerimiento <= 0) {
+    const catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+                  || parseInt(localStorage.getItem('arff_cat'))
+                  || 0;
     requerimiento = (catLocal > 0 && RAC14_REQ[catLocal]) ? RAC14_REQ[catLocal] : 0;
   }
+
+  // Log de auditoría — qué fuente se usó
+  const Ap_log    = parseFloat(localStorage.getItem('arff_ap')) || 0;
+  const nivel_log = document.getElementById('bq_nivel')?.value || 'B';
+  const fuenteReq = Ap_log > 0 ? `§2.4.8 Ap=${Ap_log.toFixed(1)}m² Niv.${nivel_log}` : 'Tabla 2-3 Niv.B';
 
   /* ─── Actualizar DOM ─────────────────────────────────── */
   dispEl.textContent = Math.round(totalDisp).toLocaleString('es-CO');
@@ -1087,7 +1134,7 @@ function cargarCapacidadOperativa(oaci) {
     `🗄 Bodega: ${Math.round(aguaBodega).toLocaleString()} L`,
   ];
   if (maquinasForzadas > 0) auditParts.push(`⚠ ${maquinasForzadas} forzada(s) FUERA por novedad ALTA`);
-  if (requerimiento > 0) auditParts.push(`Req. RAC14: ${Math.round(requerimiento).toLocaleString()} L`);
+  if (requerimiento > 0) auditParts.push(`Qt req.: ${Math.round(requerimiento).toLocaleString()} L (${fuenteReq}) · §2.4.7`);
   if (audit) audit.textContent = auditParts.join(' · ');
 
   /* ─── Veredicto semáforo ─────────────────────────────── */
@@ -1120,6 +1167,50 @@ function cargarCapacidadOperativa(oaci) {
     dispEl.style.color      = 'var(--red)';
     msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} L</strong>`
       + ` — Req. ${Math.round(requerimiento).toLocaleString('es-CO')} L | Disp. ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
+  }
+
+  /* ─── H-09: Régimen de flota estimado vs régimen mínimo §2.5.1 ──
+     caudal_flota_lpm = suma de Q_nominal de cada vehículo OPERATIVO
+     Si no hay dato de caudal por vehículo, estimamos desde volumen:
+     Q_est ≈ volumen_camión × bomba_típica / tanque_típico
+     Como aproximación conservadora: 1 camión ARFF ≈ 4000 L/min (Cat6)
+     El valor exacto vendrá de maquinas_sei.caudal_lpm cuando exista.    */
+  const cat_log = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+               || parseInt(localStorage.getItem('arff_cat')) || 0;
+  let caudal_flota_lpm = 0;
+  maquinas.forEach(m => {
+    const novsM = novedadesMap[m.id] || [];
+    const tieneAlta = novsM.some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
+    const estado = tieneAlta ? 'FUERA' : (m.estado || 'OPERATIVA');
+    if (estado === 'OPERATIVA') {
+      // Usar caudal_lpm si el campo existe en Supabase, sino estimación
+      const q_nom = parseFloat(m.caudal_lpm) || 0;
+      caudal_flota_lpm += q_nom;
+    }
+  });
+
+  // Régimen mínimo OACI para esta categoría §2.5.1 Tabla 2-3 Nivel B
+  const regimen_min = (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B[cat_log])
+    ? OACI9137.TABLE_2_3_B[cat_log].regimen
+    : 0;
+
+  // Mostrar celda de régimen solo si hay datos de caudal en Supabase
+  const regimenCell = document.getElementById('sm-regimen-cell');
+  const regimenEl   = document.getElementById('disp-regimen-lpm');
+  if (regimenCell && regimenEl) {
+    if (caudal_flota_lpm > 0) {
+      regimenCell.style.display = 'block';
+      regimenEl.textContent     = caudal_flota_lpm.toLocaleString('es-CO');
+      regimenEl.style.color     = (regimen_min > 0 && caudal_flota_lpm >= regimen_min)
+                                  ? 'var(--green)' : 'var(--amber)';
+      if (regimen_min > 0)
+        auditParts.push(`Régimen flota: ${caudal_flota_lpm.toLocaleString()} L/min (mín. §2.5.1: ${regimen_min.toLocaleString()})`);
+    } else {
+      // Sin campo caudal_lpm en BD — ocultar celda, añadir nota
+      regimenCell.style.display = 'none';
+      if (regimen_min > 0)
+        auditParts.push(`Régimen mín. §2.5.1: ${regimen_min.toLocaleString()} L/min (agregar caudal_lpm a maquinas_sei para validar)`);
+    }
   }
 
   /* ── Exportar datos de flota a localStorage ─────────────────
