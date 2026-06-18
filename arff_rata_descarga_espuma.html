@@ -501,6 +501,7 @@
       .panel,.module-header,.inherit-banner,.trace-bar { border-color:#ccc; background:white; }
     }
   </style>
+  <script src="oaci-9137.js"></script>
 </head>
 <body>
 
@@ -546,7 +547,7 @@
       <div class="module-eyebrow">Módulo 03 · ARFF · RAC 14 / Doc 9137</div>
       <h1 class="module-title">Cálculo Rata de Descarga</h1>
       <p class="module-subtitle">
-        Calcula Q₁ (ataque), Q₂ (agua adicional) y ΣQ según Doc 9137 §2.4.8-§2.4.10
+        Calcula Q₁ (control, §2.4.8), Q₂ (mantenimiento, §2.4.9) y Qt = Q₁+Q₂ (§2.4.7)
         detectada (RAC 14, Tabla 9.2) y emite un veredicto operativo con semáforos de cumplimiento.
       </p>
       <div class="module-meta">
@@ -724,7 +725,7 @@
           <!-- Ataque -->
           <div class="sem-cell" id="sem-ataque">
             <div class="sem-lamp" id="lamp-ataque">🔥</div>
-            <div class="sem-title">Q₁ — Ataque Inicial</div>
+            <div class="sem-title">Q₁ — Control inicial (§2.4.8)</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-ataque-l">— L</span>
               <span class="sv-g" id="sem-ataque-g">— gal</span>
@@ -744,7 +745,7 @@
           <!-- Total Q3 -->
           <div class="sem-cell" id="sem-total">
             <div class="sem-lamp" id="lamp-total">💧</div>
-            <div class="sem-title">ΣQ — Requerimiento OACI</div>
+            <div class="sem-title">Qt = Q₁ + Q₂ — Total requerido (§2.4.7)</div>
             <div class="sem-val">
               <span class="sv-l" id="sem-total-l">— L</span>
               <span class="sv-g" id="sem-total-g">— gal</span>
@@ -756,22 +757,22 @@
         <!-- Q3 BREAKDOWN -->
         <div class="q3-zone">
           <div class="q3-header">
-            <div class="q3-title">Desglose ΣQ — Agua de Ataque · Doc 9137 §2.4.8</div>
+            <div class="q3-title">Desglose Qt — Agua total · OACI Doc 9137 §2.4.7 / §2.4.8 / §2.4.9</div>
             <div class="q3-formula" id="q3-formula-str"></div>
           </div>
           <div class="q3-grid">
             <div class="q3-card ataque">
-              <span class="q3-card-label">🔥 Q₁ — Ataque Inicial</span>
+              <span class="q3-card-label">🔥 Q₁ — Control inicial (§2.4.8)</span>
               <span class="q3-card-val" id="q3-ataque-l">—</span>
               <span class="q3-card-gal" id="q3-ataque-g">—</span>
             </div>
             <div class="q3-card reserva">
-              <span class="q3-card-label">💧 Q₂ — Agua Adicional</span>
+              <span class="q3-card-label">💧 Q₂ — Mantenimiento / extinción (§2.4.9)</span>
               <span class="q3-card-val" id="q3-reserva-l">—</span>
               <span class="q3-card-gal" id="q3-reserva-g">—</span>
             </div>
             <div class="q3-card total">
-              <span class="q3-card-label">🌊 ΣQ = Q₁ + Q₂</span>
+              <span class="q3-card-label">🌊 Qt = Q₁ + Q₂ — Total (§2.4.7)</span>
               <span class="q3-card-val" id="q3-total-l">—</span>
               <span class="q3-card-gal" id="q3-total-g">—</span>
             </div>
@@ -790,9 +791,9 @@
                 <tr>
                   <th>Cat OACI</th>
                   <th style="text-align:right">Mín. RAC 14 (L) Nivel B</th>
-                  <th style="text-align:right">Q₁ Ataque (L)</th>
-                  <th style="text-align:right">Q₂ Adicional (L)</th>
-                  <th style="text-align:right">ΣQ Total (L)</th>
+                  <th style="text-align:right">Q₁ Control (L) §2.4.8</th>
+                  <th style="text-align:right">Q₂ Mant./Ext. (L) §2.4.9</th>
+                  <th style="text-align:right">Qt Total (L) §2.4.7</th>
                   <th>Cumplimiento</th>
                 </tr>
               </thead>
@@ -927,35 +928,24 @@
 ─────────────────────────────────────────────────────────────── */
 const Q2_PCT={1:0.00,2:0.27,3:0.30,4:0.58,5:0.75,6:1.00,7:1.29,8:1.52,9:1.70,10:1.90};
 
-// RAC14 — §2.3.1 Tabla 2-3, Nivel B
-// ⚠ DOS MAGNITUDES DISTINTAS — nunca comparar una contra la otra:
-//   volAgua (L)     → volumen total Q=Q₁+Q₂ mínimo (col. "Agua")
-//                     comparar vs inventario disponible en litros
-//   regimen (L/min) → régimen de descarga = Q₁ para T=1 min (col. "Régimen", §2.5.1)
-//                     comparar vs caudal de la flota en L/min
-// Usar OACI9137.TABLE_2_3_B si está disponible — fuente primaria
-const RAC14 = (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B)
-  ? OACI9137.TABLE_2_3_B  // fuente única de verdad de oaci-9137.js
-  : {
-      // Fallback inline §2.3.1 Tabla 2-3 Nivel B
-      1:  { volAgua:   230, regimen:   230, ref: 'L < 9 m'        },
-      2:  { volAgua:   670, regimen:   550, ref: '9 ≤ L < 12 m'   },
-      3:  { volAgua:  1200, regimen:   900, ref: '12 ≤ L < 18 m'  },
-      4:  { volAgua:  2400, regimen:  1800, ref: '18 ≤ L < 24 m'  },
-      5:  { volAgua:  5400, regimen:  3000, ref: '24 ≤ L < 28 m'  },
-      6:  { volAgua:  7900, regimen:  4000, ref: '28 ≤ L < 39 m'  },
-      7:  { volAgua: 12100, regimen:  5300, ref: '39 ≤ L < 49 m'  },
-      8:  { volAgua: 18200, regimen:  7200, ref: '49 ≤ L < 61 m'  },
-      9:  { volAgua: 24300, regimen:  9000, ref: '61 ≤ L < 76 m'  },
-      10: { volAgua: 32300, regimen: 11200, ref: 'L ≥ 76 m'       },
-    };
+const RAC14 = {
+  1:  { volMin:    230, ref: 'L ≤ 9 m' },
+  2:  { volMin:    670, ref: '9 < L ≤ 12 m' },
+  3:  { volMin:   1200, ref: '12 < L ≤ 18 m' },
+  4:  { volMin:   2400, ref: '18 < L ≤ 24 m' },
+  5:  { volMin:   5400, ref: '24 < L ≤ 28 m' },
+  6:  { volMin:   7900, ref: '28 < L ≤ 39 m' },
+  7:  { volMin:  12100, ref: '39 < L ≤ 49 m' },
+  8:  { volMin:  18200, ref: '49 < L ≤ 61 m' },
+  9:  { volMin:  24300, ref: '61 < L ≤ 76 m' },
+  10: { volMin:  32300, ref: 'L > 76 m' },
+};
 
 /* ─── Regímenes de aplicación ──────────────────────────────── */
 const EFF_RATE = { A: 8.2, B: 5.5, C: 3.75 };
 // EFF_INFO — §2.3.5 + §8.1.1 + §8.1.5 Tabla 8-1
-// PRINCIPIO: mayor eficacia de la espuma → MENOR tasa requerida
-// Nivel A (8.2): proteínica = MENOR eficacia → MÁS agua ("A de Agua")
-// Nivel C (3.75): AFFF/FFFP = MAYOR eficacia → MENOS agua ("C de Concentrado")
+// Nivel A (8.2) = proteínica = MENOR eficacia → MÁS agua  ("A de Agua")
+// Nivel C (3.75)= AFFF/FFFP = MAYOR eficacia → MENOS agua ("C de Concentrado")
 const EFF_INFO = (typeof OACI9137 !== 'undefined' && OACI9137.EFF_INFO)
   ? {
       A: `Nivel A — ${OACI9137.EFF_INFO.A.rate} L/min/m² · ${OACI9137.EFF_INFO.A.agente}. ${OACI9137.EFF_INFO.A.cats}. ${OACI9137.EFF_INFO.A.nota}`,
@@ -963,10 +953,9 @@ const EFF_INFO = (typeof OACI9137 !== 'undefined' && OACI9137.EFF_INFO)
       C: `Nivel C — ${OACI9137.EFF_INFO.C.rate} L/min/m² · ${OACI9137.EFF_INFO.C.agente}. ${OACI9137.EFF_INFO.C.cats}. ${OACI9137.EFF_INFO.C.nota}`,
     }
   : {
-      // Fallback si oaci-9137.js no cargó
       A: 'Nivel A — 8.2 L/min/m² · Espuma proteínica / fluoroproteínica convencional. Cat. 1–10. Mayor consumo de agua por ser el agente de MENOR eficacia extintora. §2.3.5 + §8.1.1a',
-      B: 'Nivel B — 5.5 L/min/m² · AFFF al 3% / AR-AFFF (formadores de película acuosa). Cat. 4–9. Estándar RAC 14. Eficacia intermedia. §2.3.5 + §8.1.1b',
-      C: 'Nivel C — 3.75 L/min/m² · AFFF/FFFP alta eficacia / AR-FFFP. Cat. 6–10. Menor consumo de agua por ser el agente de MAYOR eficacia extintora. §2.3.5 + §8.1.1d',
+      B: 'Nivel B — 5.5 L/min/m² · AFFF al 3% / AR-AFFF. Cat. 4–9. Estándar RAC 14. Eficacia intermedia. §2.3.5 + §8.1.1b',
+      C: 'Nivel C — 3.75 L/min/m² · AFFF/FFFP alta eficacia. Cat. 6–10. Menor consumo de agua por ser el agente de MAYOR eficacia. §2.3.5 + §8.1.1d',
     };
 
 /* ─── Conversión ────────────────────────────────────────────── */
@@ -1262,12 +1251,11 @@ function calcularLive() {
 
    CADENA DE CÁLCULO:
    ┌──────────────────────────────────────────────────────────┐
-   │  Q₁     = Aₚ × Régimen            (L/min)               │
-   │  Q₂     = Q₁ × k₂(cat)           (§2.4.9 + §2.4.10)    │
-   │           k₂: Cat1=0% Cat5=75% Cat6=100% Cat10=190%    │
+   │  Q₁     = Aₚ × R × T  (T=1min)   (L ≡ L/min §2.4.8)   │
+   │  Q₂     = Q₁ × 1.0               (100% adicional Q₁)   │
    │  Qt     = Q₁ + Q₂                (§2.4.7 — total agua) │
-   │  Q₃     = Qt × 2.0               (Reserva 200%)         │
-   │  Req    = Qt + Q₃                (Requerimiento Total)  │
+   │  Q₃     = PQS_KG[cat]            (kg · Tabla 2-3 col.8) │
+   │  Req    = Qt  (litros)            (volumen total §2.4.7) │
    │  Conc   = Req × % / 100 / 3.785  (gal concentrado puro) │
    └──────────────────────────────────────────────────────────┘
 
@@ -1275,12 +1263,15 @@ function calcularLive() {
    1. window.inventarioReal.agua  ← Supabase live
    2. 0 L                         ← Sin datos → semáforo rojo
 
-   LÓGICA DE SEMÁFOROS (H-05 corregido — unidades coherentes):
-   • Ataque  → Q₁ (L/min) ≥ RAC14[cat].regimen (L/min)   §2.5.1
-   • Volumen → Qt (L)     ≥ RAC14[cat].volAgua  (L)       §2.4.7
-   • Bodega  → invDisp (L) ≥ Qt (L)             (inventario real)
+   LÓGICA DE SEMÁFOROS:
+   • Ataque  → Qt   ≥ RAC14[cat].volMin         (norma)
+   • Reserva → Q₃   ≥ RAC14[cat].volMin         (norma)
+   • Bodega  → invDisp ≥ Req                    (inventario real)
      Verde si cumple | Rojo si deficiente → CAPACIDAD DEGRADADA
 ════════════════════════════════════════════════════════════ */
+/* calcular() — OACI Doc 9137
+   §2.4.8 Q₁=Ap×R·T · §2.4.9 Q₂=Q₁×k₂ · §2.4.7 Qt=Q₁+Q₂
+   §2.5.1 régimen descarga · §2.3.1 Tabla 2-3 Nivel B       */
 function calcular(silent) {
   const ap  = parseFloat(document.getElementById('inp-ap').value);
   const cat = parseInt(document.getElementById('sel-cat').value) || 0;
@@ -1328,34 +1319,24 @@ function calcular(silent) {
                         : (window._flota ? window._flota.espuma_gal : 0);
   const espumaDispL = espumaDispGal * L_PER_GAL;
 
-  /* ── Norma RAC 14 / OACI Doc 9137 §2.3.1 Tabla 2-3 ─────
-     UNIDADES (H-05 corregido):
-       volAgua (L)     → volumen mínimo total Q — columna "Agua"
-       regimen (L/min) → régimen de descarga Q₁ — columna "Régimen" §2.5.1
-     Comparar siempre magnitudes del mismo tipo.               */
-  const norma    = RAC14[cat];
-  const volAgua  = norma.volAgua  ?? norma.volMin ?? 0;  // L — volumen total mínimo
-  const regimen  = norma.regimen  ?? volAgua;             // L/min — caudal mínimo §2.5.1
+  /* ── Norma RAC 14 ─────────────────────────────────────── */
+  const norma  = RAC14[cat];
+  const volMin = norma.volMin;
 
-  /* ── Evaluación de cumplimiento — unidades coherentes ─────
-     ataqueOk : Q1 (L/min) ≥ regimen (L/min) → caudal suficiente §2.5.1
-     volumenOk: Qt (L)     ≥ volAgua (L)     → volumen total suficiente §2.4.7
-     inventarioOk: invDisp ≥ Qt              → bodega cubre el total
-     espumaOk: espumaDispL ≥ concLitros      → concentrado suficiente      */
-  const ataqueOk     = Q1      >= regimen;                 // L/min vs L/min ✓ §2.5.1
-  const volumenOk    = Qt      >= volAgua;                 // L vs L ✓ §2.4.7
-  const reservaOk    = Q3      >= volAgua;                 // PQS kg (agente comp.)
-  const inventarioOk = invDisp > 0 && invDisp >= reqTotal;
-  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros;
+  /* ── Evaluación de cumplimiento ──────────────────────── */
+  const ataqueOk     = Qt     >= volMin;          // Qt cumple norma
+  const reservaOk    = Q3     >= volMin;          // Q3 cumple norma
+  const inventarioOk = invDisp > 0 && invDisp >= reqTotal; // Bodega cubre req
+  const espumaOk     = espumaDispL > 0 && espumaDispL >= concLitros; // Espuma suficiente
 
-  /* Veredicto global */
-  const allOk = ataqueOk && volumenOk && inventarioOk && espumaOk;
+  /* Veredicto global: todos deben estar ok */
+  const allOk = ataqueOk && reservaOk && inventarioOk && espumaOk;
 
   lastResult = {
     ap, cat, rate, Q1, Q2, Qt, Q3, reqTotal,
     concLitros, concGalones,
-    volAgua, regimen, invDisp, espumaDispGal, espumaDispL,
-    ataqueOk, volumenOk, reservaOk, inventarioOk, espumaOk, allOk,
+    volMin, invDisp, espumaDispGal, espumaDispL,
+    ataqueOk, reservaOk, inventarioOk, espumaOk, allOk,
   };
 
   /* ════ RENDER ════════════════════════════════════════════ */
@@ -1378,8 +1359,7 @@ function calcular(silent) {
       : `Norma cumplida · Cat ${cat}`;
   } else {
     const causas = [];
-    if (!ataqueOk)     causas.push(`Q₁ (${Q1.toFixed(0)} L/min) < régimen mínimo (${regimen.toLocaleString()} L/min) — §2.5.1`);
-    if (!volumenOk)    causas.push(`Qt (${Qt.toFixed(0)} L) < volumen mínimo (${volAgua.toLocaleString()} L) — §2.4.7`);
+    if (!ataqueOk)     causas.push(`Qt (${Qt.toFixed(0)} L/min) < mínimo norma (${volMin.toLocaleString()} L)`);
     if (!inventarioOk) causas.push(`Bodega (${invDisp.toLocaleString()} L) < req (${reqTotal.toFixed(0)} L)`);
     if (!espumaOk)     causas.push(`Espuma (${espumaDispL.toFixed(0)} L) < requerida (${concLitros.toFixed(0)} L)`);
     vSub.innerHTML = causas.map(c => `<span style="color:var(--red)">✗ ${c}</span>`).join(' &nbsp;·&nbsp; ');
@@ -1467,9 +1447,9 @@ function _buildRacTable(Q1, Q2, Qt, activeCat) {
             Cat ${c}${isAct ? ' ◀' : ''}
           </span>
         </td>
-        <td class="td-num" style="color:var(--text-dim)">${(n.volAgua ?? n.volMin ?? 0).toLocaleString()}</td>
+        <td class="td-num" style="color:var(--text-dim)">${n.volMin.toLocaleString()}</td>
         <td class="td-num">
-          ${isAct ? `<span class="${Q1 >= (n.regimen ?? n.volMin) ? 'td-pass' : 'td-fail'}">${Q1.toFixed(1)}</span>` : '<span class="td-na">—</span>'}
+          ${isAct ? `<span class="${Q1 >= n.volMin ? 'td-pass' : 'td-fail'}">${Q1.toFixed(1)}</span>` : '<span class="td-na">—</span>'}
         </td>
         <td class="td-num">
           ${isAct ? `<span class="td-pass">${Q2.toFixed(1)}</span>` : '<span class="td-na">—</span>'}

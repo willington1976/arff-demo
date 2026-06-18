@@ -19,6 +19,7 @@
 
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="oaci-9137.js"></script>
   <script src="supabase-config.js"></script>
   <script src="auth-guard.js"></script>
 
@@ -1556,7 +1557,7 @@
         </div>
         <div class="legend-item">
           <span class="legend-var" style="color:var(--blue-bright);border:1px solid #1971c2">f</span>
-          <span class="legend-desc">Factor K₁ (§2.4.5): <strong style="color:#339af0">12 m</strong> si L&lt;12 · <strong style="color:#339af0">14 m</strong> si 12≤L&lt;18 · <strong style="color:#339af0">17 m</strong> si 18≤L&lt;24 · <strong style="color:#339af0">30 m</strong> si L≥24 m — OACI Doc 9137 §2.4.5</span>
+          <span class="legend-desc">Factor K (constante): <strong style="color:#339af0">12 m</strong> si L &lt; 28 m · <strong style="color:#339af0">30 m</strong> si L ≥ 28 m — prioridad longitud (OACI Doc 9137 §2.3.2)</span>
         </div>
       </div>
     </div>
@@ -1733,7 +1734,7 @@
     <div class="result-box" id="result-box">
       <div class="result-header">
         <div>
-          <div class="result-label">Área Crítica Calculada (Ac)</div>
+          <div class="result-label">Área Crítica — AT y Aₚ (§2.4.5 / §2.4.6)</div>
           <div class="result-value" id="val-ac">—<span class="unit">m²</span></div>
         </div>
         <div style="text-align:right">
@@ -2037,7 +2038,7 @@
       tbody.innerHTML = '';
 
       // Categoria minima requerida por la aeronave (por su longitud)
-      const catAeronave = (L_av != null) ? detectCat(L_av, Wf_av) : null;  // §2.1.2: L y Wf
+      const catAeronave = (L_av != null) ? detectCat(L_av) : null;
 
       // Si no se paso catAerodromo, leerla del select
       if (!catAerodromo) {
@@ -2180,36 +2181,27 @@
     })();
 
 
-    /* ─── FACTOR k₁ — OACI Doc 9137 §2.4.5 ─────────────────────────────────
-       Usa OACI9137.getK1(L) del archivo oaci-9137.js (S0).
-       4 tramos exactos de la Tabla §2.4.5:
-         L < 12 m       → k₁ = 12 m  (6 m por lado)
-         12 ≤ L < 18 m  → k₁ = 14 m  (7 m por lado)
-         18 ≤ L < 24 m  → k₁ = 17 m  (8.5 m por lado)
-         L ≥ 24 m       → k₁ = 30 m  (15 m por lado)
-       ⚠ El umbral es L ≥ 24 m, NO L ≥ 28 m.                              */
+    /* ─── FACTOR f — OACI Doc 9137 Parte 1 §2.3.2 ──── */
     function calcFactorF(Wf, L) {
-      // Delegar a OACI9137.getK1() — fuente única de verdad §2.4.5
-      if (typeof OACI9137 !== 'undefined' && typeof L === 'number' && !isNaN(L) && L > 0) {
-        return OACI9137.getK1(L);
-      }
-      // Fallback inline si oaci-9137.js no está cargado (no debería ocurrir)
+      // Regla normativa OACI Doc 9137, Parte 1 §2.3.2 — PRIORIDAD: longitud L
+      //   L >= 28 m  →  f = 30 m (15 m por lado) — aeronave comercial / fuselaje ancho
+      //   L <  28 m  →  f = 12 m (6 m por lado)  — aviación general / regional
       if (typeof L === 'number' && !isNaN(L) && L > 0) {
         if (L < 12) return 12;
         if (L < 18) return 14;
         if (L < 24) return 17;
-        return 30;
+        return 30;            // L >= 24 → K = 30 m (§2.4.5)
       }
-      return 30; // default seguro
+      return Wf < 12 ? 12 : 30;
     }
 
     function autoCalcF() {
-      const Wf   = parseFloat(document.getElementById('inp-Wf').value);
-      const L    = parseFloat(document.getElementById('inp-L').value);
-      const badge    = document.getElementById('f-rule-badge');
-      const note     = document.getElementById('f-norm-note');
+      const Wf = parseFloat(document.getElementById('inp-Wf').value);
+      const L  = parseFloat(document.getElementById('inp-L').value);
+      const badge = document.getElementById('f-rule-badge');
+      const note = document.getElementById('f-norm-note');
       const noteText = document.getElementById('f-norm-text');
-      const inp      = document.getElementById('inp-f');
+      const inp = document.getElementById('inp-f');
 
       if (isNaN(Wf) || Wf <= 0) {
         inp.value = '';
@@ -2219,30 +2211,31 @@
         return;
       }
 
-      const f      = calcFactorF(Wf, L);
-      inp.value    = f;
+      const f = calcFactorF(Wf, L);
+      inp.value = f;
+
       const lValid = !isNaN(L) && L > 0;
-
-      // Badge refleja los 4 tramos reales de §2.4.5 (H-02 corregido)
       if (lValid) {
-        // Usar k1Desc de oaci-9137.js si está disponible
-        const desc = (typeof OACI9137 !== 'undefined')
-          ? OACI9137.k1Desc(L)
-          : (L < 12 ? 'L < 12 m — K = 12 m (6 m por lado) · §2.4.5'
-           : L < 18 ? '12 ≤ L < 18 m — K = 14 m (7 m por lado) · §2.4.5'
-           : L < 24 ? '18 ≤ L < 24 m — K = 17 m (8.5 m por lado) · §2.4.5'
-           :           'L ≥ 24 m — K = 30 m (15 m por lado) · §2.4.5');
-        badge.innerHTML  = `✓ ${desc}`;
-        noteText.textContent = `L = ${L} m → Factor K₁ = ${f} m (${f/2} m por lado) · OACI Doc 9137 §2.4.5`;
+        if (L >= 28) {
+          badge.innerHTML = '✓ L ≥ 28 m → f = 30 m';
+          noteText.textContent = `L = ${L} m (≥ 28 m) → Factor K obligatorio: f = 30 m (15 m por lado)`;
+        } else {
+          badge.innerHTML = '✓ L &lt; 28 m → f = 12 m';
+          noteText.textContent = `L = ${L} m (< 28 m) → Factor K obligatorio: f = 12 m (6 m por lado)`;
+        }
       } else {
-        badge.innerHTML  = `✓ k₁ = ${f} m calculado por Wf · §2.4.5`;
-        noteText.textContent = `Factor K₁ = ${f} m (${f/2} m por lado) · OACI Doc 9137 §2.4.5`;
+        if (Wf < 12) {
+          badge.innerHTML = '✓ Wf &lt; 12 m → f = 12 m';
+          noteText.textContent = `Wf = ${Wf} m (< 12 m) → Factor K (constante) obligatorio: f = 12 m`;
+        } else {
+          badge.innerHTML = '✓ Wf ≥ 12 m → f = 30 m';
+          noteText.textContent = `Wf = ${Wf} m (≥ 12 m) → Factor K (constante) obligatorio: f = 30 m`;
+        }
       }
-
-      badge.style.color       = '#2f9e44';
-      badge.style.background  = 'rgba(47,158,68,.10)';
+      badge.style.color = '#2f9e44';
+      badge.style.background = 'rgba(47,158,68,.10)';
       badge.style.borderColor = 'rgba(47,158,68,.3)';
-      note.style.display      = 'block';
+      note.style.display = 'block';
     }
 
     /* ─── PRESET LOADER ─────────────────────────────────────────────
@@ -2298,8 +2291,8 @@
       const FT = 3.28084, FT2 = 10.7639;           // conversión ft/m²
       const AT = L * (Wf + f);                      // §2.4.5 Área Crítica Teórica
       const Ap = Math.round(AT * (2/3) * 100)/100;  // §2.4.6 Área Crítica Práctica
-      const AcRound = Math.round(AT * 100) / 100;   // AT — alias para SVG/display
-      const Ac = AT;
+      const AcRound = Math.round(AT * 100) / 100;   // §2.4.5 AT — Área Crítica Teórica
+      const Ac = AT;   // alias histórico para SVG — representa AT (no Ap)
 
       window.lastAc = Ap;   // M03 usa Ap para Q1 = Ap × R
 
@@ -2323,7 +2316,7 @@
       const breakF = document.getElementById('break-f');
       if (breakF) breakF.textContent = `${f} m  (${(f*FT).toFixed(1)} ft)`;
 
-      // Normative rule display — 4 tramos §2.4.5: L<12→12, 12-18→14, 18-24→17, ≥24→30
+      // Normative rule display — prioridad L >= 28 m
       // 4 tramos §2.4.5 con equivalencia ft
       let fRule, normText;
       if (L < 12)      { fRule = `L < 12 m → K = 12 m (39 ft)`;
@@ -2339,7 +2332,7 @@
       document.getElementById('res-norm-note').style.display = 'block';
 
       // Category badge
-      const catRef = cat || detectCat(L, Wf);  // §2.1.2: incluye elevación por anchura
+      const catRef = cat || detectCat(L);
       window.lastCat = catRef; // Store global
       // ── Exportar categoría a localStorage ───────────────────
       try {
@@ -2364,7 +2357,7 @@
       const entry = {
         id: Date.now(),
         L, Wf, f, Ac: AcRound,
-        cat: catRef || detectCat(L, Wf),
+        cat: catRef || detectCat(L),
         note,
         ts: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
       };
@@ -2376,15 +2369,11 @@
     }
 
     /* detectCat(L, Wf) — §2.1.2 Tabla 2-1
-       Paso 1: categoría por longitud (col.2)
-       Paso 2: elevar si Wf > Wf_max de la categoría (col.3)
+       Paso 1: categoría por longitud. Paso 2: elevar si Wf > Wf_max col.3
        Delega a OACI9137.detectCat() de oaci-9137.js             */
     function detectCat(L, Wf) {
-      if (typeof OACI9137 !== 'undefined') {
-        return String(OACI9137.detectCat(L, Wf));
-      }
-      // Fallback inline (solo longitud) si oaci-9137.js no cargó
-      if (L < 9)  return '1';
+      if (typeof OACI9137 !== 'undefined') return String(OACI9137.detectCat(L, Wf));
+      if (L < 9) return '1';
       if (L < 12) return '2';
       if (L < 18) return '3';
       if (L < 24) return '4';
@@ -2448,6 +2437,9 @@
     }
 
     /* ─── SVG DIAGRAM — Vista de Planta OACI: ACT / ACP / Avión ── */
+    /* drawDiagram(L, Wf, f, Ac) — OACI Doc 9137 §2.4.5 / §2.4.6
+       Diagrama vista de planta: ACT(rojo) > ACP(naranja) > Avión
+       factorK = OACI9137.getK1(L) — 4 tramos §2.4.5             */
     function drawDiagram(L, Wf, f, Ac) {
       const svg = document.getElementById('diag-svg');
 
@@ -2455,9 +2447,8 @@
       const centerX = 150, centerY = 125;
 
       // ── Factor K binario por longitud ──
-      // §2.4.5 — k₁ por 4 tramos (NO binario). Umbral: L≥24, no L≥28
-      const factorK    = (typeof OACI9137 !== 'undefined') ? OACI9137.getK1(L) : (L<12?12:L<18?14:L<24?17:30);
-      const metrosCota = factorK / 2;   // 6, 7, 8.5 o 15 m por lado §2.4.5
+      const factorK    = (L >= 28) ? 30 : 12;
+      const metrosCota = factorK / 2;          // exactamente 6 o 15
 
       // ── Escala DINÁMICA — garantiza que el ACT siempre sea legible ──
       // El ACT debe ocupar como máximo el 80% del canvas en cada eje
@@ -2678,10 +2669,11 @@
     }
 
     /* ─── SVG B&N — Vista de Planta OACI para PDF (fondo blanco puro) ── */
+    /* _svgBN(L, Wf, f, Ac) — versión B&N para PDF
+       Misma lógica que drawDiagram. §2.4.5 / §2.4.6            */
     function _svgBN(L, Wf, f, Ac) {
       var cx=150, cy=125;
-      // §2.4.5 — 4 tramos (PDF B&N)
-      var factorK    = (typeof OACI9137 !== 'undefined') ? OACI9137.getK1(L) : (L<12?12:L<18?14:L<24?17:30);
+      var factorK    = (L >= 28) ? 30 : 12;
       var metrosCota = factorK / 2;
 
       // Escala dinámica — mismo criterio que drawDiagram
@@ -2832,7 +2824,7 @@
       if (inpL)  { inpL.value  = nave.longitud;       applyFlash(inpL); }
       if (inpWf) { inpWf.value = nave.ancho_fuselaje; applyFlash(inpWf); }
       if (selCat) {
-        selCat.value = nave.categoria_oaci || detectCat(nave.longitud, nave.fuselaje);  // §2.1.2
+        selCat.value = nave.categoria_oaci || detectCat(nave.longitud);
         applyFlash(selCat);
       }
       acClose();
@@ -2868,7 +2860,7 @@
           + shown.length + (filtered.length > MAX ? '+' : '') + ' de ' + aeronavesData.length
           + ' aeronaves</div>';
         shown.forEach(function(n, i) {
-          const cat = n.categoria_oaci || detectCat(n.longitud, n.fuselaje);  // §2.1.2
+          const cat = n.categoria_oaci || detectCat(n.longitud);
           html += '<div class="ac-item" data-idx="' + i + '" onmousedown="event.preventDefault()" onclick="acSelectNave(acFilteredRef[' + i + '])">'
             + '<span class="ac-item-name">' + acHighlight(n.modelo, q) + '</span>'
             + '<span class="ac-item-meta">Cat ' + cat + ' &middot; ' + parseFloat(n.longitud).toFixed(1) + ' m</span>'
