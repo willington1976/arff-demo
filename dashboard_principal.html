@@ -956,6 +956,11 @@
 
             <!-- Supervisión — solo visible para admin/jefe_nacional (JS lo controla) -->
             <div id="sb-admin-section" style="display:none">
+              <div class="sb-section-label" style="margin-top:18px">Administración</div>
+              <a class="sb-link" href="admin_usuarios.html"
+                 style="color:var(--amber);border-color:rgba(245,159,0,.2)">
+                👤 Gestión de Usuarios
+              </a>
                 <div class="sb-section-title">Supervisión</div>
                 <a class="sb-link" href="sei_dashboard_nacional.html">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
@@ -1040,6 +1045,12 @@
                 <div class="stat-item">
                     <div class="stat-val" style="color:var(--red)">3</div>
                     <div class="stat-lbl">Módulos Activos</div>
+                </div>
+                <div class="stat-item admin-link" id="card-gestion-usuarios"
+                     style="display:none;cursor:pointer;"
+                     onclick="window.location.href='admin_usuarios.html'">
+                    <div class="stat-num" style="color:var(--amber)">👤</div>
+                    <div class="stat-label">Gestión de Usuarios</div>
                 </div>
                 <div class="stat-item admin-link" id="stat-estaciones" style="cursor:pointer;"
                     onclick="if(document.getElementById('section-supervision').style.display==='block') { window.location='sei_dashboard_nacional.html'; }">
@@ -1301,10 +1312,12 @@
            LABELS DE ROL (dashboard unificado)
         ================================================== */
         const ROL_LABELS_LOCAL = {
-            admin:            { label: 'JEFE NACIONAL — SEI COLOMBIA', color: '#f59f00', bg: 'linear-gradient(90deg, #b52525, #f59f00)', border: '#f59f00', emoji: '🛡️' },
-            jefe_nacional:    { label: 'Jefe Nacional',                color: '#f59f00', bg: 'rgba(245,159,0,.1)',                       border: 'rgba(245,159,0,.3)', emoji: '🎖️' },
-            comandante:       { label: 'Comandante',                   color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                      border: 'rgba(11,197,160,.3)', emoji: '🚒' },
-            'instructor-cea': { label: 'INSTRUCTOR CEA',               color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',                      border: 'rgba(139,92,246,.3)', emoji: '👨‍🏫' }
+            admin:          { label: 'Administrador SEI',  color: '#f59f00', bg: 'linear-gradient(90deg,#b52525,#f59f00)', border: '#f59f00',              emoji: '🛡️'  },
+            jefe_nacional:  { label: 'Jefe Nacional',      color: '#f59f00', bg: 'rgba(245,159,0,.1)',                    border: 'rgba(245,159,0,.3)',    emoji: '🎖️'  },
+            jefe_estacion:  { label: 'Jefe de Estación',   color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                   border: 'rgba(11,197,160,.3)',   emoji: '👨‍✈️'  },
+            comandante:     { label: 'Comandante',         color: '#0bc5a0', bg: 'rgba(11,197,160,.1)',                   border: 'rgba(11,197,160,.3)',   emoji: '🚒'  },
+            docente:        { label: 'Docente / CEA',      color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',                   border: 'rgba(139,92,246,.3)',   emoji: '👨‍🏫' },
+            bombero:        { label: 'Bombero',            color: '#60a5fa', bg: 'rgba(96,165,250,.1)',                   border: 'rgba(96,165,250,.3)',   emoji: '🔥'  },
         };
 
         /* ==================================================
@@ -1327,10 +1340,28 @@
             badge.style.background  = rolInfo.bg;
             badge.style.borderColor = rolInfo.border;
 
-            // Sección Supervisión: visible solo para admin y jefe_nacional
+            // Sección Supervisión: visible para admin y jefe_nacional
             if (['admin', 'jefe_nacional'].includes(rol)) {
                 document.getElementById('section-supervision').style.display = 'block';
                 document.getElementById('sb-admin-section').style.display   = 'block';
+            }
+
+            // Card "Gestión de Usuarios": solo admin
+            const cardUsuarios = document.getElementById('card-gestion-usuarios');
+            if (cardUsuarios) {
+                cardUsuarios.style.display = rol === 'admin' ? 'flex' : 'none';
+            }
+
+            // Badge modo lectura para roles sin escritura
+            const rolesLectura = ['docente', 'bombero'];
+            if (rolesLectura.includes(rol)) {
+                const badge = document.createElement('div');
+                badge.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:999;'
+                  + 'background:rgba(245,159,0,.15);border:1px solid rgba(245,159,0,.4);'
+                  + 'border-radius:8px;padding:8px 14px;font-family:var(--font-mono);'
+                  + 'font-size:11px;color:#ffd43b;display:flex;align-items:center;gap:8px;';
+                badge.innerHTML = '🔒 <span>Modo visualización — inventario en solo lectura</span>';
+                document.body.appendChild(badge);
             }
         };
 

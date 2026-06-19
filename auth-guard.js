@@ -19,17 +19,29 @@
 
   /* Paginas exclusivas por rol */
   const ROL_REQUERIDO = {
-    'sei_dashboard_nacional.html':      ['admin', 'jefe_nacional'],
-    // Las siguientes páginas son accesibles para todos los roles autenticados:
-    // 'arff_rata_descarga_espuma.html': acceso libre para autenticados
+    'sei_dashboard_nacional.html': ['admin', 'jefe_nacional'],
+    'admin_usuarios.html':         ['admin'],
+    // Resto de páginas: acceso libre para cualquier rol autenticado
   };
 
   /* Labels de rol */
+  /* Roles del sistema SEI Colombia
+     Escritura real en BD: admin, jefe_estacion
+     Solo lectura (modo simulación): docente, bombero            */
   window.ROL_LABELS = {
-    admin:         { label: 'Administrador',  emoji: '🛡️', color: '#f59f00', bg: 'rgba(245,159,0,.1)',   border: 'rgba(245,159,0,.3)'  },
-    jefe_nacional: { label: 'Jefe Nacional',  emoji: '🎖️', color: '#f59f00', bg: 'rgba(245,159,0,.1)',   border: 'rgba(245,159,0,.3)'  },
-    comandante:    { label: 'Comandante SEI', emoji: '🚒', color: '#0bc5a0', bg: 'rgba(11,197,160,.1)', border: 'rgba(11,197,160,.3)' },
+    admin:          { label: 'Administrador',    emoji: '🛡️', color: '#f59f00', bg: 'rgba(245,159,0,.1)',   border: 'rgba(245,159,0,.3)'  },
+    jefe_nacional:  { label: 'Jefe Nacional',    emoji: '🎖️', color: '#f59f00', bg: 'rgba(245,159,0,.1)',   border: 'rgba(245,159,0,.3)'  },
+    jefe_estacion:  { label: 'Jefe de Estación', emoji: '👨‍✈️', color: '#0bc5a0', bg: 'rgba(11,197,160,.1)', border: 'rgba(11,197,160,.3)' },
+    comandante:     { label: 'Comandante SEI',   emoji: '🚒', color: '#0bc5a0', bg: 'rgba(11,197,160,.1)', border: 'rgba(11,197,160,.3)' },
+    docente:        { label: 'Docente / CEA',    emoji: '👨‍🏫', color: '#8b5cf6', bg: 'rgba(139,92,246,.1)', border: 'rgba(139,92,246,.3)' },
+    bombero:        { label: 'Bombero',          emoji: '🔥', color: '#60a5fa', bg: 'rgba(96,165,250,.1)', border: 'rgba(96,165,250,.3)' },
   };
+
+  /* Roles con escritura real en BD — el resto es solo lectura */
+  window.ROLES_ESCRITURA = ['admin', 'jefe_nacional', 'jefe_estacion'];
+
+  /* Roles restringidos a su propia estación */
+  window.ROLES_SOLO_ESTACION = ['jefe_estacion', 'docente', 'bombero'];
 
   const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
 

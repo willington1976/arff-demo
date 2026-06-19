@@ -545,6 +545,15 @@ footer{text-align:center;padding:16px;font-family:'DM Mono',monospace;font-size:
     </div>
   </div>
 
+  <!-- BANNER MODO LECTURA — visible solo para bombero/docente -->
+  <div class="banner-readonly" id="bannerReadonly">
+    <span class="br-icon">🔒</span>
+    <div>
+      <div class="br-title">MODO VISUALIZACIÓN — Solo lectura</div>
+      <div class="br-sub">Puedes consultar toda la información, pero los cambios no se guardan en la base de datos.</div>
+    </div>
+  </div>
+
   <!-- SEMÁFORO DE CAPACIDAD SEI -->
   <div class="semaforo-sei" id="card-capacidad">
     <div class="semaforo-header">
@@ -692,54 +701,60 @@ let novedadesMap = {};
 let editandoId   = null;
 let estadoTarget = null;
 
-/* ─── calcularRequerimiento() ─────────────────────────────────
-   H-16: el requerimiento depende de Ap, nivel Y categoría.
-   No es un valor fijo por categoría — es Qt = Q₁ + Q₂.
-
-   Fuente primaria: OACI9137.calcQ(Ap, nivel, cat) de oaci-9137.js
-   Fuente fallback: TABLE_2_3_B[cat].volAgua (Nivel B, §2.3.1 Tabla 2-3)
-
-   OACI Doc 9137 §2.4.7 + §2.4.8 + §2.4.10
-   Qt = Ap × R(nivel) × (1 + k₂(cat))                              */
-function calcularRequerimiento() {
-  const nivel = (document.getElementById('bq_nivel')?.value || 'B').toUpperCase();
-  const cat   = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-             || parseInt(localStorage.getItem('arff_cat'))
-             || 0;
-  const Ap    = parseFloat(localStorage.getItem('arff_ap'))
-             || parseFloat(localStorage.getItem('area_practica'))
-             || 0;
-
-  if (!cat || cat < 1 || cat > 10) return 0;
-
-  if (Ap > 0 && typeof OACI9137 !== 'undefined') {
-    // Cálculo exacto §2.4.8: usa Ap real de la aeronave crítica
-    const { Qt } = OACI9137.calcQ(Ap, nivel, cat);
-    return Qt;
-  }
-
-  // Fallback §2.3.1 Tabla 2-3 Nivel B — volumen mínimo por categoría
-  if (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B[cat]) {
-    return OACI9137.TABLE_2_3_B[cat].volAgua;
-  }
-
-  // Fallback último recurso — valores hardcoded Nivel B Tabla 2-3
-  const _fb = {1:230,2:670,3:1200,4:2400,5:5400,6:7900,7:12100,8:18200,9:24300,10:32300};
-  return _fb[cat] || 0;
-}
-
-/* RAC14_REQ mantenido por compatibilidad con funciones que aún lo referencian
-   Apunta a los valores de Nivel B Tabla 2-3 — mismos números que el fallback */
-const RAC14_REQ = (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B)
-  ? Object.fromEntries(Object.entries(OACI9137.TABLE_2_3_B).map(([k,v])=>[k, v.volAgua]))
-  : {1:230,2:670,3:1200,4:2400,5:5400,6:7900,7:12100,8:18200,9:24300,10:32300};
+/* RAC 14 Tabla 9.2 Nivel B — requerimiento por categoría OACI */
+const RAC14_REQ = {
+  1:230, 2:670, 3:1200, 4:2400, 5:5400,
+  6:7900, 7:12100, 8:18200, 9:24300, 10:32300,
+};
 
 /* ═══════════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   MODO LECTURA — bombero y docente no pueden modificar BD
+   Se activa en onSEIReady según el rol del usuario.
+════════════════════════════════════════════════════════════ */
+let MODO_SOLO_LECTURA = false;
+
+function activarModoLectura() {
+  MODO_SOLO_LECTURA = true;
+
+  // Mostrar banner
+  const banner = document.getElementById('bannerReadonly');
+  if (banner) banner.style.display = 'flex';
+
+  // Deshabilitar botón guardar bodega
+  const btnBodega = document.getElementById('bodegaSaveBtn');
+  if (btnBodega) {
+    btnBodega.disabled  = true;
+    btnBodega.title     = 'Solo lectura — tu rol no permite guardar cambios';
+    btnBodega.style.opacity = '.4';
+    btnBodega.style.cursor  = 'not-allowed';
+  }
+
+  // Ocultar botón agregar máquina
+  document.querySelectorAll('.btn-add-maquina').forEach(b => b.style.display = 'none');
+}
+
+function _bloquearSiSoloLectura(nombreAccion) {
+  if (!MODO_SOLO_LECTURA) return false;
+  const toast_ = document.getElementById('toast');
+  if (toast_) {
+    toast_.textContent = `🔒 Modo lectura — no puedes ${nombreAccion}`;
+    toast_.classList.add('show');
+    setTimeout(() => toast_.classList.remove('show'), 3000);
+  }
+  return true;
+}
+
 window.onSEIReady = async function(session) {
   currentRol   = session.rol;
   currentEstId = session.estacion_id;
+
+  // Activar modo lectura para roles sin escritura
+  if (!['admin', 'jefe_nacional', 'jefe_estacion'].includes(currentRol)) {
+    activarModoLectura();
+  }
 
   /* ── Contexto volátil de aeropuerto ─────────────────────────
      Prioridad 1: ?oaci= en URL  (navegación entre módulos)
@@ -946,6 +961,7 @@ function actualizarConversionBodega() {
    • console.log de diagnóstico antes de cada operación
 ═══════════════════════════════════════════════════════════ */
 async function guardarBodega() {
+  if (_bloquearSiSoloLectura('guardar inventario de bodega')) return;
   // ── Paso 1: OACI limpio ──────────────────────────────────
   const oaciRaw    = currentOaci || document.getElementById('adminBase')?.textContent || '';
   const oaciLimpio = oaciRaw.trim().toUpperCase();
@@ -1084,34 +1100,23 @@ function cargarCapacidadOperativa(oaci) {
   const aguaBodega = parseFloat(document.getElementById('bq_agua_l').value) || 0;
   const totalDisp  = aguaCamiones + aguaBodega;
 
-  /* ─── Requerimiento Qt = Q₁ + Q₂ — OACI Doc 9137 §2.4.7 ────
-     H-16: ahora reactivo a Ap, nivel (#bq_nivel) y categoría.
-     Prioridad:
-       1. calcularRequerimiento() — frontend puro, usa Ap real + nivel
-       2. vista Supabase (_reqVistaLitros) — validación cruzada
-       3. RAC14_REQ[cat] — fallback por categoría (Nivel B fijo)     */
+  /* ─── Requerimiento RAC 14 ───────────────────────────────
+     Fuente 1: vista Supabase (ya escrita en DOM y _reqVistaLitros)
+     Fuente 2: localStorage + tabla RAC14_REQ hardcoded
+     Fuente 3: leer el DOM actual (lo que sea que haya)        */
   let requerimiento = 0;
+  let catLocal = 0;
 
-  // Fuente 1: calcularRequerimiento() — usa OACI9137.calcQ() §2.4.8
-  requerimiento = calcularRequerimiento();
-
-  // Fuente 2: si no hay Ap disponible, intentar vista Supabase
-  if (requerimiento <= 0 && window._reqDesdeVista && window._reqVistaLitros > 0) {
+  if (window._reqDesdeVista && window._reqVistaLitros > 0) {
+    // La vista ya calculó el requerimiento — usarlo directamente
     requerimiento = window._reqVistaLitros;
-  }
-
-  // Fuente 3: fallback tabla fija si todo lo anterior falla
-  if (requerimiento <= 0) {
-    const catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-                  || parseInt(localStorage.getItem('arff_cat'))
-                  || 0;
+  } else {
+    // Fallback: tabla local RAC14_REQ
+    catLocal = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
+            || parseInt(localStorage.getItem('arff_cat'))
+            || 0;
     requerimiento = (catLocal > 0 && RAC14_REQ[catLocal]) ? RAC14_REQ[catLocal] : 0;
   }
-
-  // Log de auditoría — qué fuente se usó
-  const Ap_log    = parseFloat(localStorage.getItem('arff_ap')) || 0;
-  const nivel_log = document.getElementById('bq_nivel')?.value || 'B';
-  const fuenteReq = Ap_log > 0 ? `§2.4.8 Ap=${Ap_log.toFixed(1)}m² Niv.${nivel_log}` : 'Tabla 2-3 Niv.B';
 
   /* ─── Actualizar DOM ─────────────────────────────────── */
   dispEl.textContent = Math.round(totalDisp).toLocaleString('es-CO');
@@ -1134,7 +1139,7 @@ function cargarCapacidadOperativa(oaci) {
     `🗄 Bodega: ${Math.round(aguaBodega).toLocaleString()} L`,
   ];
   if (maquinasForzadas > 0) auditParts.push(`⚠ ${maquinasForzadas} forzada(s) FUERA por novedad ALTA`);
-  if (requerimiento > 0) auditParts.push(`Qt req.: ${Math.round(requerimiento).toLocaleString()} L (${fuenteReq}) · §2.4.7`);
+  if (requerimiento > 0) auditParts.push(`Req. RAC14: ${Math.round(requerimiento).toLocaleString()} L`);
   if (audit) audit.textContent = auditParts.join(' · ');
 
   /* ─── Veredicto semáforo ─────────────────────────────── */
@@ -1167,50 +1172,6 @@ function cargarCapacidadOperativa(oaci) {
     dispEl.style.color      = 'var(--red)';
     msg.innerHTML = `Faltan <strong style="color:var(--red)">${Math.round(falta).toLocaleString('es-CO')} L</strong>`
       + ` — Req. ${Math.round(requerimiento).toLocaleString('es-CO')} L | Disp. ${Math.round(totalDisp).toLocaleString('es-CO')} L.`;
-  }
-
-  /* ─── H-09: Régimen de flota estimado vs régimen mínimo §2.5.1 ──
-     caudal_flota_lpm = suma de Q_nominal de cada vehículo OPERATIVO
-     Si no hay dato de caudal por vehículo, estimamos desde volumen:
-     Q_est ≈ volumen_camión × bomba_típica / tanque_típico
-     Como aproximación conservadora: 1 camión ARFF ≈ 4000 L/min (Cat6)
-     El valor exacto vendrá de maquinas_sei.caudal_lpm cuando exista.    */
-  const cat_log = parseInt(localStorage.getItem('arff_cat_aeropuerto'))
-               || parseInt(localStorage.getItem('arff_cat')) || 0;
-  let caudal_flota_lpm = 0;
-  maquinas.forEach(m => {
-    const novsM = novedadesMap[m.id] || [];
-    const tieneAlta = novsM.some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
-    const estado = tieneAlta ? 'FUERA' : (m.estado || 'OPERATIVA');
-    if (estado === 'OPERATIVA') {
-      // Usar caudal_lpm si el campo existe en Supabase, sino estimación
-      const q_nom = parseFloat(m.caudal_lpm) || 0;
-      caudal_flota_lpm += q_nom;
-    }
-  });
-
-  // Régimen mínimo OACI para esta categoría §2.5.1 Tabla 2-3 Nivel B
-  const regimen_min = (typeof OACI9137 !== 'undefined' && OACI9137.TABLE_2_3_B[cat_log])
-    ? OACI9137.TABLE_2_3_B[cat_log].regimen
-    : 0;
-
-  // Mostrar celda de régimen solo si hay datos de caudal en Supabase
-  const regimenCell = document.getElementById('sm-regimen-cell');
-  const regimenEl   = document.getElementById('disp-regimen-lpm');
-  if (regimenCell && regimenEl) {
-    if (caudal_flota_lpm > 0) {
-      regimenCell.style.display = 'block';
-      regimenEl.textContent     = caudal_flota_lpm.toLocaleString('es-CO');
-      regimenEl.style.color     = (regimen_min > 0 && caudal_flota_lpm >= regimen_min)
-                                  ? 'var(--green)' : 'var(--amber)';
-      if (regimen_min > 0)
-        auditParts.push(`Régimen flota: ${caudal_flota_lpm.toLocaleString()} L/min (mín. §2.5.1: ${regimen_min.toLocaleString()})`);
-    } else {
-      // Sin campo caudal_lpm en BD — ocultar celda, añadir nota
-      regimenCell.style.display = 'none';
-      if (regimen_min > 0)
-        auditParts.push(`Régimen mín. §2.5.1: ${regimen_min.toLocaleString()} L/min (agregar caudal_lpm a maquinas_sei para validar)`);
-    }
   }
 
   /* ── Exportar datos de flota a localStorage ─────────────────
@@ -1478,6 +1439,7 @@ function toggleCard(id) {
 }
 
 function toggleNovForm(maqId) {
+  if (_bloquearSiSoloLectura('registrar novedades')) return;
   const form = document.getElementById(`novform-${maqId}`);
   form.classList.toggle('open');
   if (form.classList.contains('open')) document.getElementById(`nf_det_${maqId}`)?.focus();
@@ -1485,6 +1447,7 @@ function toggleNovForm(maqId) {
 
 /* ─── GUARDAR NOVEDAD ─────────────────────────────────────── */
 async function guardarNovedad(maqId) {
+  if (_bloquearSiSoloLectura('registrar novedades')) return;
   const detalle = document.getElementById(`nf_det_${maqId}`).value.trim();
   if (!detalle) { toast('Escribe la descripción de la novedad', 'err'); return; }
 
@@ -1528,6 +1491,7 @@ async function guardarNovedad(maqId) {
 
 /* ─── MARCAR REPARADA ─────────────────────────────────────── */
 async function marcarReparada(novId, maqId) {
+  if (_bloquearSiSoloLectura('marcar como reparada')) return;
   const { error } = await supabaseClient.from('novedades_maquinas').update({ reparado: true }).eq('id', novId);
   if (error) { toast('Error: '+error.message, 'err'); return; }
 
@@ -1556,6 +1520,7 @@ async function marcarReparada(novId, maqId) {
 
 /* ─── ELIMINAR NOVEDAD ────────────────────────────────────── */
 async function eliminarNovedad(novId, maqId) {
+  if (_bloquearSiSoloLectura('eliminar novedades')) return;
   if (!confirm('¿Eliminar esta novedad?')) return;
   const { error } = await supabaseClient.from('novedades_maquinas').delete().eq('id', novId);
   if (error) { toast('Error: '+error.message, 'err'); return; }
@@ -1613,6 +1578,7 @@ function actualizarBadgeCard(maqId) {
    ESTADO MODAL
 ═══════════════════════════════════════════════════════════ */
 function abrirEstadoModal(maqId, num) {
+  if (_bloquearSiSoloLectura('cambiar estados')) return;
   /* Bloquear si hay novedad ALTA pendiente */
   const tieneAlta = (novedadesMap[maqId] || []).some(n => !n.reparado && (n.severidad||'').toLowerCase() === 'alta');
   if (tieneAlta) {
@@ -1637,6 +1603,9 @@ function cerrarEstadoModal() {
 }
 
 async function confirmarEstado(nuevoEstado) {
+  if (_bloquearSiSoloLectura('cambiar el estado de vehículos')) {
+    cerrarEstadoModal(); return;
+  }
   if (!estadoTarget) return;
   const { maqId } = estadoTarget;
 
@@ -1675,6 +1644,7 @@ function abrirModalAgregar() {
 function cerrarModalAgregar() { document.getElementById('addModal').classList.remove('open'); editandoId = null; }
 
 function abrirEditar(maqId) {
+  if (_bloquearSiSoloLectura('editar vehículos')) return;
   const m = maquinas.find(x => x.id === maqId);
   if (!m) return;
   editandoId = maqId;
@@ -1703,6 +1673,7 @@ function limpiarFormMaquina() {
 }
 
 async function guardarMaquina() {
+  if (_bloquearSiSoloLectura('guardar vehículos')) return;
   const num   = document.getElementById('f_num').value.trim();
   const marca = document.getElementById('f_marca').value.trim();
   const modelo= document.getElementById('f_modelo').value.trim();
@@ -1746,6 +1717,7 @@ async function guardarMaquina() {
 
 /* ─── ELIMINAR MAQUINA ────────────────────────────────────── */
 async function eliminarMaquina(maqId, num) {
+  if (_bloquearSiSoloLectura('eliminar vehículos')) return;
   if (!confirm(`¿Eliminar el vehículo ${num}?\nEsta acción también eliminará sus novedades.`)) return;
   await supabaseClient.from('novedades_maquinas').delete().eq('maquina_id', maqId);
   const { error } = await supabaseClient.from('maquinas_sei').delete().eq('id', maqId);

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Usuarios — SEI Colombia</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c12;--panel:#0d1420;--panel2:#111928;--border:#1e2d47;--border2:#263650;
+  --text:#d0d8f0;--text2:#8a9bba;--text3:#5a6a8a;--red:#e03131;--amber:#f59f00;
+  --green:#2f9e44;--cyan:#0bc5ea;--blue:#339af0;--font:'DM Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;background:var(--panel);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.topbar-back{font-family:var(--font);font-size:11px;color:var(--text2);text-decoration:none;
+  padding:5px 12px;border:1px solid var(--border2);border-radius:6px;transition:.2s;}
+.topbar-back:hover{color:var(--cyan);border-color:var(--cyan);}
+.topbar-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff;flex:1;}
+.topbar-badge{font-family:var(--font);font-size:10px;font-weight:700;padding:3px 10px;
+  border-radius:4px;text-transform:uppercase;background:rgba(245,159,0,.15);
+  color:var(--amber);border:1px solid rgba(245,159,0,.3);}
+.page{max-width:1100px;margin:0 auto;padding:28px 24px;}
+.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:22px;flex-wrap:wrap;}
+.toolbar input,.toolbar select{background:var(--panel2);border:1px solid var(--border2);
+  border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;
+  padding:9px 14px;outline:none;}
+.toolbar input{flex:1;min-width:200px;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--cyan);}
+.btn-nuevo{display:flex;align-items:center;gap:8px;padding:9px 20px;background:var(--cyan);
+  color:#000;font-weight:700;font-size:13px;border:none;border-radius:8px;
+  cursor:pointer;white-space:nowrap;font-family:var(--sans);}
+.btn-nuevo:hover{background:#33ebff;}
+.table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.table-head{display:grid;grid-template-columns:2fr 1fr 1fr 90px;padding:10px 18px;
+  border-bottom:1px solid var(--border2);font-family:var(--font);font-size:10px;
+  color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
+.user-row{display:grid;grid-template-columns:2fr 1fr 1fr 90px;padding:13px 18px;
+  border-bottom:1px solid var(--border);align-items:center;transition:.2s;}
+.user-row:last-child{border-bottom:none;}
+.user-row:hover{background:rgba(255,255,255,.02);}
+.ur-name{font-weight:600;color:#fff;}
+.ur-email{font-family:var(--font);font-size:11px;color:var(--text2);margin-top:2px;}
+.rol-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font);
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
+.est-tag{font-family:var(--font);font-size:12px;color:var(--cyan);}
+.ur-actions{display:flex;gap:6px;}
+.btn-edit{padding:5px 10px;background:rgba(51,154,240,.1);color:var(--blue);
+  border:1px solid rgba(51,154,240,.3);border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--font);}
+.btn-edit:hover{background:rgba(51,154,240,.2);}
+.btn-del{padding:5px 10px;background:rgba(224,49,49,.1);color:var(--red);
+  border:1px solid rgba(224,49,49,.3);border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--font);}
+.btn-del:hover{background:rgba(224,49,49,.2);}
+.state-msg{padding:48px;text-align:center;color:var(--text3);font-family:var(--font);font-size:13px;}
+.state-msg .sm-icon{font-size:32px;margin-bottom:12px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:12px;
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;border-bottom:1px solid var(--border2);}
+.modal-head h2{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;}
+.modal-close{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;}
+.modal-close:hover{color:#fff;}
+.modal-body{padding:22px;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-family:var(--font);font-size:11px;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.form-input,.form-select{width:100%;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:7px;color:var(--text);font-family:var(--font);font-size:13px;
+  padding:10px 14px;outline:none;transition:.2s;}
+.form-input:focus,.form-select:focus{border-color:var(--cyan);}
+.form-hint{font-family:var(--font);font-size:10px;color:var(--text3);margin-top:4px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;
+  padding:16px 22px;border-top:1px solid var(--border2);}
+.btn-cancel-m{padding:9px 20px;background:transparent;border:1px solid var(--border2);
+  color:var(--text2);border-radius:7px;cursor:pointer;font-family:var(--sans);}
+.btn-cancel-m:hover{border-color:var(--text2);color:#fff;}
+.btn-save{padding:9px 24px;background:var(--cyan);color:#000;font-weight:700;
+  border:none;border-radius:7px;cursor:pointer;font-family:var(--sans);}
+.btn-save:hover{background:#33ebff;}
+.btn-save.loading{opacity:.6;pointer-events:none;}
+.alert{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:14px;
+  font-family:var(--font);display:none;}
+.alert.err{background:rgba(224,49,49,.1);border:1px solid rgba(224,49,49,.3);color:#ff8787;}
+.alert.ok{background:rgba(47,158,68,.1);border:1px solid rgba(47,158,68,.3);color:#69db7c;}
+.alert.info{background:rgba(51,154,240,.1);border:1px solid rgba(51,154,240,.3);color:#74c0fc;}
+.alert.show{display:block;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel);border:1px solid var(--border2);border-radius:8px;
+  padding:10px 20px;font-family:var(--font);font-size:13px;color:var(--text);
+  opacity:0;transition:.3s;z-index:999;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.chip-admin{background:rgba(245,159,0,.15);color:#ffd43b;border:1px solid rgba(245,159,0,.3);}
+.chip-jefe_nacional{background:rgba(245,159,0,.12);color:var(--amber);border:1px solid rgba(245,159,0,.25);}
+.chip-jefe_estacion{background:rgba(11,197,160,.12);color:#0bc5a0;border:1px solid rgba(11,197,160,.25);}
+.chip-comandante{background:rgba(11,197,160,.10);color:#0bc5a0;border:1px solid rgba(11,197,160,.2);}
+.chip-docente{background:rgba(112,72,232,.12);color:#a78bfa;border:1px solid rgba(112,72,232,.25);}
+.chip-bombero{background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.25);}
+.info-box{background:rgba(51,154,240,.07);border:1px solid rgba(51,154,240,.2);
+  border-radius:8px;padding:12px 16px;margin-bottom:20px;
+  font-family:var(--font);font-size:11px;color:var(--text2);line-height:1.7;}
+.info-box strong{color:var(--text);}
+@media(max-width:700px){
+  .table-head,.user-row{grid-template-columns:1fr 90px;}
+  .th-rol,.th-est,.ur-cell-rol,.ur-cell-est{display:none;}
+  .form-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="topbar-back" href="dashboard_principal.html">← Dashboard</a>
+  <span class="topbar-title">👤 Gestión de Usuarios</span>
+  <span class="topbar-badge">Solo Administrador</span>
+</div>
+
+<div class="page">
+
+  <div class="info-box">
+    <strong>¿Qué puede hacer cada rol?</strong><br>
+    🛡️ Admin / 🎖️ Jefe Nacional — acceso total · escritura en todas las estaciones<br>
+    👨‍✈️ Jefe de Estación — escritura real solo en <strong>su</strong> estación<br>
+    🚒 Comandante — acceso total · <strong>sin escritura en BD</strong> (modo visualización)<br>
+    👨‍🏫 Docente — acceso total · <strong>sin escritura en BD</strong> (modo visualización)<br>
+    🔥 Bombero — acceso total · <strong>sin escritura en BD</strong> (modo visualización)
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Buscar por nombre…" oninput="filtrarTabla()">
+    <select id="filtroRol" onchange="filtrarTabla()">
+      <option value="">Todos los roles</option>
+      <option value="admin">Administrador</option>
+      <option value="jefe_nacional">Jefe Nacional</option>
+      <option value="jefe_estacion">Jefe de Estación</option>
+      <option value="comandante">Comandante</option>
+      <option value="docente">Docente / CEA</option>
+      <option value="bombero">Bombero</option>
+    </select>
+    <select id="filtroEst" onchange="filtrarTabla()">
+      <option value="">Todas las estaciones</option>
+    </select>
+    <button class="btn-nuevo" onclick="abrirModalNuevo()">+ Nuevo Usuario</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <div>Usuario</div>
+      <div class="th-rol">Rol</div>
+      <div class="th-est">Estación</div>
+      <div></div>
+    </div>
+    <div id="tabla-body">
+      <div class="state-msg"><div class="sm-icon">⏳</div>Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-titulo">Nuevo Usuario</h2>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert err"  id="alert-err"></div>
+      <div class="alert ok"   id="alert-ok"></div>
+      <div class="alert info" id="alert-info"></div>
+
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input type="text" id="f-nombre" class="form-input" placeholder="Juan Pérez Rodríguez">
+      </div>
+
+      <div class="form-group" id="group-email">
+        <label class="form-label">Correo institucional *</label>
+        <input type="email" id="f-email" class="form-input" placeholder="j.perez@aerocivil.gov.co">
+        <div class="form-hint">Se enviará un correo de invitación para establecer contraseña.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Rol *</label>
+          <select id="f-rol" class="form-select" onchange="toggleEstacion()">
+            <option value="">— Seleccionar —</option>
+            <option value="admin">🛡️ Administrador</option>
+            <option value="jefe_nacional">🎖️ Jefe Nacional</option>
+            <option value="jefe_estacion">👨‍✈️ Jefe de Estación</option>
+            <option value="comandante">🚒 Comandante</option>
+            <option value="docente">👨‍🏫 Docente / CEA</option>
+            <option value="bombero">🔥 Bombero</option>
+          </select>
+        </div>
+        <div class="form-group" id="group-estacion" style="display:none">
+          <label class="form-label">Estación OACI *</label>
+          <select id="f-estacion" class="form-select">
+            <option value="">— Seleccionar —</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel-m" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-save" id="btn-guardar-modal" onclick="guardarUsuario()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+const ROL_LABELS = {
+  admin:         {label:'Administrador',   emoji:'🛡️', cls:'chip-admin'},
+  jefe_nacional: {label:'Jefe Nacional',   emoji:'🎖️', cls:'chip-jefe_nacional'},
+  jefe_estacion: {label:'Jefe Estación',   emoji:'👨‍✈️',cls:'chip-jefe_estacion'},
+  comandante:    {label:'Comandante',      emoji:'🚒', cls:'chip-comandante'},
+  docente:       {label:'Docente / CEA',   emoji:'👨‍🏫',cls:'chip-docente'},
+  bombero:       {label:'Bombero',         emoji:'🔥', cls:'chip-bombero'},
+};
+const ROLES_CON_ESTACION = ['jefe_estacion','comandante','docente','bombero'];
+let usuarios=[], estaciones=[], editandoId=null;
+
+window.onSEIReady = async function(session) {
+  if (session.rol !== 'admin') { window.location.href='dashboard_principal.html'; return; }
+  await Promise.all([cargarEstaciones(), cargarUsuarios()]);
+};
+
+async function cargarEstaciones() {
+  const {data} = await supabaseClient.from('estaciones_sei')
+    .select('id,oaci,nombre_aeropuerto').order('oaci');
+  estaciones = data || [];
+  const filtro = document.getElementById('filtroEst');
+  const sel    = document.getElementById('f-estacion');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+  estaciones.forEach(e => {
+    const opt = `<option value="${e.oaci}">${e.oaci}${e.nombre_aeropuerto?' — '+e.nombre_aeropuerto:''}</option>`;
+    filtro.insertAdjacentHTML('beforeend', opt);
+    sel.insertAdjacentHTML('beforeend', opt);
+  });
+}
+
+async function cargarUsuarios() {
+  document.getElementById('tabla-body').innerHTML =
+    '<div class="state-msg"><div class="sm-icon">⏳</div>Cargando usuarios…</div>';
+  const {data, error} = await supabaseClient
+    .from('perfiles_usuarios')
+    .select('id,user_id,nombre_completo,rol,estacion_id')
+    .order('nombre_completo');
+  if (error) {
+    document.getElementById('tabla-body').innerHTML =
+      `<div class="state-msg"><div class="sm-icon">⚠️</div>Error: ${error.message}</div>`;
+    return;
+  }
+  usuarios = data || [];
+  renderTabla(usuarios);
+}
+
+function renderTabla(lista) {
+  const body = document.getElementById('tabla-body');
+  if (!lista.length) {
+    body.innerHTML='<div class="state-msg"><div class="sm-icon">👤</div>Sin resultados.</div>';
+    return;
+  }
+  body.innerHTML = lista.map(u => {
+    const ri = ROL_LABELS[u.rol] || {label:u.rol, emoji:'?', cls:''};
+    const est = u.estacion_id || '—';
+    return `<div class="user-row">
+      <div>
+        <div class="ur-name">${ri.emoji} ${u.nombre_completo||'(sin nombre)'}</div>
+        <div class="ur-email">${u.estacion_id ? 'Estación: '+u.estacion_id : 'Sin estación asignada'}</div>
+      </div>
+      <div class="ur-cell-rol"><span class="rol-chip ${ri.cls}">${ri.label}</span></div>
+      <div class="ur-cell-est"><span class="est-tag">${est}</span></div>
+      <div class="ur-actions">
+        <button class="btn-edit" onclick="abrirModalEditar('${u.id}')">✏</button>
+        <button class="btn-del"  onclick="eliminarUsuario('${u.id}','${u.nombre_completo||''}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarTabla() {
+  const q   = document.getElementById('searchInput').value.toLowerCase();
+  const rol = document.getElementById('filtroRol').value;
+  const est = document.getElementById('filtroEst').value;
+  renderTabla(usuarios.filter(u =>
+    (!q   || (u.nombre_completo||'').toLowerCase().includes(q)) &&
+    (!rol || u.rol === rol) &&
+    (!est || u.estacion_id === est)
+  ));
+}
+
+function toggleEstacion() {
+  const rol = document.getElementById('f-rol').value;
+  document.getElementById('group-estacion').style.display =
+    ROLES_CON_ESTACION.includes(rol) ? 'block' : 'none';
+}
+
+function abrirModalNuevo() {
+  editandoId=null;
+  document.getElementById('modal-titulo').textContent='Nuevo Usuario';
+  document.getElementById('f-nombre').value='';
+  document.getElementById('f-email').value='';
+  document.getElementById('f-rol').value='';
+  document.getElementById('f-estacion').value='';
+  document.getElementById('group-email').style.display='block';
+  document.getElementById('group-estacion').style.display='none';
+  ocultarAlerts();
+  mostrarInfo('Se enviará un correo de invitación al usuario para que establezca su contraseña.');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function abrirModalEditar(id) {
+  const u = usuarios.find(x=>x.id===id);
+  if (!u) return;
+  editandoId=id;
+  document.getElementById('modal-titulo').textContent='Editar Usuario';
+  document.getElementById('f-nombre').value=u.nombre_completo||'';
+  document.getElementById('f-rol').value=u.rol||'';
+  document.getElementById('f-estacion').value=u.estacion_id||'';
+  document.getElementById('group-email').style.display='none';
+  toggleEstacion();
+  ocultarAlerts();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editandoId=null;
+}
+
+async function guardarUsuario() {
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const email    = document.getElementById('f-email').value.trim().toLowerCase();
+  const rol      = document.getElementById('f-rol').value;
+  const estacion = document.getElementById('f-estacion').value || null;
+
+  if (!nombre) return mostrarError('El nombre es obligatorio.');
+  if (!editandoId && !email) return mostrarError('El correo es obligatorio.');
+  if (!editandoId && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return mostrarError('Ingresa un correo válido.');
+  if (!rol) return mostrarError('Selecciona un rol.');
+  if (ROLES_CON_ESTACION.includes(rol) && !estacion)
+    return mostrarError('Este rol requiere seleccionar una estación OACI.');
+
+  const btn = document.getElementById('btn-guardar-modal');
+  btn.classList.add('loading'); btn.textContent='Guardando…';
+  ocultarAlerts();
+
+  try {
+    if (!editandoId) {
+      /* CREAR USUARIO — 2 pasos:
+         Paso 1: Crear cuenta en Supabase Auth via Edge Function invite-user
+         Paso 2: Insertar perfil en perfiles_usuarios                       */
+      const session = await supabaseClient.auth.getSession();
+      const token   = session.data.session?.access_token;
+
+      const res = await fetch(
+        'https://mctrdchacgwtqimsdpvn.supabase.co/functions/v1/invite-user',
+        {
+          method: 'POST',
+          headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({email, nombre_completo:nombre, rol, estacion_id:estacion}),
+        }
+      );
+
+      const resJson = await res.json().catch(()=>({}));
+
+      if (!res.ok) {
+        // Si la Edge Function no existe aún: crear perfil manualmente
+        // El admin deberá invitar al usuario desde Supabase dashboard
+        if (res.status === 404 || res.status === 405) {
+          mostrarInfo(
+            '⚠ La función de invitación no está configurada aún.\n' +
+            'Paso 1: Ve a Supabase Dashboard → Authentication → Users → Invite User → ingresa ' + email + '\n' +
+            'Paso 2: Una vez creado, edita este usuario para asignarle el rol y la estación.'
+          );
+          return;
+        }
+        throw new Error(resJson.message || `Error ${res.status}`);
+      }
+
+      mostrarOk(`✓ Invitación enviada a ${email}. El usuario recibirá un correo para crear su contraseña.`);
+      await cargarUsuarios();
+
+    } else {
+      /* EDITAR — solo actualizar perfiles_usuarios */
+      const {error} = await supabaseClient
+        .from('perfiles_usuarios')
+        .update({nombre_completo:nombre, rol, estacion_id:estacion})
+        .eq('id', editandoId);
+      if (error) throw new Error(error.message);
+      mostrarOk('✓ Usuario actualizado correctamente.');
+      await cargarUsuarios();
+      setTimeout(cerrarModal, 1400);
+    }
+  } catch(e) {
+    mostrarError(e.message || 'Error inesperado. Revisa la consola.');
+    console.error('[admin_usuarios]', e);
+  } finally {
+    btn.classList.remove('loading'); btn.textContent='Guardar';
+  }
+}
+
+async function eliminarUsuario(id, nombre) {
+  if (!confirm(`¿Eliminar el perfil de "${nombre}"?\n\nSe revoca el acceso al sistema. La cuenta de correo en Supabase Auth permanece inactiva.`))
+    return;
+  const {error} = await supabaseClient.from('perfiles_usuarios').delete().eq('id',id);
+  if (error) { showToast('Error: '+error.message); return; }
+  showToast(`✓ Perfil de "${nombre}" eliminado.`);
+  await cargarUsuarios();
+}
+
+function mostrarError(msg){const e=document.getElementById('alert-err');e.textContent='⚠ '+msg;e.classList.add('show');}
+function mostrarOk(msg){const e=document.getElementById('alert-ok');e.textContent=msg;e.classList.add('show');}
+function mostrarInfo(msg){const e=document.getElementById('alert-info');e.textContent=msg;e.classList.add('show');}
+function ocultarAlerts(){['alert-err','alert-ok','alert-info'].forEach(id=>document.getElementById(id).classList.remove('show'));}
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3000);}
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
+</script>
+</body>
+</html>
